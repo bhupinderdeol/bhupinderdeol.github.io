@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Alfa Centauri Software | Web Development & Coding Solutions</title>
+
+  <!-- SEO & AdSense readiness -->
+  <meta name="description" content="Alfa Centauri Software — handcrafted PHP, JavaScript, and Python web applications by Bhupinder Deol. Live demos include a media player, raag synthesizer, MIDI instrument library, and more." />
+  <meta name="keywords" content="web development, PHP, JavaScript, Python, media player, raag player, synthesizer, Tone.js, Web Audio API, Mississauga, Canada" />
+  <meta name="author" content="Bhupinder Deol" />
+  <meta name="robots" content="index, follow" />
+  <link rel="canonical" href="https://bhupinderdeol.github.io/" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="Alfa Centauri Software | Web Development & Coding Solutions" />
+  <meta property="og:description" content="Handcrafted PHP, JavaScript, and Python applications — live demos available." />
+  <meta property="og:url" content="https://bhupinderdeol.github.io/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://bhupinderdeol.github.io/logo.png" />
+
+  <!-- Sitemap hint for crawlers -->
+  <link rel="sitemap" type="application/xml" title="Sitemap" href="https://bhupinderdeol.github.io/sitemap.xml" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #0d1117;
+      --surface:   #161b22;
+      --border:    #30363d;
+      --text:      #e6edf3;
+      --muted:     #8b949e;
+      --accent:    #58a6ff;
+      --accent2:   #3fb950;
+      --accent3:   #d2a8ff;
+      --accent4:   #ffa657;
+      --radius:    8px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(13,17,23,0.92);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+      padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      height: 56px;
+    }
+    .nav-brand {
+      font-weight: 700; font-size: 1rem; color: var(--text); text-decoration: none;
+    }
+    .nav-links {
+      display: flex; gap: 1.5rem; list-style: none; flex-wrap: wrap;
+    }
+    .nav-links a {
+      color: var(--muted); text-decoration: none; font-size: 0.875rem;
+      transition: color 0.15s;
+    }
+    .nav-links a:hover { color: var(--text); }
+
+    /* ── SECTIONS ── */
+    section { padding: 80px 1.5rem; max-width: 960px; margin: 0 auto; }
+    section + section { border-top: 1px solid var(--border); }
+
+    .section-label {
+      font-size: 0.75rem; font-weight: 600; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem;
+    }
+    h2 { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.75rem; }
+    h2 .sub { display: block; font-size: 0.95rem; font-weight: 400; color: var(--muted); margin-top: 0.4rem; }
+
+    /* ── HERO ── */
+    #hero {
+      padding: 100px 1.5rem 80px;
+      max-width: 960px; margin: 0 auto;
+      display: flex; flex-direction: column; align-items: flex-start; gap: 1.25rem;
+    }
+    .hero-logo {
+      width: 72px; height: 72px; border-radius: 12px;
+      border: 1px solid var(--border);
+    }
+    #hero h1 { font-size: clamp(1.8rem, 4vw, 2.8rem); font-weight: 800; }
+    #hero p  { font-size: 1.1rem; color: var(--muted); max-width: 560px; }
+    .btn {
+      display: inline-block; padding: 0.6rem 1.2rem;
+      background: var(--accent); color: #0d1117;
+      font-weight: 600; font-size: 0.9rem; border-radius: var(--radius);
+      text-decoration: none; transition: opacity 0.15s;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    /* ── SERVICES GRID ── */
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .service-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+    }
+    .service-card .icon { font-size: 1.5rem; margin-bottom: 0.6rem; }
+    .service-card h3 { font-size: 1rem; font-weight: 700; margin-bottom: 0.4rem; }
+    .service-card p  { font-size: 0.875rem; color: var(--muted); }
+
+    /* ── PROJECTS / SAMPLES CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 1rem; margin-top: 2rem;
+    }
+    .card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 1.25rem 1.5rem;
+      display: flex; flex-direction: column; gap: 0.5rem;
+      transition: border-color 0.15s, transform 0.15s;
+    }
+    .card:hover { border-color: var(--accent); transform: translateY(-2px); }
+    .card .tags {
+      display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.25rem;
+    }
+    .tag {
+      font-size: 0.7rem; font-weight: 600; letter-spacing: 0.05em;
+      background: rgba(88,166,255,0.12); color: var(--accent);
+      border: 1px solid rgba(88,166,255,0.25);
+      border-radius: 4px; padding: 0.15rem 0.45rem;
+    }
+    .tag.green { background: rgba(63,185,80,0.12); color: var(--accent2); border-color: rgba(63,185,80,0.25); }
+    .tag.purple { background: rgba(210,168,255,0.12); color: var(--accent3); border-color: rgba(210,168,255,0.25); }
+    .tag.orange { background: rgba(255,166,87,0.12); color: var(--accent4); border-color: rgba(255,166,87,0.25); }
+    .card h3 { font-size: 1rem; font-weight: 700; }
+    .card p  { font-size: 0.875rem; color: var(--muted); flex: 1; }
+    .card-link {
+      display: inline-flex; align-items: center; gap: 0.3rem;
+      font-size: 0.85rem; font-weight: 600; color: var(--accent);
+      text-decoration: none; margin-top: 0.5rem;
+      transition: gap 0.15s;
+    }
+    .card-link:hover { gap: 0.5rem; }
+    .card-link::after { content: "→"; }
+
+    /* ── ABOUT ── */
+    .about-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 2rem; margin-top: 2rem;
+    }
+    @media (max-width: 600px) { .about-grid { grid-template-columns: 1fr; } }
+    .about-list { list-style: none; display: flex; flex-direction: column; gap: 0.6rem; }
+    .about-list li { font-size: 0.9rem; color: var(--muted); }
+    .about-list li strong { color: var(--text); }
+
+    /* ── PRIVACY ── */
+    #privacy h3 { font-size: 1rem; font-weight: 700; margin: 1.5rem 0 0.4rem; }
+    #privacy p, #privacy li { font-size: 0.9rem; color: var(--muted); margin-bottom: 0.4rem; }
+    #privacy a { color: var(--accent); }
+    #privacy ul { padding-left: 1.25rem; }
+
+    /* ── CONTACT ── */
+    #contact .contact-email {
+      display: inline-block; margin-top: 1rem;
+      font-size: 1.1rem; color: var(--accent);
+      text-decoration: none; font-weight: 600;
+    }
+    #contact .location { color: var(--muted); font-size: 0.9rem; margin-top: 0.5rem; }
+    #contact .response { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+
+    /* ── FOOTER ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      color: var(--muted); font-size: 0.85rem;
+    }
+    footer nav { margin-top: 0.75rem; display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+    footer nav a { color: var(--muted); text-decoration: none; }
+    footer nav a:hover { color: var(--text); }
+
+    /* ── RESPONSIVE NAV ── */
+    @media (max-width: 640px) {
+      .nav-links { gap: 1rem; }
+      .nav-links a { font-size: 0.8rem; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════ NAV ═══════════ -->
+<nav>
+  <a class="nav-brand" href="#">⭐ Alfa Centauri Software</a>
+  <ul class="nav-links">
+    <li><a href="#services">Services</a></li>
+    <li><a href="#projects">Projects</a></li>
+    <li><a href="#samples">Samples</a></li>
+    <li><a href="#about">About</a></li>
+    <li><a href="#privacy">Privacy Policy</a></li>
+    <li><a href="#contact">Contact</a></li>
+  </ul>
+</nav>
+
+<!-- ═══════════ HERO ═══════════ -->
+<section id="hero" style="border:none">
+  <img class="hero-logo" src="https://bhupinderdeol.github.io/logo.png" alt="Alfa Centauri Software logo" />
+  <h1>Alfa Centauri Software</h1>
+  <p>Professional web development, debugging, and coding solutions built with PHP, JavaScript, Python, and more.</p>
+  <a class="btn" href="#contact">Get in Touch →</a>
+</section>
+
+<!-- ═══════════ SERVICES ═══════════ -->
+<section id="services">
+  <div class="section-label">What We Do</div>
+  <h2>Our Core Specializations
+    <span class="sub">From front-end design to database-backed applications, we build clean, functional, and maintainable software for individuals, small businesses, and community organizations.</span>
+  </h2>
+  <div class="services-grid">
+    <div class="service-card">
+      <div class="icon">🌐</div>
+      <h3>HTML &amp; CSS</h3>
+      <p>Semantic, accessible markup paired with responsive, visually polished layouts that work on any device.</p>
+    </div>
+    <div class="service-card">
+      <div class="icon">⚡</div>
+      <h3>JavaScript</h3>
+      <p>Interactive UIs, Web Audio API visualizations, drag-and-drop interfaces, and dynamic browser-based tools.</p>
+    </div>
+    <div class="service-card">
+      <div class="icon">🐘</div>
+      <h3>PHP</h3>
+      <p>Robust server-side applications, custom media players, form handlers, and content management systems.</p>
+    </div>
+    <div class="service-card">
+      <div class="icon">🐍</div>
+      <h3>Python</h3>
+      <p>Automation scripts, audio daemons, data processing utilities, and system-level tooling for Linux environments.</p>
+    </div>
+    <div class="service-card">
+      <div class="icon">🗄️</div>
+      <h3>MySQL</h3>
+      <p>Schema design, query optimization, and integration with PHP and Python back-ends for reliable data storage.</p>
+    </div>
+    <div class="service-card">
+      <div class="icon">🔧</div>
+      <h3>Debugging &amp; Review</h3>
+      <p>Code audits, performance reviews, error tracing, and refactoring of existing web applications.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PROJECTS ═══════════ -->
+<section id="projects">
+  <div class="section-label">Work &amp; Projects</div>
+  <h2>Featured Projects
+    <span class="sub">A selection of self-built tools and applications developed for learning, community use, and creative exploration.</span>
+  </h2>
+  <div class="cards">
+    <div class="card">
+      <div class="tags"><span class="tag">PHP</span><span class="tag">JavaScript</span></div>
+      <h3>Suno v25 — Media Player</h3>
+      <p>A self-hosted PHP media player featuring Web Audio API spectrum visualization, drag-and-drop upload, per-track reactions, and a DNA-themed animation engine. Final project for CS50x.</p>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag">HTML</span></div>
+      <h3>Raag Player</h3>
+      <p>An interactive browser-based instrument player tuned to Gurugranth Sahib Ji ragas, combining Indian classical music theory with modern Web Audio synthesis.</p>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag green">Python</span><span class="tag green">systemd</span></div>
+      <h3>PyAudio Daemon</h3>
+      <p>A userspace audio daemon for Debian 13 using asyncio IPC, ALSA backend, a software mixer with soft-clipping, and a systemd service unit for persistent audio routing.</p>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag purple">Bash</span><span class="tag purple">Motion</span></div>
+      <h3>Dual-Camera Surveillance Script</h3>
+      <p>A colour-coded Bash automation script managing dual-camera recording via Motion and systemd, with careful MP4-only file handling and service lifecycle management.</p>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag">HTML</span></div>
+      <h3>1615-Instrument Synthesizer</h3>
+      <p>A fully browser-based general-MIDI synthesizer covering 1,615 instrument patches, built as a single self-contained HTML file with Tone.js.</p>
+    </div>
+    <div class="card">
+      <div class="tags"><span class="tag">PHP</span><span class="tag green">Apache</span></div>
+      <h3>Local Media Server</h3>
+      <p>A self-hosted Apache + PHP 8.4 + MariaDB stack on Debian 13, powering a suite of creative tools, kirtan players, and audio visualization apps served locally.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ SAMPLES ═══════════ -->
+<section id="samples">
+  <div class="section-label">Live Demos</div>
+  <h2>Try the Samples
+    <span class="sub">Interactive browser-based tools hosted on our development server. No installation required — open and play.</span>
+  </h2>
+  <div class="cards">
+
+    <div class="card">
+      <div class="tags"><span class="tag">PHP</span><span class="tag">JavaScript</span><span class="tag">Web Audio</span></div>
+      <h3>Suno v25 — Media Player</h3>
+      <p>Upload MP3/MP4 files and play them through a neon-styled interface with real-time spectrum visualization, DNA animation engine, per-track reactions, and drag-and-drop queuing.</p>
+      <a class="card-link" href="http://deol.free.nf/suno-v25.php" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag">Indian Classical</span></div>
+      <h3>Raag Player</h3>
+      <p>Browser-based instrument tuned to authentic Gurugranth Sahib Ji ragas. Select a raga, choose an instrument voice, and explore the scale with an on-screen keyboard — no plugins needed.</p>
+      <a class="card-link" href="http://deol.free.nf/raag.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag">General MIDI</span></div>
+      <h3>1615-Instrument Synthesizer</h3>
+      <p>Every General MIDI instrument patch in one self-contained page. Pick any of 1,615 voices across pianos, strings, brass, world instruments, and sound effects, then play via keyboard or on-screen keys.</p>
+      <a class="card-link" href="http://deol.free.nf/synth.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag purple">Kirtan</span><span class="tag orange">Tone.js</span></div>
+      <h3>Kirtan Sacred Audio Player</h3>
+      <p>A devotional audio player built around Sikh kirtan traditions. Streams and visualizes kirtan tracks with a clean, ad-free interface designed for contemplative listening.</p>
+      <a class="card-link" href="http://deol.free.nf/kirtan.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag">JavaScript</span><span class="tag orange">Tone.js</span></div>
+      <h3>Piano Synthesizer</h3>
+      <p>A browser-based piano with polyphonic synthesis, sustain pedal, and octave shifting. Playable from your computer keyboard or the on-screen keys, with adjustable reverb and attack.</p>
+      <a class="card-link" href="http://deol.free.nf/piano.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag green">Beats</span></div>
+      <h3>Funk-Rap Beat Maker</h3>
+      <p>Step-sequence drum patterns, funk bass lines, and rap-style chord stabs in one page. Adjust tempo, swing, and individual pad volumes to craft your own groove — then export as a loop idea.</p>
+      <a class="card-link" href="http://deol.free.nf/beatmaker.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag orange">Tone.js</span><span class="tag purple">Orchestral</span></div>
+      <h3>Mozart-Style Orchestral Composer</h3>
+      <p>An algorithmic composition tool that generates classical-style four-part harmonies following voice-leading rules. Choose a key and tempo, generate a piece, and play it back with full orchestral voices.</p>
+      <a class="card-link" href="http://deol.free.nf/mozart.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+    <div class="card">
+      <div class="tags"><span class="tag green">Voice Control</span><span class="tag">Web Speech</span></div>
+      <h3>Voice-Controlled Media Player</h3>
+      <p>Hands-free media playback using the Web Speech API. Say commands like "play", "pause", "next track", or "volume up" — a useful accessibility-first prototype for browser-based audio.</p>
+      <a class="card-link" href="http://deol.free.nf/voice-player.html" target="_blank" rel="noopener noreferrer">Try it live</a>
+    </div>
+
+  </div>
+</section>
+
+<!-- ═══════════ ABOUT ═══════════ -->
+<section id="about">
+  <div class="section-label">About Us</div>
+  <h2>Who We Are</h2>
+  <p style="color:var(--muted);margin-top:1rem;max-width:640px;">
+    Alfa Centauri Software is an independent software development practice based in Mississauga, Ontario, Canada.
+    Founded by Bhupinder Deol, the practice focuses on practical, handcrafted web applications built
+    without heavy frameworks or build pipelines — just clean code that runs.
+  </p>
+  <p style="color:var(--muted);margin-top:0.75rem;max-width:640px;">
+    Our work spans interactive music tools rooted in Indian classical traditions, security-oriented
+    Linux utilities, CS50x coursework, and bespoke web applications for real-world use.
+  </p>
+  <div class="about-grid" style="margin-top:2rem;">
+    <div>
+      <div class="section-label">At a Glance</div>
+      <ul class="about-list" style="margin-top:0.75rem;">
+        <li><strong>Location:</strong> Mississauga, Ontario, Canada</li>
+        <li><strong>Primary Stack:</strong> PHP 8.4, JavaScript, Python 3, MySQL, Apache</li>
+        <li><strong>Platform:</strong> Debian 13 (Trixie), self-hosted local server</li>
+        <li><strong>Interests:</strong> Indian classical music, Sikh kirtan, Web Audio API, Linux</li>
+        <li><strong>Education:</strong> CS50x (Harvard) — in progress</li>
+        <li><strong>Background:</strong> 13+ years in security; transitioning into software development</li>
+        <li><strong>Contact:</strong> bhupinderdeol25@gmail.com</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════ PRIVACY ═══════════ -->
+<section id="privacy">
+  <div class="section-label">Legal</div>
+  <h2>Privacy Policy</h2>
+  <p style="color:var(--muted);font-size:0.85rem;margin-top:0.5rem;"><em>Last updated: April 2025</em></p>
+
+  <h3>1. Overview</h3>
+  <p>This Privacy Policy describes how Alfa Centauri Software ("we," "us," or "our"), operated by Bhupinder Deol,
+  collects, uses, and discloses information when you visit bhupinderdeol.github.io (the "Site").
+  By using this Site you agree to the terms of this policy.</p>
+
+  <h3>2. Information We Collect</h3>
+  <p>We do not directly collect personally identifiable information. However, third-party services used on this
+  Site — including Google AdSense — may collect certain data automatically, such as your IP address, browser type,
+  pages visited, and time spent on the Site, through the use of cookies and similar tracking technologies.</p>
+
+  <h3>3. Cookies and Google AdSense</h3>
+  <p>This Site uses Google AdSense to display advertisements. Google, as a third-party vendor, uses cookies to serve
+  ads based on your prior visits to this and other websites. Google's use of advertising cookies enables it and its
+  partners to serve ads based on your visit to this Site and/or other sites on the Internet.</p>
+  <p>You may opt out of personalized advertising by visiting
+  <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener">Google Ads Settings</a>.
+  You can also opt out via the
+  <a href="https://optout.networkadvertising.org/" target="_blank" rel="noopener">Network Advertising Initiative opt-out page</a>.</p>
+
+  <h3>4. Third-Party Links</h3>
+  <p>This Site may contain links to external websites. We are not responsible for the privacy practices or
+  content of those sites and encourage you to review their individual privacy policies.</p>
+
+  <h3>5. Children's Privacy</h3>
+  <p>This Site is not directed at children under the age of 13. We do not knowingly collect personal data from
+  children. If you believe a child has provided personal information, please contact us so we can remove it.</p>
+
+  <h3>6. Changes to This Policy</h3>
+  <p>We may update this Privacy Policy from time to time. Changes will be posted on this page with an updated
+  effective date. Continued use of the Site after any changes constitutes acceptance of the revised policy.</p>
+
+  <h3>7. Contact</h3>
+  <p>For questions about this Privacy Policy, contact us at:
+  <a href="mailto:bhupinderdeol25@gmail.com">bhupinderdeol25@gmail.com</a></p>
+</section>
+
+<!-- ═══════════ CONTACT ═══════════ -->
+<section id="contact">
+  <div class="section-label">Get in Touch</div>
+  <h2>Contact Us</h2>
+  <p style="color:var(--muted);margin-top:0.75rem;max-width:520px;">
+    Have a project in mind, a bug that needs squashing, or a question about any of our tools?
+    We'd love to hear from you. Reach out directly by email:
+  </p>
+  <a class="contact-email" href="mailto:bhupinderdeol25@gmail.com">bhupinderdeol25@gmail.com</a>
+  <p class="location">Based in Mississauga, Ontario, Canada 🇨🇦</p>
+  <p class="response">We typically respond within 1–2 business days.</p>
+</section>
+
+<!-- ═══════════ FOOTER ═══════════ -->
+<footer>
+  <p>© 2025 Alfa Centauri Software — Bhupinder Deol, Mississauga, Ontario, Canada</p>
+  <nav>
+    <a href="#services">Services</a>
+    <a href="#projects">Projects</a>
+    <a href="#samples">Samples</a>
+    <a href="#about">About</a>
+    <a href="#privacy">Privacy Policy</a>
+    <a href="#contact">Contact</a>
+  </nav>
+</footer>
+
+</body>
+</html>
