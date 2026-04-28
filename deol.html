@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siralata - Punjabi AI Music Collection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            border-bottom: 2px solid #0dcaf0;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            margin-top: 30px;
+        }
+        .player-container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .playlist-container {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        }
+        .list-group-item {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border-color: #333;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .list-group-item:hover {
+            background-color: #3a3a3a;
+        }
+        .list-group-item.active {
+            background-color: #0dcaf0;
+            color: #000;
+            border-color: #0dcaf0;
+            font-weight: bold;
+        }
+        audio {
+            width: 100%;
+            margin-top: 20px;
+            outline: none;
+        }
+        /* Custom scrollbar for playlist */
+        .playlist-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .playlist-container::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        .playlist-container::-webkit-scrollbar-thumb {
+            background: #0dcaf0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row header-section">
+        <div class="col-12 text-center">
+            <h1 class="display-5 text-info">Siralata Collection</h1>
+            <p class="lead">AI-Generated Punjabi Variations</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="player-container">
+                <h3 id="current-track-title" class="text-info mb-4">Select a track to begin</h3>
+                
+                <div class="bg-dark rounded mb-4" style="height: 300px; display: flex; align-items: center; justify-content: center; border: 1px solid #333;">
+                    <span class="text-muted">Audio Visualizer / Video Area</span>
+                </div>
+
+                <audio id="audio-player" controls>
+                    <source src="" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="playlist-container p-2">
+                <h4 class="text-center text-info my-3">Playlist</h4>
+                <div class="list-group list-group-flush" id="playlist-box">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // JSON Playlist generated from uploaded file
+    const playlist = [
+        "0001.mp3",,
+"0002.mp3",,
+"0003.mp3",,
+"0004.mp3",,
+"0005.mp3",,
+"0006.mp3",,
+"0007.mp3",,
+"0008.mp3",,
+"0009.mp3",,
+"0010.mp3",,
+"0011.mp3",,
+"0012.mp3",,
+"0013.mp3",,
+"0014.mp3",,
+"0015.mp3",,
+"0016.mp3",,
+"0017.mp3",,
+"0018.mp3",,
+"0019.mp3",,
+"0020.mp3",,
+"0021.mp3",,
+"0022.mp3",,
+"0023.mp3",,
+"0024.mp3",,
+"0025.mp3",,
+"0026.mp3",,
+"0027.mp3",,
+"0028.mp3",,
+"0029.mp3",,
+"0030.mp3",,
+"0031.mp3",,
+"0032.mp3",,
+"0033.mp3",,
+"0034.mp3",,
+"0035.mp3",,
+"0036.mp3",,
+"0037.mp3",,
+"0038.mp3",,
+"0039.mp3",,
+"0040.mp3",,
+"0041.mp3",,
+"0042.mp3",,
+"0043.mp3",,
+"0044.mp3",,
+"0045.mp3",,
+"0046.mp3",,
+"0047.mp3",,
+"0048.mp3",,
+"0049.mp3",,
+"0050.mp3",,
+"0051.mp3",,
+"0052.mp3",,
+"0053.mp3",,
+"0054.mp3",,
+"0055.mp3",,
+"0056.mp3",,
+"0057.mp3",,
+"0058.mp3",,
+"0059.mp3",,
+"0060.mp3",,
+"0061.mp3",,
+"0062.mp3",,
+"0063.mp3",,
+"0064.mp3",,
+"0065.mp3",,
+"0066.mp3",,
+"0067.mp3",,
+"0068.mp3",,
+"0069.mp3",,
+"0070.mp3",,
+"0071.mp3",,
+"0072.mp3",,
+"0073.mp3",,
+"0074.mp3",,
+"0075.mp3",,
+"0076.mp3",,
+"0077.mp3",,
+"0078.mp3",,
+"0079.mp3",,
+"0080.mp3",,
+"0081.mp3",,
+"0082.mp3",,
+"0083.mp3",,
+"0084.mp3",,
+"0085.mp3",,
+"0086.mp3",,
+"0087.mp3",,
+"0088.mp3",,
+"0089.mp3",,
+"0090.mp3",,
+"0091.mp3",,
+"0092.mp3",,
+"0094.mp3",,
+"0095.mp3",,
+"0096.mp3",,
+"0097.mp3",,
+"0098.mp3",,
+"03_10.mp3",
+"04_11.mp3",
+"05_12.mp3",
+"06_13.mp3",
+"07_14.mp3",
+"08_15.mp3",
+"09_16.mp3",
+"10_17.mp3",
+"11_18.mp3",
+"12_19.mp3",
+"13_1.mp3",
+"14_20.mp3",
+"15_21.mp3",
+"16_22.mp3",
+"17_23.mp3",
+"18_24.mp3",
+"19_2.mp3",
+"20_3.mp3",
+"21_4.mp3",
+"22_5.mp3",
+"23_6.mp3",
+"24_7.mp3",
+"25_8.mp3",
+"26_9.mp3"
+
+
+    ];
+
+    const audioPath = "./"; // Relative path to where MP3s are stored on GitHub
+    let currentIndex = 0;
+    const player = document.getElementById("audio-player");
+    const $playlistBox = $("#playlist-box");
+
+    $(document).ready(function() {
+        // Populate the playlist UI
+        $.each(playlist, function(index, filename) {
+            // Clean up name for display (remove .mp3)
+            let displayName = filename.replace('.mp3', '');
+            
+            let $item = $("<a>", {
+                text: "Track: " + displayName,
+                class: "list-group-item list-group-item-action",
+                "data-index": index
+            });
+            $playlistBox.append($item);
+        });
+
+        // Function to load and play a track
+        function loadTrack(index) {
+            if(index < 0 || index >= playlist.length) return;
+            currentIndex = index;
+            
+            // Update UI
+            $(".list-group-item").removeClass("active");
+            let $activeItem = $(".list-group-item").eq(index);
+            $activeItem.addClass("active");
+            
+            // Auto-scroll playlist to active item
+            $playlistBox.animate({
+                scrollTop: $activeItem.position().top + $playlistBox.scrollTop() - 50
+            }, 200);
+
+            // Update Player
+            $("#current-track-title").text($activeItem.text());
+            player.src = audioPath + playlist[index];
+            player.load();
+            player.play();
+        }
+
+        // Click event to play specific track
+        $(".list-group-item").on("click", function() {
+            let index = $(this).data("index");
+            loadTrack(index);
+        });
+
+        // Sequential Playback: When track ends, play next
+        $(player).on("ended", function() {
+            if (currentIndex + 1 < playlist.length) {
+                loadTrack(currentIndex + 1);
+            }
+        });
+    });
+</script>
+</body>
+</html>
