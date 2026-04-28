@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Siralata - Punjabi AI Music Collection</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .header-section {
+            border-bottom: 2px solid #0dcaf0;
+            margin-bottom: 30px;
+            padding-bottom: 15px;
+            margin-top: 30px;
+        }
+        .player-container {
+            background-color: #1e1e1e;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+        .playlist-container {
+            background-color: #1e1e1e;
+            border-radius: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.5);
+        }
+        .list-group-item {
+            background-color: #2a2a2a;
+            color: #e0e0e0;
+            border-color: #333;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        .list-group-item:hover {
+            background-color: #3a3a3a;
+        }
+        .list-group-item.active {
+            background-color: #0dcaf0;
+            color: #000;
+            border-color: #0dcaf0;
+            font-weight: bold;
+        }
+        audio {
+            width: 100%;
+            margin-top: 20px;
+            outline: none;
+        }
+        /* Custom scrollbar for playlist */
+        .playlist-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        .playlist-container::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+        .playlist-container::-webkit-scrollbar-thumb {
+            background: #0dcaf0;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="row header-section">
+        <div class="col-12 text-center">
+            <h1 class="display-5 text-info">Siralata Collection</h1>
+            <p class="lead">AI-Generated Punjabi Variations</p>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-8 mb-4">
+            <div class="player-container">
+                <h3 id="current-track-title" class="text-info mb-4">Select a track to begin</h3>
+                
+                <div class="bg-dark rounded mb-4" style="height: 300px; display: flex; align-items: center; justify-content: center; border: 1px solid #333;">
+                    <span class="text-muted">Audio Visualizer / Video Area</span>
+                </div>
+
+                <audio id="audio-player" controls>
+                    <source src="" type="audio/mpeg">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="playlist-container p-2">
+                <h4 class="text-center text-info my-3">Playlist</h4>
+                <div class="list-group list-group-flush" id="playlist-box">
+                    </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // JSON Playlist generated from uploaded file
+    const playlist = [
+        "0001_final_web.mp3",
+"0002_final_web.mp3",
+"0003_final_web.mp3",
+"0004_final_web.mp3",
+"0005_final_web.mp3",
+"0006_final_web.mp3",
+"0007_final_web.mp3",
+"0008_final_web.mp3",
+"0009_final_web.mp3",
+"0010_final_web.mp3",
+"0011_final_web.mp3",
+"0012_final_web.mp3",
+"0013_final_web.mp3",
+"0014_final_web.mp3",
+"0015_final_web.mp3",
+"0016_final_web.mp3",
+"0017_final_web.mp3",
+"0018_final_web.mp3",
+"0019_final_web.mp3",
+"0020_final_web.mp3",
+"0021_final_web.mp3",
+"0022_final_web.mp3",
+"0023_final_web.mp3",
+"0024_final_web.mp3",
+"0025_final_web.mp3",
+"0026_final_web.mp3",
+"0027_final_web.mp3",
+"0028_final_web.mp3",
+"0029_final_web.mp3",
+"0030_final_web.mp3",
+"0031_final_web.mp3",
+"0032_final_web.mp3",
+"0033_final_web.mp3",
+"0034_final_web.mp3",
+"0035_final_web.mp3",
+"0036_final_web.mp3",
+"0037_final_web.mp3",
+"0038_final_web.mp3",
+"0039_final_web.mp3",
+"0040_final_web.mp3",
+"0041_final_web.mp3",
+"0042_final_web.mp3",
+"0043_final_web.mp3",
+"0044_final_web.mp3",
+"0045_final_web.mp3",
+"0046_final_web.mp3",
+"0047_final_web.mp3",
+"0048_final_web.mp3",
+"0049_final_web.mp3",
+"0050_final_web.mp3",
+"0051_final_web.mp3",
+"0052_final_web.mp3",
+"0053_final_web.mp3",
+"0054_final_web.mp3",
+"0055_final_web.mp3",
+"0056_final_web.mp3",
+"0057_final_web.mp3",
+"0058_final_web.mp3",
+"0059_final_web.mp3",
+"0060_final_web.mp3",
+"0061_final_web.mp3",
+"0062_final_web.mp3",
+"0063_final_web.mp3",
+"0064_final_web.mp3",
+"0065_final_web.mp3",
+"0066_final_web.mp3",
+"0067_final_web.mp3",
+"0068_final_web.mp3",
+"0069_final_web.mp3",
+"0070_final_web.mp3",
+"0071_final_web.mp3",
+"0072_final_web.mp3",
+"0073_final_web.mp3",
+"0074_final_web.mp3",
+"0075_final_web.mp3",
+"0076_final_web.mp3",
+"0077_final_web.mp3",
+"0078_final_web.mp3",
+"0079_final_web.mp3",
+"0080_final_web.mp3",
+"0081_final_web.mp3",
+"0082_final_web.mp3",
+"0083_final_web.mp3",
+"0084_final_web.mp3",
+"0085_final_web.mp3",
+"0086_final_web.mp3",
+"0087_final_web.mp3",
+"0088_final_web.mp3",
+"0089_final_web.mp3",
+"0090_final_web.mp3",
+"0091_final_web.mp3",
+"0092_final_web.mp3",
+"0094_final_web.mp3",
+"0095_final_web.mp3",
+"0096_final_web.mp3",
+"0097_final_web.mp3",
+"0098_final_web.mp3",
+"03_10_final_web.mp3",
+"04_11_final_web.mp3",
+"05_12_final_web.mp3",
+"06_13_final_web.mp3",
+"07_14_final_web.mp3",
+"08_15_final_web.mp3",
+"09_16_final_web.mp3"
+
+
+    ];
+
+    const audioPath = "./Music/"; // Relative path to where MP3s are stored on GitHub
+    let currentIndex = 0;
+    const player = document.getElementById("audio-player");
+    const $playlistBox = $("#playlist-box");
+
+    $(document).ready(function() {
+        // Populate the playlist UI
+        $.each(playlist, function(index, filename) {
+            // Clean up name for display (remove _final.mp3)
+            let displayName = filename.replace('_final.mp3', '');
+            
+            let $item = $("<a>", {
+                text: "Track: " + displayName,
+                class: "list-group-item list-group-item-action",
+                "data-index": index
+            });
+            $playlistBox.append($item);
+        });
+
+        // Function to load and play a track
+        function loadTrack(index) {
+            if(index < 0 || index >= playlist.length) return;
+            currentIndex = index;
+            
+            // Update UI
+            $(".list-group-item").removeClass("active");
+            let $activeItem = $(".list-group-item").eq(index);
+            $activeItem.addClass("active");
+            
+            // Auto-scroll playlist to active item
+            $playlistBox.animate({
+                scrollTop: $activeItem.position().top + $playlistBox.scrollTop() - 50
+            }, 200);
+
+            // Update Player
+            $("#current-track-title").text($activeItem.text());
+            player.src = audioPath + playlist[index];
+            player.load();
+            player.play();
+        }
+
+        // Click event to play specific track
+        $(".list-group-item").on("click", function() {
+            let index = $(this).data("index");
+            loadTrack(index);
+        });
+
+        // Sequential Playback: When track ends, play next
+        $(player).on("ended", function() {
+            if (currentIndex + 1 < playlist.length) {
+                loadTrack(currentIndex + 1);
+            }
+        });
+    });
+</script>
+</body>
+</html>
