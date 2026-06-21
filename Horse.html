@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Horse Riding Video Effects | ਘੋੜੇ ਸਵਾਰੀ ਵੀਡੀਓ ਇਫੈਕਟਸ</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a0a00 0%, #2d1810 50%, #0f0500 100%);
+            color: #f5e6c8;
+            min-height: 100vh;
+        }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 40px 20px;
+            background: linear-gradient(180deg, rgba(255,215,0,0.1) 0%, transparent 100%);
+            border-bottom: 2px solid #ffd700;
+        }
+        h1 {
+            font-size: 2.5em;
+            color: #ffd700;
+            text-shadow: 0 0 20px rgba(255,215,0,0.3);
+            margin-bottom: 10px;
+        }
+        h2 {
+            font-size: 1.6em;
+            color: #e8c84a;
+            font-weight: 400;
+        }
+        .subtitle {
+            color: #c9a84c;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        /* Video Preview Section */
+        .video-section {
+            margin: 40px 0;
+            text-align: center;
+        }
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 0 40px rgba(255,215,0,0.2);
+            border: 2px solid #ffd700;
+        }
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+        .video-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,0,0,0.85);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        /* Features Grid */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 25px;
+            margin: 50px 0;
+        }
+        .feature-card {
+            background: linear-gradient(145deg, rgba(40,20,0,0.8), rgba(20,10,0,0.9));
+            border: 1px solid #8b6914;
+            border-radius: 15px;
+            padding: 30px 20px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(255,215,0,0.15);
+            border-color: #ffd700;
+        }
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+        .feature-card h3 {
+            color: #ffd700;
+            font-size: 1.3em;
+            margin-bottom: 10px;
+        }
+        .feature-card p {
+            color: #d4b896;
+            font-size: 0.95em;
+            line-height: 1.6;
+        }
+        .pa-text {
+            color: #c9a84c;
+            font-size: 0.9em;
+            margin-top: 8px;
+            font-family: 'Noto Sans Gurmukhi', sans-serif;
+        }
+
+        /* How It Works */
+        .how-it-works {
+            background: rgba(0,0,0,0.4);
+            border-radius: 20px;
+            padding: 40px 30px;
+            margin: 40px 0;
+            border: 1px solid #5a3d0a;
+        }
+        .how-it-works h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 1.8em;
+        }
+        .steps {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .step {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            padding: 20px;
+            background: rgba(255,215,0,0.05);
+            border-radius: 12px;
+            border-left: 4px solid #ffd700;
+        }
+        .step-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #ffd700;
+            min-width: 50px;
+            text-align: center;
+        }
+        .step-content h4 {
+            color: #ffd700;
+            margin-bottom: 5px;
+        }
+        .step-content p {
+            color: #c9a84c;
+            font-size: 0.95em;
+        }
+
+        /* CTA Section */
+        .cta-section {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(180deg, transparent 0%, rgba(255,215,0,0.08) 100%);
+            margin-top: 40px;
+            border-top: 2px solid #ffd700;
+        }
+        .cta-section h2 {
+            font-size: 2em;
+            margin-bottom: 20px;
+        }
+        .cta-btn {
+            display: inline-block;
+            background: linear-gradient(135deg, #ffd700, #b8860b);
+            color: #1a0a00;
+            padding: 18px 50px;
+            font-size: 1.3em;
+            font-weight: bold;
+            border-radius: 50px;
+            text-decoration: none;
+            margin: 15px;
+            transition: all 0.3s;
+            box-shadow: 0 5px 20px rgba(255,215,0,0.3);
+        }
+        .cta-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 8px 30px rgba(255,215,0,0.5);
+        }
+        .cta-pa {
+            color: #c9a84c;
+            font-size: 1.1em;
+            margin-top: 15px;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 30px;
+            color: #8b7355;
+            font-size: 0.9em;
+            border-top: 1px solid #3a2505;
+        }
+        footer a {
+            color: #ffd700;
+            text-decoration: none;
+        }
+
+        /* Language Toggle */
+        .lang-toggle {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .lang-btn {
+            background: transparent;
+            border: 1px solid #ffd700;
+            color: #ffd700;
+            padding: 8px 20px;
+            margin: 0 5px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s;
+        }
+        .lang-btn.active, .lang-btn:hover {
+            background: #ffd700;
+            color: #1a0a00;
+        }
+
+        @media (max-width: 600px) {
+            h1 { font-size: 1.8em; }
+            h2 { font-size: 1.3em; }
+            .features { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>⚔️ Horse Riding Video Effects</h1>
+            <h2>ਘੋੜੇ ਸਵਾਰੀ ਵੀਡੀਓ ਇਫੈਕਟਸ</h2>
+            <p class="subtitle">Create Epic Warrior Riding Videos for TikTok | TikTok ਲਈ ਯੋਧਾ ਸਵਾਰੀ ਵੀਡੀਓ ਬਣਾਓ</p>
+        </header>
+
+        <div class="video-section">
+            <div class="video-container">
+                <video autoplay loop muted playsinline poster="assets/horse-preview.jpg">
+                    <source src="assets/horse-video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-badge">🔥 TRENDING</div>
+            </div>
+            <p style="margin-top:15px;color:#c9a84c;">Preview: 12-Photo Epic Sequence | 12 ਫੋਟੋ ਵਾਲੀ ਮਹਾਨ ਲੜੀ</p>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🎬</div>
+                <h3>Auto Video Generator</h3>
+                <p>Upload 4-12 photos and get a cinematic TikTok video automatically</p>
+                <p class="pa-text">4-12 ਫੋਟੋ ਅਪਲੋਡ ਕਰੋ ਅਤੇ ਆਟੋਮੈਟਿਕ TikTok ਵੀਡੀਓ ਲਵੋ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Golden & Dark Grades</h3>
+                <p>Apply war-like cinematic color grading with one click</p>
+                <p class="pa-text">ਇੱਕ ਕਲਿੱਕ ਨਾਲ ਜੰਗ ਵਰਗਾ ਸਿਨੇਮਾਈ ਰੰਗ ਲਗਾਓ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">⚡</div>
+                <h3>Ken Burns Motion</h3>
+                <p>Zoom, pan, and slide effects for professional look</p>
+                <p class="pa-text">ਪੇਸ਼ੇਵਰ ਲੁਕ ਲਈ ਜ਼ੂਮ, ਪੈਨ ਅਤੇ ਸਲਾਈਡ ਇਫੈਕਟਸ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎵</div>
+                <h3>Add Your Own Audio</h3>
+                <p>Use your own music, voiceovers, or trending sounds</p>
+                <p class="pa-text">ਆਪਣੀ ਮਿਊਜ਼ਿਕ, ਵਾਇਸੋਵਰ ਜਾਂ ਟ੍ਰੈਂਡਿੰਗ ਸਾਊਂਡ ਵਰਤੋ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>TikTok Ready</h3>
+                <p>1080x1920 vertical format, 30fps, perfect for upload</p>
+                <p class="pa-text">1080x1920 ਵਰਟੀਕਲ ਫਾਰਮੈਟ, 30fps, ਅਪਲੋਡ ਲਈ ਪਰਫੈਕਟ</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🛡️</div>
+                <h3>Warrior Themes</h3>
+                <p>Medieval, fantasy, and battle-inspired video templates</p>
+                <p class="pa-text">ਮੱਧਕਾਲੀਨ, ਫੈਂਟਸੀ ਅਤੇ ਲੜਾਈ ਵਾਲੇ ਵੀਡੀਓ ਟੈਮਪਲੇਟ</p>
+            </div>
+        </div>
+
+        <div class="how-it-works">
+            <h2>How It Works | ਇਹ ਕਿਵੇਂ ਕੰਮ ਕਰਦਾ ਹੈ</h2>
+            <div class="steps">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h4>Upload Your Photos | ਆਪਣੀਆਂ ਫੋਟੋ ਅਪਲੋਡ ਕਰੋ</h4>
+                        <p>Select 4 to 12 warrior or horse riding images generated by AI</p>
+                        <p class="pa-text">AI ਨਾਲ ਬਣਾਈਆਂ 4 ਤੋਂ 12 ਯੋਧਾ ਜਾਂ ਘੋੜੇ ਸਵਾਰੀ ਦੀਆਂ ਤਸਵੀਰਾਂ ਚੁਣੋ</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h4>Choose Effects | ਇਫੈਕਟਸ ਚੁਣੋ</h4>
+                        <p>Pick color grade (Golden War / Dark Defensive / Original) and motion style</p>
+                        <p class="pa-text">ਰੰਗ (Golden War / Dark Defensive / Original) ਅਤੇ ਮੋਸ਼ਨ ਸਟਾਇਲ ਚੁਣੋ</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h4>Generate Video | ਵੀਡੀਓ ਬਣਾਓ</h4>
+                        <p>Get your cinematic 30-second TikTok video in seconds</p>
+                        <p class="pa-text">ਸਕਿੰਟਾਂ ਵਿੱਚ ਆਪਣਾ 30-ਸਕਿੰਟ ਦਾ ਸਿਨੇਮਾਈ TikTok ਵੀਡੀਓ ਲਵੋ</p>
+                    </div>
+                </div>
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h4>Add Audio & Post | ਆਡੀਓ ਲਗਾਓ ਅਤੇ ਪੋਸਟ ਕਰੋ</h4>
+                        <p>Use CapCut to add your own music, then upload to TikTok</p>
+                        <p class="pa-text">CapCut ਨਾਲ ਆਪਣੀ ਮਿਊਜ਼ਿਕ ਲਗਾਓ, ਫਿਰ TikTok 'ਤੇ ਅਪਲੋਡ ਕਰੋ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-section">
+            <h2>Start Creating Now! | ਹੁਣੇ ਬਣਾਉਣਾ ਸ਼ੁਰੂ ਕਰੋ!</h2>
+            <a href="#generator" class="cta-btn">🚀 Launch Video Generator</a>
+            <br>
+            <a href="https://github.com/bhupinderdeol" class="cta-btn" style="background:linear-gradient(135deg,#333,#111);color:#ffd700;">
+                ⭐ Star on GitHub
+            </a>
+            <p class="cta-pa">ਮੁਫ਼ਤ ਵਰਤੋ — ਕੋਈ ਸਾਈਨ-ਅਪ ਨਹੀਂ</p>
+            <p style="color:#8b7355;margin-top:10px;">Free to use — No signup required</p>
+        </div>
+
+        <footer>
+            <p>Made with ⚔️ by <a href="https://bhupinderdeol.github.io">Bhupinder Deol</a></p>
+            <p style="margin-top:10px;">ਭੁਪਿੰਦਰ ਦਿਓਲ ਦੁਆਰਾ ਬਣਾਇਆ ਗਿਆ</p>
+            <p style="margin-top:15px;color:#5a4a2a;">
+                <a href="/">← Back to Home</a> | 
+                <a href="/">ਮੁੱਖ ਪੰਨਾ →</a>
+            </p>
+        </footer>
+    </div>
+</body>
+</html>
