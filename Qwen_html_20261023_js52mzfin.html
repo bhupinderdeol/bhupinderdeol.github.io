@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Raga Music Player - Gurbani & Indian Classical</title>
+  <script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.min.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #000;
+      color: #fff;
+      overflow-x: hidden;
+      height: 100vh;
+      position: relative;
+    }
+
+    /* Spectrum Analyzer Background */
+    #analyzer {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      opacity: 0.3;
+      z-index: -1;
+    }
+
+    .container {
+      padding: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 20px;
+      color: #ffcc00;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+      justify-content: center;
+    }
+
+    select, button, input[type="radio"] {
+      padding: 8px 12px;
+      border-radius: 6px;
+      border: 1px solid #555;
+      background: #222;
+      color: white;
+    }
+
+    button.active {
+      background: #ffcc00;
+      color: #000;
+    }
+
+    .keyboard {
+      display: flex;
+      justify-content: center;
+      margin: 20px 0;
+      position: relative;
+      height: 180px;
+    }
+
+    .key {
+      position: absolute;
+      bottom: 0;
+      border: 1px solid #333;
+      cursor: pointer;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding-bottom: 8px;
+      font-size: 12px;
+      user-select: none;
+    }
+
+    .white-key {
+      width: 40px;
+      height: 150px;
+      background: white;
+      color: #000;
+      z-index: 1;
+    }
+
+    .black-key {
+      width: 26px;
+      height: 90px;
+      background: black;
+      color: white;
+      z-index: 2;
+      margin-left: -13px;
+      margin-right: -13px;
+    }
+
+    .key.active {
+      background: #ffcc00 !important;
+      color: #000 !important;
+    }
+
+    .sequencer {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .step {
+      display: inline-block;
+      width: 30px;
+      height: 30px;
+      margin: 5px;
+      background: #444;
+      border: 1px solid #666;
+      cursor: pointer;
+    }
+
+    .step.active {
+      background: #ff6600;
+    }
+
+    @media (max-width: 768px) {
+      .white-key { width: 30px; height: 120px; }
+      .black-key { width: 20px; height: 70px; }
+    }
+  </style>
+</head>
+<body>
+  <canvas id="analyzer"></canvas>
+
+  <div class="container">
+    <h1>ਰਾਗ ਸੰਗੀਤ ਪਲੇਅਰ | Raga Music Player</h1>
+
+    <!-- Raga Type Selector -->
+    <div class="controls">
+      <label><input type="radio" name="ragaType" value="gurbani" checked> ਗੁਰਬਾਣੀ ਰਾਗ (66)</label>
+      <label><input type="radio" name="ragaType" value="classical"> ਭਾਰਤੀ ਸ਼ਾਸਤਰੀ ਰਾਗ</label>
+    </div>
+
+    <!-- Raga Dropdown -->
+    <div class="controls">
+      <select id="ragaSelect"></select>
+    </div>
+
+    <!-- Instrument Selector -->
+    <div class="controls">
+      <select id="instrument">
+        <option value="harmonium">Harmonium</option>
+        <option value="rabab">Rabab</option>
+        <option value="tabla">Tabla</option>
+        <option value="dilruba">Dilruba</option>
+        <option value="sitar">Sitar</option>
+        <option value="tanpura">Tanpura (Drone)</option>
+      </select>
+    </div>
+
+    <!-- Note Duration -->
+    <div class="controls">
+      <span>Note Duration:</span>
+      <button class="dur-btn active" data-val="8n">8n</button>
+      <button class="dur-btn" data-val="4n">4n</button>
+      <button class="dur-btn" data-val="2n">2n</button>
+      <button class="dur-btn" data-val="1n">1n</button>
+      <button class="dur-btn" data-val="16n">16n</button>
+    </div>
+
+    <!-- FFT Size Selector -->
+    <div class="controls">
+      <span>FFT Size:</span>
+      <button class="fft-btn active" data-val="256">256</button>
+      <button class="fft-btn" data-val="64">64</button>
+      <button class="fft-btn" data-val="128">128</button>
+      <button class="fft-btn" data-val="512">512</button>
+      <button class="fft-btn" data-val="768">768</button>
+      <button class="fft-btn" data-val="1024">1024</button>
+    </div>
+
+    <!-- Piano Keyboard -->
+    <div class="keyboard" id="keyboard"></div>
+
+    <!-- Sequencer (for Tabla/Loops) -->
+    <div class="sequencer" id="sequencer">
+      <div>Tabla Loop Sequencer (16 steps)</div>
+      <div id="steps"></div>
+      <button id="seqPlay">▶ Play Loop</button>
+      <button id="seqStop">⏹ Stop</button>
+    </div>
+  </div>
+
+  <script>
+    // --- Raga Lists ---
+    const gurbaniRagas = [
+      "Asa", "Bairari", "Basant", "Bhairon", "Bihagara", "Bilaval", "Devagandhari", "Dhanasari",
+      "Gauri", "Gond", "Gujuari", "Jaijawanti", "Jaitsri", "Kafi", "Kanara", "Kedara", "Maajh",
+      "Mali Gaura", "Maru", "Nat Narayan", "Prabhati", "Ramkali", "Sarang", "Sri", "Sorath",
+      "Suhi", "Tilang", "Todi", "Tukhari", "Vadahans", "Wadahans", "Malar", "Megh", "Hindol",
+      "Kalyan", "Shankara", "Nata", "Gauri Deepaki", "Gauri Dakhani", "Gauri Guarairee",
+      "Gauri Cheti", "Gauri Bairagan", "Gauri Sorath", "Gauri Majh", "Gauri Malva", "Gauri Mala",
+      "Gauri Todi", "Gauri Lalit", "Gauri Purbi", "Gauri Khandra", "Gauri Jait", "Gauri Bhairav",
+      "Gauri Bhairo", "Gauri Poorvi", "Gauri Shukla", "Gauri Mangal", "Gauri Pancham", "Gauri Sarang",
+      "Gauri Sindhu", "Gauri Basant", "Gauri Bhairon", "Gauri Kaafi"
+    ]; // Total: 66
+
+    const indianClassicalRagas = [
+      "Yaman", "Bhairav", "Bilawal", "Khamaj", "Kafi", "Asavari", "Bhairavi", "Todi",
+      "Puriya", "Marwa", "Darbari Kanada", "Malkauns", "Shree", "Hindol", "Chandrakauns",
+      "Ahir Bhairav", "Lalit", "Bageshri", "Durga", "Miyan Ki Malhar", "Gaud Malhar",
+      "Jog", "Shivranjani", "Madhuvanti", "Charukesi", "Hamsadhwani", "Revati", "Abhogi",
+      "Sindhu Bhairavi", "Kalyan", "Des", "Kedar", "Hamir", "Kalavati", "Hemant", "Patdeep"
+    ];
+
+    // DOM Elements
+    const ragaSelect = document.getElementById('ragaSelect');
+    const instrumentSel = document.getElementById('instrument');
+    const keyboardEl = document.getElementById('keyboard');
+    const stepsEl = document.getElementById('steps');
+    const seqPlayBtn = document.getElementById('seqPlay');
+    const seqStopBtn = document.getElementById('seqStop');
+
+    // State
+    let currentDuration = '8n';
+    let fftSize = 256;
+    let sequencerSteps = Array(16).fill(false);
+    let isSequencerPlaying = false;
+    let sequencerInterval = null;
+
+    // --- Initialize Tone.js ---
+    Tone.start();
+    const mainVolume = new Tone.Volume(-12).toDestination();
+    let currentSynth = null;
+    let currentSampler = null;
+
+    // --- Build Keyboard ---
+    const whiteNotes = ['C', 'D', 'E', 'F', 'G', 'A', 'B'];
+    const blackNotes = ['C#', 'D#', null, 'F#', 'G#', 'A#', null];
+    const octaves = [4]; // C4 to B4
+    const allKeys = [];
+
+    function createKeyboard() {
+      keyboardEl.innerHTML = '';
+      let whiteKeyIndex = 0;
+
+      octaves.forEach(oct => {
+        whiteNotes.forEach((note, i) => {
+          const freqNote = `${note}${oct}`;
+          const keyEl = document.createElement('div');
+          keyEl.className = 'key white-key';
+          keyEl.dataset.note = freqNote;
+          keyEl.textContent = note;
+          keyEl.style.left = `${whiteKeyIndex * 40}px`;
+          keyboardEl.appendChild(keyEl);
+          allKeys.push({ el: keyEl, note: freqNote, type: 'white' });
+          whiteKeyIndex++;
+
+          // Black key after C, D, F, G, A
+          if (blackNotes[i] !== null) {
+            const blackNote = `${blackNotes[i]}${oct}`;
+            const blackKeyEl = document.createElement('div');
+            blackKeyEl.className = 'key black-key';
+            blackKeyEl.dataset.note = blackNote;
+            blackKeyEl.textContent = blackNotes[i];
+            blackKeyEl.style.left = `${(whiteKeyIndex - 1) * 40 + 27}px`;
+            keyboardEl.appendChild(blackKeyEl);
+            allKeys.push({ el: blackKeyEl, note: blackNote, type: 'black' });
+          }
+        });
+      });
+
+      // Add event listeners
+      allKeys.forEach(k => {
+        k.el.addEventListener('mousedown', () => playNote(k.note));
+        k.el.addEventListener('mouseup', () => releaseNote(k.note));
+        k.el.addEventListener('mouseleave', () => releaseNote(k.note));
+      });
+    }
+
+    // --- Keyboard Bindings ---
+    const keyMap = {
+      'a': 'C4', 'w': 'C#4', 's': 'D4', 'e': 'D#4', 'd': 'E4',
+      'f': 'F4', 't': 'F#4', 'g': 'G4', 'y': 'G#4', 'h': 'A4',
+      'u': 'A#4', 'j': 'B4', 'k': 'C5'
+    };
+
+    window.addEventListener('keydown', e => {
+      if (keyMap[e.key.toLowerCase()]) {
+        const note = keyMap[e.key.toLowerCase()];
+        highlightKey(note, true);
+        playNote(note);
+      }
+    });
+
+    window.addEventListener('keyup', e => {
+      if (keyMap[e.key.toLowerCase()]) {
+        const note = keyMap[e.key.toLowerCase()];
+        highlightKey(note, false);
+        releaseNote(note);
+      }
+    });
+
+    function highlightKey(note, active) {
+      const key = allKeys.find(k => k.note === note);
+      if (key) key.el.classList.toggle('active', active);
+    }
+
+    // --- Instruments ---
+    function createInstrument(type) {
+      if (currentSynth) currentSynth.disconnect();
+      if (currentSampler) currentSampler.disconnect();
+
+      switch(type) {
+        case 'harmonium':
+          currentSynth = new Tone.PolySynth(Tone.Synth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.1, decay: 0.2, sustain: 0.8, release: 0.5 }
+          }).connect(mainVolume);
+          break;
+        case 'rabab':
+          currentSynth = new Tone.PolySynth(Tone.FMSynth, {
+            harmonicity: 3,
+            modulationIndex: 10,
+            oscillator: { type: 'sawtooth' },
+            envelope: { attack: 0.01, decay: 0.2, sustain: 0.4, release: 0.3 }
+          }).connect(mainVolume);
+          break;
+        case 'dilruba':
+        case 'sitar':
+          currentSynth = new Tone.PolySynth(Tone.AMSynth, {
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.05, decay: 0.3, sustain: 0.6, release: 0.8 }
+          }).connect(mainVolume);
+          break;
+        case 'tanpura':
+          currentSynth = new Tone.MonoSynth({
+            oscillator: { type: 'sine' },
+            envelope: { attack: 0.1, decay: 0.2, sustain: 1, release: 2 }
+          }).connect(mainVolume);
+          // Sustain drone on C3 and G3
+          currentSynth.triggerAttack("C3");
+          currentSynth.triggerAttack("G3");
+          break;
+        case 'tabla':
+          // Use sampler or noise synth for tabla
+          currentSynth = new Tone.NoiseSynth({
+            noise: { type: 'white' },
+            envelope: { attack: 0.001, decay: 0.2, sustain: 0 }
+          }).connect(mainVolume);
+          break;
+        default:
+          currentSynth = new Tone.PolySynth().connect(mainVolume);
+      }
+    }
+
+    // --- Note Playing ---
+    function playNote(note) {
+      if (!currentSynth) return;
+      if (instrumentSel.value === 'tabla') {
+        currentSynth.triggerAttackRelease('16n');
+      } else {
+        if (instrumentSel.value === 'tanpura') return; // already droning
+        currentSynth.triggerAttack(note, Tone.now(), 0.8);
+      }
+    }
+
+    function releaseNote(note) {
+      if (currentSynth && instrumentSel.value !== 'tanpura' && instrumentSel.value !== 'tabla') {
+        currentSynth.triggerRelease(note);
+      }
+    }
+
+    // --- Sequencer ---
+    function buildSequencer() {
+      stepsEl.innerHTML = '';
+      sequencerSteps = Array(16).fill(false);
+      for (let i = 0; i < 16; i++) {
+        const step = document.createElement('div');
+        step.className = 'step';
+        step.dataset.index = i;
+        step.addEventListener('click', () => {
+          sequencerSteps[i] = !sequencerSteps[i];
+          step.classList.toggle('active', sequencerSteps[i]);
+        });
+        stepsEl.appendChild(step);
+      }
+    }
+
+    function playSequencer() {
+      if (isSequencerPlaying) return;
+      isSequencerPlaying = true;
+      let step = 0;
+      const intervalTime = Tone.Time('16n').toSeconds() * 1000;
+
+      sequencerInterval = setInterval(() => {
+        const stepEl = stepsEl.children[step];
+        if (sequencerSteps[step]) {
+          playNote('C3'); // Tabla hit
+          stepEl.style.backgroundColor = '#ff9900';
+          setTimeout(() => stepEl.style.backgroundColor = '', 100);
+        }
+        step = (step + 1) % 16;
+      }, intervalTime);
+    }
+
+    function stopSequencer() {
+      if (sequencerInterval) clearInterval(sequencerInterval);
+      isSequencerPlaying = false;
+    }
+
+    // --- Spectrum Analyzer ---
+    const canvas = document.getElementById('analyzer');
+    const ctx = canvas.getContext('2d');
+    let analyser = new Tone.Analyser("fft", fftSize);
+
+    function drawAnalyzer() {
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = analyser.getValue();
+
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const barWidth = (canvas.width / bufferLength) * 2.5;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] + 1) * canvas.height / 2;
+        const hue = (i / bufferLength) * 360;
+        ctx.fillStyle = `hsla(${hue}, 100%, 50%, 0.7)`;
+        ctx.fillRect(x, canvas.height - barHeight, barWidth, barHeight);
+        x += barWidth + 1;
+      }
+      requestAnimationFrame(drawAnalyzer);
+    }
+
+    function updateAnalyzer() {
+      if (analyser) analyser.dispose();
+      analyser = new Tone.Analyser("fft", fftSize);
+      Tone.getDestination().connect(analyser);
+      drawAnalyzer();
+    }
+
+    // --- Event Listeners ---
+    document.querySelectorAll('.dur-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.dur-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentDuration = btn.dataset.val;
+      });
+    });
+
+    document.querySelectorAll('.fft-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.fft-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        fftSize = parseInt(btn.dataset.val);
+        updateAnalyzer();
+      });
+    });
+
+    instrumentSel.addEventListener('change', () => {
+      createInstrument(instrumentSel.value);
+    });
+
+    document.querySelector('input[name="ragaType"]').addEventListener('change', updateRagaList);
+    document.querySelectorAll('input[name="ragaType"]').forEach(r => 
+      r.addEventListener('change', updateRagaList)
+    );
+
+    seqPlayBtn.addEventListener('click', playSequencer);
+    seqStopBtn.addEventListener('click', stopSequencer);
+
+    // --- Helper Functions ---
+    function updateRagaList() {
+      const type = document.querySelector('input[name="ragaType"]:checked').value;
+      const list = type === 'gurbani' ? gurbaniRagas : indianClassicalRagas;
+      ragaSelect.innerHTML = '';
+      list.forEach(raga => {
+        const opt = document.createElement('option');
+        opt.value = raga;
+        opt.textContent = raga;
+        ragaSelect.appendChild(opt);
+      });
+    }
+
+    // --- Init ---
+    createKeyboard();
+    createInstrument('harmonium');
+    updateRagaList();
+    buildSequencer();
+    updateAnalyzer();
+
+    // Handle window resize for canvas
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+  </script>
+</body>
+</html>

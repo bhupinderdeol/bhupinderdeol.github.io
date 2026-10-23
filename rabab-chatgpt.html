@@ -1,0 +1,549 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#17130f">
+<title>Rabab-e-Mardana | Digital Rabab</title>
+
+<style>
+:root {
+  --bg:#17130f;
+  --panel:#241d17;
+  --gold:#e8bd71;
+  --gold2:#a97c3e;
+  --cream:#f6ecd9;
+  --muted:#b7a58d;
+  --line:#49382a;
+  --green:#8eaa83;
+}
+*{box-sizing:border-box}
+body {
+  margin:0;
+  background:radial-gradient(ellipse at top,#382719 0,#17130f 62%);
+  color:var(--cream);
+  font-family:system-ui,-apple-system,"Segoe UI",sans-serif;
+  min-height:100vh;
+}
+button,select,input{font:inherit}
+button,select{
+  cursor:pointer;
+}
+button:focus-visible,select:focus-visible,input:focus-visible{
+  outline:2px solid var(--gold);
+  outline-offset:3px;
+}
+.app{width:min(1120px,100%);margin:auto;padding:22px 16px 40px}
+header{text-align:center;padding:20px 8px 26px}
+.eyebrow{
+  color:var(--gold);letter-spacing:4px;font-size:.72rem;
+  text-transform:uppercase
+}
+h1{
+  font-family:Georgia,serif;font-weight:normal;
+  font-size:clamp(2rem,6vw,3.6rem);margin:12px 0 8px
+}
+.subtitle{color:var(--muted);font-size:.94rem;line-height:1.7}
+.ornament{color:var(--gold2);letter-spacing:9px;margin-top:16px}
+.card{
+  background:linear-gradient(145deg,#2b221a,#211a15);
+  border:1px solid var(--line);border-radius:17px;
+  padding:20px;margin-bottom:17px;
+  box-shadow:0 12px 35px #0002
+}
+.section-title{
+  font-size:.77rem;letter-spacing:2px;text-transform:uppercase;
+  color:var(--gold);margin:0 0 17px
+}
+.controls{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px
+}
+.field{min-width:0}
+.field label,.range-head{
+  display:flex;justify-content:space-between;gap:8px;
+  font-size:.8rem;color:var(--muted);margin-bottom:8px
+}
+select{
+  width:100%;padding:11px 10px;border-radius:9px;
+  background:#17130f;color:var(--cream);
+  border:1px solid #5a4430;min-width:0
+}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.instrument{
+  background:linear-gradient(120deg,#3b291b,#241b14);
+  border:1px solid #67482b;border-radius:16px;
+  padding:18px;margin-bottom:17px
+}
+.instrument-top{
+  display:flex;align-items:center;justify-content:space-between;
+  gap:10px;flex-wrap:wrap;margin-bottom:16px
+}
+.status{font-size:.8rem;color:var(--green)}
+.pill{
+  border:1px solid var(--line);border-radius:20px;
+  padding:6px 10px;color:var(--muted);font-size:.75rem
+}
+.strings{
+  height:46px;display:flex;align-items:center;
+  justify-content:space-around;gap:5px;
+  border-radius:8px;background:#170f0a;
+  margin-bottom:17px;padding:0 12px;overflow:hidden
+}
+.string{
+  height:2px;flex:1;max-width:90px;
+  background:linear-gradient(90deg,#80603d,#e6c38a,#80603d);
+  box-shadow:0 0 5px #e8bd7133
+}
+.notes{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px
+}
+.note{
+  position:relative;min-height:94px;padding:12px 4px;
+  color:var(--cream);background:linear-gradient(160deg,#483321,#302218);
+  border:1px solid #735333;border-radius:12px;
+  transition:transform .12s,border-color .12s,background .12s;
+  touch-action:manipulation
+}
+.note:hover{border-color:var(--gold);background:#553b23}
+.note:active,.note.playing{
+  transform:scale(.96);background:#72502b;border-color:#f2d49c
+}
+.note .number{position:absolute;top:7px;left:9px;color:#bca17a;font-size:.65rem}
+.note .swara{display:block;font-family:Georgia,serif;font-size:1.55rem;color:var(--gold)}
+.note .pitch{display:block;font-size:.72rem;color:#d4c2a7;margin-top:5px}
+.note .freq{display:block;font-size:.63rem;color:#9b886d;margin-top:2px}
+.duration-row,.actions{
+  display:flex;gap:9px;flex-wrap:wrap;align-items:center
+}
+.duration{
+  flex:1;min-width:75px;padding:10px 8px;border-radius:9px;
+  color:var(--muted);background:#17130f;border:1px solid var(--line)
+}
+.duration.active{
+  background:#654722;color:#fff1d3;border-color:var(--gold)
+}
+.btn{
+  border:1px solid var(--gold2);border-radius:9px;
+  padding:11px 15px;background:#302217;color:var(--cream)
+}
+.btn.primary{background:var(--gold);color:#21170c;font-weight:700}
+.btn:hover{filter:brightness(1.15)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.actions{margin-top:17px}
+.actions .btn{flex:1}
+.hint{font-size:.8rem;color:var(--muted);line-height:1.7;margin:13px 0 0}
+footer{text-align:center;color:#95816b;font-size:.76rem;line-height:1.8;padding:12px}
+@media(max-width:680px){
+ .controls{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .app{padding:12px 10px 28px}
+ .card{padding:15px}
+ .instrument{padding:12px}
+ .notes{gap:7px}
+ .note{min-height:86px}
+}
+@media(max-width:360px){
+ .notes{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .controls{grid-template-columns:1fr}
+}
+</style>
+</head>
+
+<body>
+<div class="app">
+<header>
+  <div class="eyebrow">Sound of the Sikh musical tradition</div>
+  <h1>Rabab-e-Mardana</h1>
+  <div class="subtitle">
+    An interactive tribute to Bhai Mardana Ji and the musical
+    journeys of Guru Nanak Dev Ji.
+  </div>
+  <div class="ornament">✦ ───── ◈ ───── ✦</div>
+</header>
+
+<section class="card">
+  <h2 class="section-title">Instrument settings</h2>
+  <div class="controls">
+    <div class="field">
+      <label for="root">Root note</label>
+      <select id="root">
+        <option value="48">C3</option>
+        <option value="50">D3</option>
+        <option value="52" selected>E3</option>
+        <option value="53">F3</option>
+        <option value="55">G3</option>
+        <option value="57">A3</option>
+        <option value="59">B3</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="scale">Scale / raag-inspired mode</label>
+      <select id="scale">
+        <option value="bhairavi">Bhairavi-inspired</option>
+        <option value="kafi">Kafi-inspired</option>
+        <option value="major">Major / Bilawal-inspired</option>
+        <option value="minor">Natural minor</option>
+        <option value="pentatonic">Pentatonic</option>
+        <option value="chromatic">Chromatic</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="tone">Tone brightness</label>
+      <select id="tone">
+        <option value="1800">Deep & woody</option>
+        <option value="3000" selected>Warm traditional</option>
+        <option value="4800">Bright strings</option>
+        <option value="7500">Crisp & sharp</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="resonance">String resonance</label>
+      <select id="resonance">
+        <option value="0.75">Dry</option>
+        <option value="1.2" selected>Natural</option>
+        <option value="1.8">Rich</option>
+        <option value="2.5">Very resonant</option>
+      </select>
+    </div>
+  </div>
+</section>
+
+<section class="card">
+  <h2 class="section-title">Playing dynamics</h2>
+  <div class="controls">
+    <div class="field">
+      <div class="range-head"><label for="volume">Master volume</label><span id="volText">65%</span></div>
+      <input id="volume" type="range" min="0" max="100" value="65">
+    </div>
+    <div class="field">
+      <div class="range-head"><label for="reverb">Room resonance</label><span id="revText">30%</span></div>
+      <input id="reverb" type="range" min="0" max="80" value="30">
+    </div>
+    <div class="field">
+      <div class="range-head"><label for="decay">Note sustain</label><span id="decayText">0.6 s</span></div>
+      <input id="decay" type="range" min="1" max="4" value="2">
+    </div>
+    <div class="field">
+      <div class="range-head"><label for="tempo">Sequence tempo</label><span id="tempoText">80 BPM</span></div>
+      <input id="tempo" type="range" min="40" max="160" value="80">
+    </div>
+  </div>
+</section>
+
+<section class="instrument">
+  <div class="instrument-top">
+    <span class="pill" id="tuningLabel">E3 · Bhairavi-inspired</span>
+    <span class="status" id="status" role="status">Ready to play</span>
+  </div>
+
+  <div class="strings" aria-hidden="true">
+    <span class="string"></span><span class="string"></span>
+    <span class="string"></span><span class="string"></span>
+    <span class="string"></span><span class="string"></span>
+  </div>
+
+  <h2 class="section-title">16 playable notes</h2>
+  <div class="notes" id="notes"></div>
+  <p class="hint">
+    Tap a note to pluck it. Select a duration below to control the
+    note envelope. On supported mobile browsers, the first tap starts
+    the audio engine.
+  </p>
+</section>
+
+<section class="card">
+  <h2 class="section-title">Note duration</h2>
+  <div class="duration-row" id="durations">
+    <button class="duration" data-duration="0.15">Short · 0.15s</button>
+    <button class="duration" data-duration="0.3">Quick · 0.3s</button>
+    <button class="duration active" data-duration="0.6">Medium · 0.6s</button>
+    <button class="duration" data-duration="1.2">Long · 1.2s</button>
+  </div>
+  <div class="actions">
+    <button class="btn primary" id="playSequence">▶ Play all 16</button>
+    <button class="btn" id="stop">■ Stop</button>
+    <button class="btn" id="drone">♪ Drone: Off</button>
+    <button class="btn" id="clear">Clear sequence</button>
+  </div>
+  <p class="hint" id="sequenceInfo">16 notes available · No sequence playing.</p>
+</section>
+
+<footer>
+  A contemporary browser-based musical interpretation, not an
+  authenticated reconstruction of the historical rabab.<br>
+  Audio is generated locally by Tone.js; no microphone is required.
+</footer>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/tone@15.1.22/build/Tone.js"></script>
+<script>
+(() => {
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+
+  const modes = {
+    bhairavi: {name:"Bhairavi-inspired", intervals:[0,1,3,5,7,8,10]},
+    kafi: {name:"Kafi-inspired", intervals:[0,2,3,5,7,9,10]},
+    major: {name:"Major / Bilawal-inspired", intervals:[0,2,4,5,7,9,11]},
+    minor: {name:"Natural minor", intervals:[0,2,3,5,7,8,10]},
+    pentatonic: {name:"Pentatonic", intervals:[0,2,4,7,9]},
+    chromatic: {name:"Chromatic", intervals:[0,1,2,3,4,5,6,7,8,9,10,11]}
+  };
+
+  const pitchNames = [
+    "C","C♯","D","E♭","E","F","F♯","G","A♭","A","B♭","B"
+  ];
+  const swaras = ["Sa","rē","Re","gā","Ga","Ma","tī","Pa",
+                   "dhā","Dha","nī","Ni"];
+
+  let selectedDuration = 0.6;
+  let synth, filter, reverb, volume, droneSynth, droneGain;
+  let audioReady = false;
+  let droneOn = false;
+  let sequenceToken = 0;
+  let activeTimeouts = [];
+  let currentNotes = [];
+  let lastPlayed = null;
+
+  function midiName(midi) {
+    const name = pitchNames[midi % 12];
+    const octave = Math.floor(midi / 12) - 1;
+    return name + octave;
+  }
+
+  function currentMode() {
+    return modes[$("scale").value];
+  }
+
+  function makeNotes() {
+    const root = Number($("root").value);
+    const intervals = currentMode().intervals;
+    const notes = [];
+
+    // Fill 16 buttons by moving through the selected scale.
+    for (let i = 0; i < 16; i++) {
+      const step = i % intervals.length;
+      const octave = Math.floor(i / intervals.length);
+      const midi = root + intervals[step] + octave * 12;
+      notes.push({midi, name:midiName(midi)});
+    }
+    return notes;
+  }
+
+  async function initAudio() {
+    if (audioReady) {
+      await Tone.start();
+      return;
+    }
+    if (!window.Tone) {
+      $("status").textContent = "Tone.js could not load. Check internet.";
+      throw new Error("Tone.js is unavailable");
+    }
+
+    await Tone.start();
+
+    volume = new Tone.Volume(-8);
+    filter = new Tone.Filter({
+      type:"lowpass",
+      frequency:Number($("tone").value),
+      rolloff:-24
+    });
+    reverb = new Tone.Reverb({decay:2.8, preDelay:0.025, wet:0.3});
+    await reverb.ready;
+
+    synth = new Tone.PluckSynth({
+      attackNoise:1.1,
+      dampening:3000,
+      resonance:1.2
+    });
+
+    synth.connect(filter);
+    filter.connect(reverb);
+    reverb.connect(volume);
+    volume.toDestination();
+
+    droneGain = new Tone.Gain(0).connect(filter);
+    droneSynth = new Tone.Oscillator({
+      frequency:110,
+      type:"triangle"
+    }).connect(droneGain);
+    droneSynth.start();
+
+    audioReady = true;
+    updateAudioSettings();
+    $("status").textContent = "Audio ready";
+  }
+
+  function updateAudioSettings() {
+    $("volText").textContent = $("volume").value + "%";
+    $("revText").textContent = $("reverb").value + "%";
+    $("decayText").textContent =
+      (Number($("decay").value) * 0.3).toFixed(1) + " s";
+    $("tempoText").textContent = $("tempo").value + " BPM";
+
+    if (!audioReady) return;
+
+    const v = Number($("volume").value);
+    volume.volume.rampTo(v === 0 ? -60 : -36 + v * 0.28, 0.08);
+    reverb.wet.rampTo(Number($("reverb").value) / 100, 0.12);
+    filter.frequency.rampTo(Number($("tone").value), 0.1);
+    synth.dampening = Number($("tone").value);
+    synth.resonance = Number($("resonance").value);
+  }
+
+  function renderNotes() {
+    currentNotes = makeNotes();
+    $("notes").replaceChildren();
+
+    currentNotes.forEach((note, i) => {
+      const btn = document.createElement("button");
+      btn.className = "note";
+      btn.type = "button";
+      btn.setAttribute("aria-label", `Play note ${i+1}, ${note.name}`);
+      const swara = swaras[note.midi % 12];
+
+      const number = document.createElement("span");
+      number.className = "number";
+      number.textContent = String(i+1).padStart(2,"0");
+
+      const label = document.createElement("span");
+      label.className = "swara";
+      label.textContent = swara;
+
+      const pitch = document.createElement("span");
+      pitch.className = "pitch";
+      pitch.textContent = note.name;
+
+      const freq = document.createElement("span");
+      freq.className = "freq";
+      freq.textContent = Math.round(Tone.Frequency(note.midi,"midi").toFrequency()) + " Hz";
+
+      btn.append(number,label,pitch,freq);
+      btn.addEventListener("click", () => playNote(i, btn));
+      $("notes").append(btn);
+    });
+
+    $("tuningLabel").textContent =
+      midiName(Number($("root").value)) + " · " + currentMode().name;
+  }
+
+  async function playNote(index, btn) {
+    try {
+      await initAudio();
+      const note = currentNotes[index];
+      const duration = selectedDuration;
+      const freq = Tone.Frequency(note.midi, "midi").toFrequency();
+
+      synth.triggerAttackRelease(freq, duration);
+      if (btn) {
+        btn.classList.add("playing");
+        setTimeout(() => btn.classList.remove("playing"), duration*1000 + 100);
+      }
+      lastPlayed = index;
+      $("status").textContent = "Playing " + note.name;
+    } catch (err) {
+      console.error(err);
+      $("status").textContent = "Audio unavailable";
+    }
+  }
+
+  function stopSequence() {
+    sequenceToken++;
+    activeTimeouts.forEach(clearTimeout);
+    activeTimeouts = [];
+    $("playSequence").disabled = false;
+    $("sequenceInfo").textContent = "16 notes available · Playback stopped.";
+    $("status").textContent = "Ready to play";
+  }
+
+  async function playAll() {
+    stopSequence();
+    const token = sequenceToken;
+    try {
+      await initAudio();
+      const snapshot = currentNotes.map(n => n.midi);
+      const gap = 60000 / Number($("tempo").value);
+      const duration = selectedDuration;
+      $("playSequence").disabled = true;
+      $("sequenceInfo").textContent = "Playing 16 notes in order…";
+      $("status").textContent = "Sequence playing";
+
+      snapshot.forEach((midi, i) => {
+        const timer = setTimeout(() => {
+          if (token !== sequenceToken) return;
+          synth.triggerAttackRelease(
+            Tone.Frequency(midi,"midi").toFrequency(), duration
+          );
+          const buttons = $("notes").querySelectorAll(".note");
+          buttons.forEach(b => b.classList.remove("playing"));
+          buttons[i].classList.add("playing");
+          setTimeout(() => buttons[i]?.classList.remove("playing"),
+            duration * 1000 + 80);
+        }, i * gap);
+        activeTimeouts.push(timer);
+      });
+
+      activeTimeouts.push(setTimeout(() => {
+        if (token !== sequenceToken) return;
+        $("playSequence").disabled = false;
+        $("sequenceInfo").textContent = "Sequence complete.";
+        $("status").textContent = "Ready to play";
+      }, 15 * gap + duration * 1000 + 150));
+    } catch (err) {
+      console.error(err);
+      $("status").textContent = "Could not start playback";
+      $("playSequence").disabled = false;
+    }
+  }
+
+  $("durations").addEventListener("click", event => {
+    const btn = event.target.closest("[data-duration]");
+    if (!btn) return;
+    selectedDuration = Number(btn.dataset.duration);
+    $("durations").querySelectorAll(".duration").forEach(b =>
+      b.classList.toggle("active", b === btn));
+  });
+
+  ["root","scale"].forEach(id =>
+    $(id).addEventListener("change", () => {
+      stopSequence();
+      renderNotes();
+    })
+  );
+
+  ["tone","resonance","volume","reverb","decay"].forEach(id =>
+    $(id).addEventListener("input", updateAudioSettings)
+  );
+  $("tempo").addEventListener("input", updateAudioSettings);
+
+  $("playSequence").addEventListener("click", playAll);
+  $("stop").addEventListener("click", stopSequence);
+
+  $("drone").addEventListener("click", async () => {
+    try {
+      await initAudio();
+      droneOn = !droneOn;
+      const rootHz = Tone.Frequency(
+        Number($("root").value),"midi"
+      ).toFrequency();
+      droneSynth.frequency.rampTo(rootHz / 2, 0.15);
+      droneGain.gain.rampTo(droneOn ? 0.16 : 0, 0.2);
+      $("drone").textContent = "♪ Drone: " + (droneOn ? "On" : "Off");
+      $("status").textContent = droneOn ? "Drone active" : "Ready to play";
+    } catch (err) {
+      console.error(err);
+    }
+  });
+
+  $("clear").addEventListener("click", () => {
+    stopSequence();
+    $("status").textContent = "Sequence cleared";
+  });
+
+  renderNotes();
+  updateAudioSettings();
+})();
+</script>
+</body>
+</html>

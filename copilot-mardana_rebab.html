@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Rebab Instrument Simulator</title>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    font-family:Segoe UI,Arial,sans-serif;
+    background:linear-gradient(135deg,#0f172a,#1e293b);
+    color:#fff;
+    min-height:100vh;
+    padding:20px;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+}
+
+h1{
+    text-align:center;
+    color:#fbbf24;
+    margin-bottom:10px;
+}
+
+.subtitle{
+    text-align:center;
+    color:#cbd5e1;
+    margin-bottom:25px;
+}
+
+.panel{
+    background:rgba(255,255,255,.08);
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:20px;
+    backdrop-filter:blur(6px);
+}
+
+.controls{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+    gap:15px;
+}
+
+.control{
+    display:flex;
+    flex-direction:column;
+}
+
+label{
+    margin-bottom:6px;
+    font-size:14px;
+}
+
+input[type=range]{
+    width:100%;
+}
+
+select{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    background:#334155;
+    color:white;
+}
+
+.note-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(90px,1fr));
+    gap:10px;
+}
+
+.note-btn{
+    border:none;
+    border-radius:12px;
+    padding:15px;
+    font-size:16px;
+    cursor:pointer;
+    color:white;
+    background:linear-gradient(135deg,#b45309,#f59e0b);
+    transition:.2s;
+    font-weight:600;
+}
+
+.note-btn:hover{
+    transform:translateY(-2px);
+}
+
+.note-btn:active{
+    transform:scale(.96);
+}
+
+.start-btn{
+    display:block;
+    margin:auto;
+    margin-bottom:20px;
+    padding:14px 35px;
+    border:none;
+    border-radius:10px;
+    background:#22c55e;
+    color:white;
+    font-size:16px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+.status{
+    text-align:center;
+    margin-bottom:15px;
+    color:#93c5fd;
+}
+
+footer{
+    margin-top:20px;
+    text-align:center;
+    color:#94a3b8;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>Rebab Style Instrument</h1>
+
+<div class="subtitle">
+Inspired by traditional plucked string timbres
+</div>
+
+<button class="start-btn" id="startBtn">
+Start Audio
+</button>
+
+<div class="status" id="status">
+Audio Not Started
+</div>
+
+<div class="panel">
+<div class="controls">
+
+<div class="control">
+<label>Duration</label>
+<select id="duration">
+<option value="16n">16th Note</option>
+<option value="8n">8th Note</option>
+<option value="4n" selected>Quarter Note</option>
+<option value="2n">Half Note</option>
+<option value="1n">Whole Note</option>
+</select>
+</div>
+
+<div class="control">
+<label>Warmth</label>
+<input type="range" id="warmth" min="500" max="6000" value="1800">
+</div>
+
+<div class="control">
+<label>Brightness</label>
+<input type="range" id="brightness" min="0.1" max="4" step="0.1" value="1.2">
+</div>
+
+<div class="control">
+<label>Volume</label>
+<input type="range" id="volume" min="-30" max="0" value="-8">
+</div>
+
+</div>
+</div>
+
+<div class="panel">
+
+<div class="note-grid">
+
+<button class="note-btn" data-note="C3">C3</button>
+<button class="note-btn" data-note="D3">D3</button>
+<button class="note-btn" data-note="E3">E3</button>
+<button class="note-btn" data-note="F3">F3</button>
+
+<button class="note-btn" data-note="G3">G3</button>
+<button class="note-btn" data-note="A3">A3</button>
+<button class="note-btn" data-note="B3">B3</button>
+<button class="note-btn" data-note="C4">C4</button>
+
+<button class="note-btn" data-note="D4">D4</button>
+<button class="note-btn" data-note="E4">E4</button>
+<button class="note-btn" data-note="F4">F4</button>
+<button class="note-btn" data-note="G4">G4</button>
+
+<button class="note-btn" data-note="A4">A4</button>
+<button class="note-btn" data-note="B4">B4</button>
+<button class="note-btn" data-note="C5">C5</button>
+<button class="note-btn" data-note="D5">D5</button>
+
+</div>
+
+</div>
+
+<footer>
+Powered by Tone.js
+</footer>
+
+</div>
+
+<script>
+
+let synth;
+let filter;
+let reverb;
+let initialized = false;
+
+async function startAudio(){
+
+    if(initialized) return;
+
+    await Tone.start();
+
+    reverb = new Tone.Reverb({
+        decay:4,
+        wet:0.4
+    }).toDestination();
+
+    filter = new Tone.Filter({
+        frequency:1800,
+        type:"lowpass"
+    }).connect(reverb);
+
+    synth = new Tone.PluckSynth({
+        attackNoise:1.2,
+        dampening:1800,
+        resonance:0.95
+    }).connect(filter);
+
+    initialized = true;
+
+    document.getElementById("status").textContent =
+        "Audio Ready";
+
+    document.getElementById("startBtn").textContent =
+        "Ready";
+}
+
+document.getElementById("startBtn").addEventListener(
+    "click",
+    startAudio
+);
+
+function updateSound(){
+
+    if(!initialized) return;
+
+    let warmth =
+        parseFloat(
+            document.getElementById("warmth").value
+        );
+
+    let brightness =
+        parseFloat(
+            document.getElementById("brightness").value
+        );
+
+    let volume =
+        parseFloat(
+            document.getElementById("volume").value
+        );
+
+    filter.frequency.value = warmth;
+
+    synth.attackNoise = brightness;
+
+    synth.dampening = warmth;
+
+    synth.volume.value = volume;
+}
+
+document
+.querySelectorAll("input")
+.forEach(el=>{
+    el.addEventListener("input",updateSound);
+});
+
+document
+.querySelectorAll(".note-btn")
+.forEach(btn=>{
+
+    btn.addEventListener("click",()=>{
+
+        if(!initialized){
+            alert("Click Start Audio First");
+            return;
+        }
+
+        updateSound();
+
+        const note =
+            btn.dataset.note;
+
+        const duration =
+            document.getElementById("duration").value;
+
+        synth.triggerAttackRelease(
+            note,
+            duration
+        );
+
+    });
+
+});
+
+</script>
+
+</body>
+</html>

@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>The Mardana Rebab — Tone.js Instrument</title>
+<script src="https://cdn.jsdelivr.net/npm/tone@14.7.77/build/Tone.js"></script>
+<style>
+:root{
+  --bg1:#1a0f0a; --bg2:#2b1a10; --panel:#3a2416;
+  --gold:#e8b64c; --gold-soft:#c99a3a; --cream:#f5e6c8;
+  --maroon:#6e1f1f; --ink:#120b06;
+  --dur:1s;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:"Segoe UI",Georgia,serif;
+  color:var(--cream);
+  background:
+    radial-gradient(1200px 500px at 50% -10%, #4a2c17 0%, transparent 60%),
+    radial-gradient(900px 400px at 50% 110%, #3d1f10 0%, transparent 55%),
+    linear-gradient(160deg,var(--bg1),var(--bg2) 55%,var(--bg1));
+  min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;
+  padding:clamp(10px,2vw,28px);
+}
+/* ---------- Header ---------- */
+header{text-align:center;margin-bottom:clamp(10px,2vw,22px)}
+header .arch{
+  display:inline-block;padding:10px 26px;border:2px solid var(--gold-soft);
+  border-radius:60px 60px 14px 14px;background:linear-gradient(180deg,rgba(232,182,76,.12),transparent);
+}
+h1{
+  font-size:clamp(1.2rem,3.4vw,2.2rem);letter-spacing:.12em;font-weight:600;
+  background:linear-gradient(180deg,#ffe9b0,var(--gold) 60%,#9c7422);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+}
+.sub{font-size:clamp(.68rem,1.6vw,.85rem);opacity:.75;margin-top:6px;letter-spacing:.28em;text-transform:uppercase}
+/* ---------- Controls ---------- */
+.controls{
+  width:min(980px,100%);
+  background:linear-gradient(180deg,rgba(58,36,22,.9),rgba(42,26,16,.9));
+  border:1px solid rgba(232,182,76,.35);border-radius:16px;
+  padding:clamp(10px,1.6vw,18px);
+  box-shadow:0 10px 30px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,235,190,.08);
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px 18px;
+}
+.field label{display:block;font-size:.66rem;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-soft);margin-bottom:5px}
+select{
+  width:100%;appearance:none;background:var(--ink);color:var(--cream);
+  border:1px solid var(--gold-soft);border-radius:9px;padding:9px 30px 9px 12px;
+  font-size:.85rem;cursor:pointer;outline:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--gold) 50%),linear-gradient(135deg,var(--gold) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:5px 5px;background-repeat:no-repeat;
+  transition:border-color .2s, box-shadow .2s;
+}
+select:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(232,182,76,.25)}
+input[type=range]{width:100%;accent-color:var(--gold);cursor:pointer;height:22px}
+.slider-row{display:flex;align-items:center;gap:8px}
+.slider-row .val{font-size:.7rem;color:var(--gold);min-width:44px;text-align:right;font-variant-numeric:tabular-nums}
+.row2{display:flex;gap:14px;align-items:center}
+.switch{display:flex;align-items:center;gap:8px;font-size:.8rem}
+.switch input{accent-color:var(--gold);width:17px;height:17px;cursor:pointer}
+/* ---------- Start / strum ---------- */
+.actions{display:flex;gap:12px;margin:clamp(10px,1.8vw,18px) 0;flex-wrap:wrap;justify-content:center}
+.btn{
+  background:linear-gradient(180deg,#7d2a22,#5a1712);color:var(--cream);
+  border:1px solid var(--gold-soft);border-radius:12px;
+  padding:12px 26px;font-size:.92rem;letter-spacing:.06em;cursor:pointer;
+  box-shadow:0 6px 16px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,220,160,.25);
+  transition:transform .12s, box-shadow .12s;
+}
+.btn:hover{transform:translateY(-2px);box-shadow:0 9px 22px rgba(0,0,0,.55),0 0 18px rgba(232,182,76,.25), inset 0 1px 0 rgba(255,220,160,.3)}
+.btn:active{transform:translateY(0) scale(.98)}
+.btn.minor{background:linear-gradient(180deg,#3a2416,#241407)}
+.btn[disabled]{opacity:.45;pointer-events:none}
+/* ---------- Pads ---------- */
+.stage{width:min(980px,100%);}
+.pads{
+  display:grid;grid-template-columns:repeat(8,1fr);gap:clamp(6px,1vw,12px);
+  margin-top:4px;
+}
+@media(max-width:760px){.pads{grid-template-columns:repeat(4,1fr)}}
+.pad{
+  position:relative;aspect-ratio:1/1.15;border-radius:14px;cursor:pointer;
+  border:1px solid rgba(232,182,76,.4);color:var(--cream);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,214,140,.14), transparent 60%),
+    linear-gradient(180deg,#54351f,#33200f 70%,#241304);
+  box-shadow:0 5px 12px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,230,180,.18), inset 0 -6px 12px rgba(0,0,0,.35);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  user-select:none;touch-action:none;
+  transition:transform .08s ease, box-shadow .08s ease, border-color .08s;
+}
+.pad:hover{border-color:var(--gold)}
+.pad .note{font-size:clamp(.85rem,2.2vw,1.25rem);font-weight:600;letter-spacing:.04em}
+.pad .sargam{font-size:clamp(.55rem,1.3vw,.72rem);color:var(--gold);letter-spacing:.1em;min-height:.8em}
+.pad .key{
+  position:absolute;top:5px;left:7px;font-size:clamp(.5rem,1.1vw,.62rem);
+  opacity:.45;border:1px solid rgba(245,230,200,.35);border-radius:4px;padding:0 5px;
+}
+.pad.playing{
+  border-color:#ffd97a;transform:scale(.96);
+  background:
+    radial-gradient(120% 90% at 50% 0%, rgba(255,224,150,.35), transparent 65%),
+    linear-gradient(180deg,#8a5a2b,#5a3413 70%,#3c1f06);
+  box-shadow:0 0 22px rgba(232,182,76,.55), inset 0 1px 0 rgba(255,235,190,.4);
+  animation:pulse var(--dur) ease-out;
+}
+@keyframes pulse{
+  0%{box-shadow:0 0 30px rgba(255,205,110,.85), inset 0 0 18px rgba(255,205,110,.5)}
+  100%{box-shadow:0 0 10px rgba(232,182,76,.3), inset 0 1px 0 rgba(255,235,190,.3)}
+}
+.pad:active{transform:scale(.94)}
+.pad.low{filter:brightness(.72)}
+/* ---------- Footer ---------- */
+footer{margin-top:clamp(12px,2vw,22px);font-size:.7rem;opacity:.6;text-align:center;letter-spacing:.12em;line-height:1.7}
+.hint{margin-top:10px;font-size:.68rem;color:var(--gold-soft);text-align:center;letter-spacing:.14em;text-transform:uppercase;opacity:.8}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="arch">
+    <h1>THE MARDANA REBAB</h1>
+    <div class="sub">As sung beside Guru Nanak Dev Ji &nbsp;•&nbsp; Est. 1500s</div>
+  </div>
+</header>
+
+<div class="controls">
+  <div class="field"><label>Raga / Scale</label>
+    <select id="scale">
+      <option value="major">Raga Bilaval (D Major)</option>
+      <option value="chromatic">Chromatic (16 semitones)</option>
+      <option value="minor">Natural Minor</option>
+      <option value="bhairav">Raga Bhairav</option>
+      <option value="pentmin">Minor Pentatonic</option>
+    </select>
+  </div>
+  <div class="field"><label>Tone Preset</label>
+    <select id="preset">
+      <option value="classic">Mardana Classic — warm pluck</option>
+      <option value="bright">Bright Jawari — shimmering</option>
+      <option value="deep">Deep Kharaj — resonant bass</option>
+    </select>
+  </div>
+  <div class="field"><label>Note Duration</label>
+    <select id="duration">
+      <option value="0.25">Staccato — ¼ s</option>
+      <option value="0.5">Short — ½ s</option>
+      <option value="1" selected>Medium — 1 s</option>
+      <option value="2">Long — 2 s</option>
+      <option value="4">Full — 4 s</option>
+      <option value="hold">Sustain — hold pad</option>
+    </select>
+  </div>
+  <div class="field"><label>Drone Strings (Chikari)</label>
+    <select id="droneTune">
+      <option value="off">Off</option>
+      <option value="D2,A2" selected>Sa–Pa (D + A)</option>
+      <option value="D2,D3">Sa–Sa (D + D)</option>
+      <option value="G2,D3">Ma–Sa (G + D)</option>
+    </select>
+  </div>
+  <div class="field"><label>Master Volume <span class="val" id="volVal">-6 dB</span></label>
+    <input type="range" id="volume" min="-40" max="0" step="1" value="-6">
+  </div>
+  <div class="field"><label>Pluck Brightness <span class="val" id="filtVal">2400 Hz</span></label>
+    <input type="range" id="filter" min="500" max="8000" step="50" value="2400">
+  </div>
+  <div class="field"><label>Resonance / Release <span class="val" id="relVal">1.8 s</span></label>
+    <input type="range" id="release" min="0.3" max="4" step="0.1" value="1.8">
+  </div>
+  <div class="field"><label>Meend (Vibrato) <span class="val" id="vibVal">3.5 Hz</span></label>
+    <input type="range" id="vibrato" min="0" max="8" step="0.1" value="3.5">
+  </div>
+  <div class="field"><label>Room Reverb <span class="val" id="verbVal">35%</span></label>
+    <input type="range" id="reverb" min="0" max="70" step="1" value="35">
+  </div>
+</div>
+
+<div class="actions">
+  <button class="btn" id="startBtn">&#9654; Awaken the Rebab</button>
+  <button class="btn minor" id="strumBtn" disabled>Chikari Strum</button>
+</div>
+
+<div class="stage">
+  <div class="pads" id="pads"></div>
+</div>
+<div class="hint">Tip: play with mouse, touch, or keys 1–0 then Q W E R T Y</div>
+
+<footer>
+  A humble digital tribute to Bhai Mardana Ji, the devoted rababi who accompanied<br>
+  Guru Nanak Dev Ji across the great journeys, carrying the sacred kirtan on three strings.
+</footer>
+
+<script>
+/* ================= MARDANA REBAB — Tone.js ================= */
+const $ = id => document.getElementById(id);
+
+/* ---- Scale data: 16 ascending notes per raga (D tonic) ---- */
+const BASE = 62; // MIDI D4
+const SCALES = {
+  major:    { iv:[0,2,4,5,7,9,11], sg:{0:'Sa',2:'Re',4:'Ga',5:'Ma',7:'Pa',9:'Dha',11:'Ni'} },
+  chromatic:{ iv:[0,1,2,3,4,5,6,7,8,9,10,11], sg:{0:'Sa',2:'Re',4:'Ga',5:'Ma',7:'Pa',9:'Dha',11:'Ni'} },
+  minor:    { iv:[0,2,3,5,7,8,10], sg:{0:'Sa',2:'Re',3:'kGa',5:'Ma',7:'Pa',8:'kDha',10:'kNi'} },
+  bhairav:  { iv:[0,1,4,5,7,8,11], sg:{0:'Sa',1:'kRe',4:'Ga',5:'Ma',7:'Pa',8:'kDha',11:'Ni'} },
+  pentmin:  { iv:[0,3,5,7,10], sg:{0:'Sa',3:'kGa',5:'Ma',7:'Pa',10:'kNi'} },
+};
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const KEYS = ['1','2','3','4','5','6','7','8','9','0','q','w','e','r','t','y'];
+
+function buildNotes(scaleKey){
+  const s = SCALES[scaleKey];
+  const out = [];
+  let idx = 0;
+  while(out.length < 16){
+    const iv = s.iv[idx % s.iv.length];
+    const oct = Math.floor(idx / s.iv.length);
+    let m = BASE + iv + oct*12;
+    while(m > 86) m -= 12;               // keep within rebab range (<= D6)
+    const pc = ((m % 12) + 12) % 12;
+    out.push({ midi:m, name:NOTE_NAMES[pc] + (Math.floor(m/12)-1), sargam:s.sg[pc] || '' });
+    idx++;
+  }
+  return out;
+}
+
+/* ---- Audio graph ---- */
+let vol, limiter, reverb, vibrato, filter, synth;
+const drone = { nodes:[], gains:[] };
+const held = new Map();   // pad -> note for sustained notes
+let started = false;
+
+const PRESETS = {
+  classic: { type:'triangle', attack:0.008, decay:0.4, sustain:0.3, vibDepth:0.2 },
+  bright:  { type:'sawtooth',   attack:0.004, decay:0.25,sustain:0.2, vibDepth:0.12 },
+  deep:    { type:'sine',       attack:0.015, decay:0.5, sustain:0.35, vibDepth:0.3 },
+};
+
+function makeSynth(){
+  if(synth){ synth.releaseAll(); synth.disconnect(); }
+  const p = PRESETS[$('preset').value];
+  synth = new Tone.PolySynth(Tone.Synth, {
+    oscillator: { type:p.type },
+    envelope:   { attack:p.attack, decay:p.decay, sustain:p.sustain,
+                  release:parseFloat($('release').value) },
+    volume: -4
+  }).connect(filter);
+}
+
+async function init(){
+  await Tone.start();
+  vol     = new Tone.Volume(parseFloat($('volume').value));
+  limiter = new Tone.Limiter(-1).toDestination();
+  reverb  = new Tone.Reverb({ decay:3.5, wet:0.35 }).connect(vol);
+  vibrato = new Tone.Vibrato(3.5, PRESETS.classic.vibDepth).connect(reverb);
+  filter  = new Tone.Filter(parseFloat($('filter').value), 'lowpass').connect(vibrato);
+  vol.connect(limiter);
+  makeSynth();
+  started = true;
+  $('startBtn').innerHTML = '&#10004; Rebab Awakened';
+  $('startBtn').disabled = true;
+  $('strumBtn').disabled = false;
+  updateDrone();
+}
+
+/* ---- Drone (chikari) strings ---- */
+function stopDrone(){
+  drone.nodes.forEach(n=>n.stop(Tone.now()+0.1));
+  drone.nodes = []; drone.gains = [];
+}
+function startDrone(freqs){
+  const t = Tone.now();
+  freqs.forEach(f=>{
+    [-4, 3].forEach(det=>{
+      const o = new Tone.Oscillator(f, 'triangle').start(t);
+      o.detune.value = det;
+      const g = new Tone.Gain(0.05).connect(vol);
+      const flt = new Tone.Filter(600, 'lowpass').connect(g);
+      const lfo = new Tone.LFO(0.15, 0.035, 0.065).start(t).connect(g.gain);
+      o.connect(flt);
+      drone.nodes.push(o, lfo); drone.gains.push(g);
+    });
+  });
+}
+function updateDrone(){
+  if(!started) return;
+  stopDrone();
+  const v = $('droneTune').value;
+  if(v === 'off') return;
+  startDrone(v.split(',').map(Number));
+}
+
+/* ---- Pads ---- */
+const padsEl = $('pads');
+let notes = [];
+function renderPads(){
+  notes = buildNotes($('scale').value);
+  padsEl.innerHTML = '';
+  notes.forEach((n,i)=>{
+    const b = document.createElement('button');
+    b.className = 'pad' + (n.midi <= 57 ? ' low' : '');
+    b.innerHTML = `<span class="key">${KEYS[i]}</span>
+                   <span class="note">${n.name}</span>
+                   <span class="sargam">${n.sargam}</span>`;
+    b.dataset.midi = n.midi;
+    b.addEventListener('pointerdown', e=>{ e.preventDefault(); pressPad(b, n); });
+    ['pointerup','pointerleave','pointercancel'].forEach(ev=>
+      b.addEventListener(ev, ()=> releasePad(b, n)));
+    padsEl.appendChild(b);
+  });
+}
+
+function pressPad(b, n){
+  if(!started) return;
+  const dur = $('duration').value;
+  const name = n.name;
+  if(dur === 'hold'){
+    synth.triggerAttack(name, Tone.now(), 0.95);
+    held.set(b, name);
+    b.classList.add('playing');
+  } else {
+    synth.triggerAttackRelease(name, parseFloat(dur), Tone.now(), 0.95);
+    b.classList.add('playing');
+    setTimeout(()=> b.classList.remove('playing'), parseFloat(dur)*1000);
+  }
+}
+function releasePad(b){
+  if(held.has(b)){ synth.triggerRelease(held.get(b)); held.delete(b); b.classList.remove('playing'); }
+}
+
+/* ---- Keyboard play ---- */
+const padButtons = () => [...padsEl.children];
+window.addEventListener('keydown', e=>{
+  if(e.repeat || !started) return;
+  const i = KEYS.indexOf(e.key.toLowerCase());
+  if(i >= 0){ const b = padButtons()[i]; if(b) pressPad(b, notes[i]); }
+});
+window.addEventListener('keyup', e=>{
+  const i = KEYS.indexOf(e.key.toLowerCase());
+  if(i >= 0){ const b = padButtons()[i]; if(b) releasePad(b); }
+});
+
+/* ---- Chikari strum (open-string shimmer) ---- */
+$('strumBtn').addEventListener('click', ()=>{
+  if(!started) return;
+  const t = Tone.now();
+  ['D5','A5','D6'].forEach((n,i)=>{
+    synth.triggerAttackRelease(n, 0.35, t + i*0.06, 0.5);
+  });
+});
+
+/* ---- Controls wiring ---- */
+$('startBtn').addEventListener('click', init);
+$('scale').addEventListener('change', renderPads);
+$('preset').addEventListener('change', ()=> started && makeSynth());
+$('droneTune').addEventListener('change', updateDrone);
+$('duration').addEventListener('change', e=>{
+  document.documentElement.style.setProperty('--dur', e.target.value === 'hold' ? '1s' : e.target.value + 's');
+});
+
+$('volume').addEventListener('input', e=>{
+  $('volVal').textContent = e.target.value + ' dB';
+  if(vol) vol.volume.rampTo(parseFloat(e.target.value), 0.05);
+});
+$('filter').addEventListener('input', e=>{
+  $('filtVal').textContent = e.target.value + ' Hz';
+  if(filter) filter.frequency.rampTo(parseFloat(e.target.value), 0.05);
+});
+$('release').addEventListener('input', e=>{
+  $('relVal').textContent = parseFloat(e.target.value).toFixed(1) + ' s';
+  if(synth) synth.set({ envelope:{ release: parseFloat(e.target.value) } });
+});
+$('vibrato').addEventListener('input', e=>{
+  $('vibVal').textContent = parseFloat(e.target.value).toFixed(1) + ' Hz';
+  if(vibrato) vibrato.frequency.rampTo(parseFloat(e.target.value), 0.05);
+});
+$('reverb').addEventListener('input', e=>{
+  $('verbVal').textContent = e.target.value + '%';
+  if(reverb) reverb.wet.rampTo(parseFloat(e.target.value)/100, 0.05);
+});
+
+renderPads();
+</script>
+</body>
+</html>
