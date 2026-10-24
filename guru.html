@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Classical Instruments — Rebab, Dilruba, Taus, Saranda</title>
+<style>
+:root{--bg:#f3eadb;--card:#fffaf0;--ink:#2b1d11;--mut:#7b6650;--acc:#a8601a;--line:#dccbb0;--key:#f1e2c8;--keyh:#e6cfa5;--wood:#7a4a22;--skin:#e9d3a6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#17110b;--card:#231a11;--ink:#f4e7d0;--mut:#b49f84;--acc:#e3a448;--line:#3b2c1e;--key:#33261a;--keyh:#4b3622;--wood:#6a4020;--skin:#cdb283;color-scheme:dark}}
+:root[data-theme=dark]{--bg:#17110b;--card:#231a11;--ink:#f4e7d0;--mut:#b49f84;--acc:#e3a448;--line:#3b2c1e;--key:#33261a;--keyh:#4b3622;--wood:#6a4020;--skin:#cdb283;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 system-ui,-apple-system,"Segoe UI","Noto Sans Gurmukhi",sans-serif;-webkit-tap-highlight-color:transparent}
+.w{max-width:980px;margin:0 auto;padding:16px 14px 40px}
+header{display:flex;gap:16px;align-items:flex-start}
+h1{margin:0 0 4px;font:600 clamp(24px,6vw,36px)/1.1 Georgia,"Times New Roman",serif}
+header p{margin:0;color:var(--mut);max-width:60ch;font-size:clamp(14px,3.5vw,16px)}
+#reb{width:78px;height:auto;flex:none}
+.wd{fill:var(--wood)}.sk{fill:var(--skin);stroke:var(--wood);stroke-width:2}.br{fill:var(--ink)}
+.pg{stroke:var(--acc);stroke-width:4;stroke-linecap:round;fill:none}
+.st{stroke:var(--ink);stroke-width:1;opacity:.8}.s{transform-box:fill-box;transform-origin:center}
+.vib .s{animation:v .05s linear 10}@keyframes v{50%{transform:translateX(1.4px)}}
+.p{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px;margin:16px 0}
+h2{font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin:0 0 12px}
+#ctl{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+label{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mut)}
+select{font:inherit;color:var(--ink);background:var(--key);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:44px;width:100%;cursor:pointer}
+#dur{display:flex;flex-wrap:wrap;gap:8px}
+#dur button{flex:1 1 70px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:12px;border:1px solid var(--line);border-bottom-width:3px;background:var(--key);color:var(--ink);font:inherit;cursor:pointer;transition:all .15s}
+#dur b{font-size:18px}#dur small{color:var(--mut);font-size:11px}
+#dur [aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+#dur [aria-pressed=true] small{color:#ffffffcc}
+.go{margin-top:12px;width:100%;min-height:48px;border-radius:12px;border:1px solid var(--acc);background:transparent;color:var(--acc);font:600 16px inherit;cursor:pointer;transition:all .15s}
+.go:hover,.go:active{background:var(--acc);color:#fff}
+#kb{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.k{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:64px;padding:8px 2px 6px;font:inherit;color:var(--ink);background:var(--key);border:1px solid var(--line);border-top:3px solid hsl(calc(28 + var(--o)*24) 60% 48%);border-bottom-width:4px;border-radius:10px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .06s,background .15s}
+.k b{font-size:clamp(14px,3.6vw,20px);line-height:1.1}
+.k small{font-size:clamp(9px,2.4vw,12px);color:var(--mut)}
+.k i{position:absolute;top:4px;right:6px;font:10px monospace;color:var(--mut)}
+.k.r b{color:var(--acc)}.k:hover{background:var(--keyh)}
+.k.on{transform:translateY(2px);background:var(--acc);color:#fff}.k.on b,.k.on small,.k.on i{color:#fff}
+.h{margin:12px 0 0;font-size:13px;color:var(--mut);text-align:center}
+#fx{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none;opacity:.6}
+.w{position:relative;z-index:1}
+.p{background:color-mix(in srgb,var(--card) 75%,transparent);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+#fft{display:flex;flex-wrap:wrap;gap:8px}
+#fft button{flex:1 1 64px;display:flex;flex-direction:column;align-items:center;gap:2px;padding:10px 6px;border-radius:12px;border:1px solid var(--line);border-bottom-width:3px;background:var(--key);color:var(--ink);font:inherit;cursor:pointer;transition:all .15s}
+#fft b{font-size:16px}#fft small{color:var(--mut);font-size:11px}
+#fft [aria-pressed=true]{background:var(--acc);border-color:var(--acc);color:#fff}
+#fft [aria-pressed=true] small{color:#ffffffcc}
+footer{text-align:center;padding:32px 16px 48px;color:var(--mut);font-size:13px;border-top:1px solid var(--line);margin-top:32px;letter-spacing:0.02em}
+@media(max-width:480px){
+  header{flex-direction:column;align-items:center;text-align:center}
+  #kb{gap:4px}
+  .k{min-height:56px;border-radius:8px}
+  .k i{display:none}
+}
+@media(hover:none){.k i{display:none}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<canvas id="fx" aria-hidden="true"></canvas>
+<div class="w">
+<header>
+<svg id="reb" viewBox="0 0 120 200" aria-hidden="true">
+<rect class="wd" x="54" y="4" width="12" height="130" rx="5"/>
+<ellipse class="wd" cx="60" cy="126" rx="24" ry="17"/>
+<ellipse class="wd" cx="60" cy="164" rx="38" ry="32"/>
+<ellipse class="sk" cx="60" cy="164" rx="30" ry="25"/>
+<rect class="br" x="46" y="170" width="28" height="4" rx="2"/>
+<path class="pg" d="M44 16h10M66 26h10M44 36h10"/>
+<g class="st"><line class="s" x1="57" y1="8" x2="57" y2="172"/><line class="s" x1="60" y1="8" x2="60" y2="172"/><line class="s" x1="63" y1="8" x2="63" y2="172"/></g>
+</svg>
+<div>
+<h1 id="inst-title">Rebab <span lang="pa">ਰਬਾਬ</span></h1>
+<p id="inst-desc">The plucked lute of Bhai Mardana Ji, companion of Guru Nanak Dev Ji in kirtan. Shape the voice, choose a thaat, then play all 32 notes.</p>
+<select id="inst-select" aria-label="Select Instrument">
+  <option value="rebab">Rebab (ਰਬਾਬ)</option>
+  <option value="dilruba">Dilruba (ਦਿਲਰੁਬਾ)</option>
+  <option value="taus">Taus (ਤਾਊਸ)</option>
+  <option value="saranda">Saranda (ਸਾਰੰਦਾ)</option>
+</select>
+</div>
+</header>
+
+<section class="p"><h2>Tone</h2><div id="ctl"></div></section>
+<section class="p"><h2>Note duration</h2><div id="dur" role="group" aria-label="Note duration"></div><button id="run" type="button" class="go">▶ Play 32-note run</button></section>
+<section class="p"><h2>Spectrum analyzer · FFT size</h2><div id="fft" role="group" aria-label="FFT size"></div></section>
+<section class="p"><h2>32 notes</h2><div id="kb"></div><p class="h" id="st">Tap or click a key — or use 1–0, Q–P, A–L, Z–C. Audio starts on your first touch.</p></section>
+
+<footer>All Rights Reserved &copy; 2026 Alfa Centauri Software</footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script>
+const $=s=>document.querySelector(s);
+const NN=["C","C♯","D","D♯","E","F","F♯","G","G♯","A","A♯","B"];
+const SG=["Sa","re","Re","ga","Ga","Ma","Ma′","Pa","dha","Dha","ni","Ni"];
+const TH={Bilawal:[0,2,4,5,7,9,11],Kalyan:[0,2,4,6,7,9,11],Khamaj:[0,2,4,5,7,9,10],Kafi:[0,2,3,5,7,9,10],Asavari:[0,2,3,5,7,8,10],Bhairavi:[0,1,3,5,7,8,10],Bhairav:[0,1,4,5,7,8,11],Todi:[0,1,3,6,7,8,11]};
+const VO={"Gut strings — warm":["sawtooth",420,3.2,1.5,5],"Steel strings — bright":["sawtooth",950,3,2.6,4],"Hollow wood — mellow":["sawtooth",260,2.4,1,3],"Skin twang — nasal":["square",700,3,3.5,9]};
+const S=[["voice","Voicing",Object.keys(VO)],["raag","Thaat / raag scale",Object.keys(TH)],["sa","Sa (tonic)",NN,7],["oct","Octave",["Low","Middle","High"]],["sus","Sustain",["Short — damped","Medium","Long","Ringing"],1],["bri","Skin brightness",["Soft","Natural","Bright"],1],["rev","Room",["Dry","Chamber","Diwan hall"],1],["sym","Sympathetic strings",["Off","Light","Rich"],1],["bpm","Tempo",["60 BPM","80 BPM","100 BPM","120 BPM"],1]];
+const DU=[["1/16",.25],["1/8",.5],["1/4",1],["1/2",2],["1",4]];
+const KB="1234567890qwertyuiopasdfghjklzxc";
+
+const INSTRUMENTS = {
+  rebab: {
+    name: "Rebab <span lang='pa'>ਰਬਾਬ</span>",
+    desc: "The plucked lute of Bhai Mardana Ji, companion of Guru Nanak Dev Ji in kirtan. Shape the voice, choose a thaat, then play all 32 notes.",
+    voice: "Gut strings — warm",
+    svg: `<rect class="wd" x="54" y="4" width="12" height="130" rx="5"/><ellipse class="wd" cx="60" cy="126" rx="24" ry="17"/><ellipse class="wd" cx="60" cy="164" rx="38" ry="32"/><ellipse class="sk" cx="60" cy="164" rx="30" ry="25"/><rect class="br" x="46" y="170" width="28" height="4" rx="2"/><path class="pg" d="M44 16h10M66 26h10M44 36h10"/><g class="st"><line class="s" x1="57" y1="8" x2="57" y2="172"/><line class="s" x1="60" y1="8" x2="60" y2="172"/><line class="s" x1="63" y1="8" x2="63" y2="172"/></g>`
+  },
+  dilruba: {
+    name: "Dilruba <span lang='pa'>ਦਿਲਰੁਬਾ</span>",
+    desc: "A bowed, fretted string instrument used in Sikh classical music, known for its expressive, vocal-like sustain and deep resonance.",
+    voice: "Steel strings — bright",
+    svg: `<rect class="wd" x="56" y="4" width="8" height="140" rx="4"/><rect class="wd" x="40" y="140" width="40" height="50" rx="8"/><ellipse class="sk" cx="60" cy="165" rx="28" ry="20"/><rect class="br" x="48" y="175" width="24" height="4" rx="2"/><path class="pg" d="M46 20h8M66 30h8"/><g class="st"><line class="s" x1="58" y1="8" x2="58" y2="180"/><line class="s" x1="60" y1="8" x2="60" y2="180"/><line class="s" x1="62" y1="8" x2="62" y2="180"/></g>`
+  },
+  taus: {
+    name: "Taus <span lang='pa'>ਤਾਊਸ</span>",
+    desc: "The 'peacock' instrument, a deep-bass bowed string instrument created by Guru Gobind Singh Ji, offering rich, resonant low frequencies.",
+    voice: "Hollow wood — mellow",
+    svg: `<rect class="wd" x="56" y="4" width="8" height="120" rx="4"/><path class="wd" d="M40 120 Q60 190 80 120 Z"/><ellipse class="sk" cx="60" cy="145" rx="26" ry="22"/><rect class="br" x="48" y="155" width="24" height="4" rx="2"/><path class="pg" d="M46 16h8M66 26h8"/><g class="st"><line class="s" x1="58" y1="8" x2="58" y2="160"/><line class="s" x1="60" y1="8" x2="60" y2="160"/><line class="s" x1="62" y1="8" x2="62" y2="160"/></g>`
+  },
+  saranda: {
+    name: "Saranda <span lang='pa'>ਸਾਰੰਦਾ</span>",
+    desc: "A short-necked, bowed folk instrument with a rich, nasal timbre, traditionally played by Gurbani Kirtanias.",
+    voice: "Skin twang — nasal",
+    svg: `<rect class="wd" x="54" y="4" width="12" height="100" rx="5"/><rect class="wd" x="36" y="100" width="48" height="60" rx="10"/><ellipse class="sk" cx="60" cy="130" rx="32" ry="26"/><rect class="br" x="46" y="140" width="28" height="4" rx="2"/><path class="pg" d="M44 16h10M66 26h10M44 36h10"/><g class="st"><line class="s" x1="57" y1="8" x2="57" y2="145"/><line class="s" x1="60" y1="8" x2="60" y2="145"/><line class="s" x1="63" y1="8" x2="63" y2="145"/></g>`
+  }
+};
+
+let du=2,N=[],A,P;
+
+$("#ctl").innerHTML=S.map(([id,l,o,d=0])=>`<label>${l}<select id="${id}">${o.map((x,i)=>`<option${i==d?" selected":""}>${x}</option>`).join("")}</select></label>`).join("");
+$("#dur").innerHTML=DU.map(([a],i)=>`<button type="button" data-i="${i}"><b>${a}</b><small></small></button>`).join("");
+const sel=id=>$("#"+id).selectedIndex,bpm=()=>[60,80,100,120][sel("bpm")];
+
+function sync(){const b=bpm();[...$("#dur").children].forEach((e,i)=>{e.setAttribute("aria-pressed",i==du);e.lastChild.textContent=(DU[i][1]*60/b).toFixed(2)+" s"})}
+
+function layout(){
+  const sc=TH[Object.keys(TH)[sel("raag")]],base=36+12*sel("oct")+sel("sa");
+  N=[...Array(32)].map((_,k)=>{const m=base+sc[k%7]+12*(k/7|0);return{f:440*2**((m-69)/12),sg:SG[sc[k%7]],w:NN[m%12]+((m/12|0)-1),o:k/7|0,r:k%7==0}});
+  $("#kb").innerHTML=N.map((n,k)=>`<button type="button" class="k${n.r?" r":""}" data-k="${k}" style="--o:${n.o}"><i>${KB[k].toUpperCase()}</i><b>${n.sg}</b><small>${n.w}</small></button>`).join("");
+}
+
+function build(){
+  const D=Tone.getDestination();D.volume.value=-3;
+  const comp=new Tone.Compressor(-20,3).connect(D);
+  const rv=new Tone.Reverb({decay:2.8,wet:1}).connect(comp),rg=new Tone.Gain(.18).connect(rv);
+  const bus=new Tone.Gain(1);bus.connect(comp);bus.connect(rg);
+  const lp=new Tone.Filter(5500,"lowpass");
+  const body=[[190,5,1.6],[470,4,2],[1150,6,2.5],[2600,3,1.5]].map(([f,g,q])=>new Tone.Filter({type:"peaking",frequency:f,gain:g,Q:q}));
+  const syn=new Tone.PolySynth(Tone.MonoSynth,{envelope:{attack:.003,decay:1.4,sustain:0,release:.35,decayCurve:"exponential",releaseCurve:"exponential"},filterEnvelope:{attack:.001,decay:.5,sustain:.05,release:.3,exponent:2}});
+  syn.volume.value=-8;syn.chain(...body,lp,bus);
+  const th=new Tone.NoiseSynth({noise:{type:"brown"},envelope:{attack:.001,decay:.05,sustain:0,release:.02}});
+  th.volume.value=-12;th.connect(body[0]);
+  const si=new Tone.Gain(0).connect(new Tone.Gain(1)),sy=[0,1].map(()=>new Tone.FeedbackDelay({delayTime:.01,feedback:.86,wet:1}));
+  bus.connect(si);sy.forEach(d=>{si.connect(d);d.connect(comp)});
+  const an=Tone.getContext().rawContext.createAnalyser();an.smoothingTimeConstant=.78;an.minDecibels=-90;an.maxDecibels=-20;comp.connect(an);
+  A={syn,th,body,lp,rg,si,sy,an};apply();fftSet();
+}
+
+function apply(){
+  if(!A)return;
+  const v=VO[Object.keys(VO)[sel("voice")]],d=[.6,1.4,2.8,5][sel("sus")],fs=440*2**((48+sel("sa")-69)/12);
+  A.syn.set({oscillator:{type:v[0]},filter:{Q:v[3]},filterEnvelope:{baseFrequency:v[1],octaves:v[2],decay:d*.35},envelope:{decay:d}});
+  A.body[2].gain.value=v[4];A.lp.frequency.value=[2800,5500,9500][sel("bri")];
+  A.rg.gain.value=[.03,.18,.4][sel("rev")];A.si.gain.value=[0,.12,.3][sel("sym")];
+  A.sy[0].delayTime.value=1/fs;A.sy[1].delayTime.value=1/(fs*.75);
+}
+
+const init=()=>P||(P=Tone.start().then(build));
+
+function flash(k){
+  const b=$(`.k[data-k="${k}"]`),s=$("#reb");
+  if(b){b.classList.add("on");setTimeout(()=>b.classList.remove("on"),180)}
+  s.classList.remove("vib");void s.getBoundingClientRect();s.classList.add("vib");
+}
+
+async function play(k,delay=0){
+  await init();
+  const t=Tone.now()+delay,d=DU[du][1]*60/bpm();
+  A.syn.triggerAttackRelease(N[k].f,d,t,.85);A.th.triggerAttackRelease(.05,t);
+  setTimeout(()=>{flash(k);shuf()},delay*1000);
+}
+
+async function run(){await init();const st=Math.min(Math.max(DU[du][1]*60/bpm(),.14),.45);N.forEach((_,k)=>play(k,k*st))}
+
+$("#kb").addEventListener("pointerdown",e=>{const b=e.target.closest(".k");if(b){e.preventDefault();play(+b.dataset.k)}});
+$("#dur").onclick=e=>{const b=e.target.closest("button");if(b){du=+b.dataset.i;sync()}};
+$("#run").onclick=run;
+$("#ctl").onchange=e=>{if(["raag","sa","oct"].includes(e.target.id))layout();sync();apply();e.target.blur()};
+
+$("#inst-select").addEventListener("change",()=>{
+  const inst=INSTRUMENTS[$("#inst-select").value];
+  $("#inst-title").innerHTML=inst.name;
+  $("#inst-desc").textContent=inst.desc;
+  $("#reb").innerHTML=inst.svg;
+  $("#voice").value=inst.voice;
+  apply();
+});
+
+addEventListener("keydown",e=>{
+  if(e.repeat||e.ctrlKey||e.metaKey||e.altKey||e.key.length!=1||/SELECT/.test(document.activeElement.tagName))return;
+  const k=KB.indexOf(e.key.toLowerCase());if(k>=0)play(k);
+});
+
+const FF=[0,64,128,256,512,1024,2048],cv=$("#fx"),cx=cv.getContext("2d"),HU=new Float32Array(1100),TG=new Float32Array(1100);
+let fi=4,raf=0,W=0,H=0,D8=new Uint8Array(0);
+for(let i=0;i<1100;i++)HU[i]=TG[i]=Math.random()*360;
+
+function shuf(){for(let i=0;i<1100;i++)TG[i]=Math.random()*360}
+
+function rs(){const r=Math.min(devicePixelRatio||1,2);W=innerWidth;H=innerHeight;cv.width=W*r;cv.height=H*r;cx.setTransform(r,0,0,r,0,0)}
+
+function fftSet(){
+  if(!A)return;
+  if(!FF[fi]){cancelAnimationFrame(raf);raf=0;cx.clearRect(0,0,W,H);return}
+  A.an.fftSize=FF[fi];D8=new Uint8Array(A.an.frequencyBinCount);
+  if(!raf)raf=requestAnimationFrame(draw);
+}
+
+function draw(){
+  raf=0;if(!A||!FF[fi])return;
+  A.an.getByteFrequencyData(D8);
+  const L=Math.max(8,Math.min(D8.length,Math.floor(D8.length*8000/(A.an.context.sampleRate/2)))),w=W/L;
+  cx.clearRect(0,0,W,H);
+  for(let i=0;i<L;i++){
+    HU[i]+=(TG[i]-HU[i])*.06;
+    const h=Math.max(2,D8[i]/255*H*.7),x=i*w,bw=Math.max(1,w-1);
+    cx.fillStyle=`hsla(${HU[i]},90%,58%,.8)`;cx.fillRect(x,H-h,bw,h);
+    cx.fillStyle=`hsla(${HU[i]},90%,58%,.22)`;cx.fillRect(x,0,bw,h*.4);
+  }
+  raf=requestAnimationFrame(draw);
+}
+
+$("#fft").innerHTML=FF.map((n,i)=>`<button type="button" data-i="${i}" aria-pressed="${i==fi}"><b>${n||"Off"}</b><small>${n?n/2+" bins":"hidden"}</small></button>`).join("")+`<button type="button" data-s="1"><b>🎨</b><small>Shuffle</small></button>`;
+$("#fft").onclick=e=>{const b=e.target.closest("button");if(!b)return;if(b.dataset.s)return shuf();fi=+b.dataset.i;[...$("#fft").children].forEach((x,j)=>x.setAttribute("aria-pressed",j==fi));fftSet()};
+addEventListener("resize",rs);rs();
+
+if(!window.Tone)$("#st").textContent="The audio engine could not be loaded. Please check your connection.";
+layout();sync();
+</script>
+</body>
+</html>
