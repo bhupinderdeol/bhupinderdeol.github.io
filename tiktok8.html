@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suno AI Punjabi Master Visualizer & Player</title>
+    <style>
+        :root {
+            --bg-dark: #07070a;
+            --card-bg: rgba(15, 15, 22, 0.95);
+            --gold: #d4af37;
+            --gold-glow: rgba(212, 175, 55, 0.5);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at center, #1a1505 0%, var(--bg-dark) 85%);
+            padding: 10px;
+        }
+
+        /* App Container */
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 92vh;
+            max-height: 940px;
+            background: var(--card-bg);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 40px var(--gold-glow);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .app-container.desktop-mode {
+            max-width: 980px;
+            height: 680px;
+        }
+
+        /* Top Bar */
+        .top-bar {
+            padding: 10px 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.25);
+            background: rgba(10, 10, 15, 0.98);
+            z-index: 20;
+            gap: 10px;
+        }
+
+        .upload-btn-label {
+            background: linear-gradient(135deg, #d4af37 0%, #aa771c 100%);
+            color: #000;
+            font-weight: 800;
+            padding: 9px 14px;
+            border-radius: 30px;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--gold-glow);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .upload-btn-label:hover {
+            transform: scale(1.03);
+            box-shadow: 0 0 25px var(--gold);
+        }
+
+        #file-input-audio {
+            display: none;
+        }
+
+        .mode-toggle {
+            background: rgba(212, 175, 55, 0.1);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 7px 10px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        /* Config Strip */
+        .config-strip {
+            background: rgba(10, 10, 16, 0.98);
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            padding: 8px 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            z-index: 15;
+            font-size: 11px;
+        }
+
+        .btn-group-row {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            overflow-x: auto;
+            scrollbar-width: none;
+            padding-bottom: 2px;
+        }
+
+        .btn-group-row::-webkit-scrollbar {
+            display: none;
+        }
+
+        .group-label {
+            color: var(--gold);
+            font-weight: 700;
+            white-space: nowrap;
+            font-size: 10px;
+            text-transform: uppercase;
+            margin-right: 2px;
+        }
+
+        .opt-btn {
+            background: #14141f;
+            border: 1px solid #2d2d42;
+            color: #d1d5db;
+            padding: 4px 8px;
+            border-radius: 10px;
+            cursor: pointer;
+            white-space: nowrap;
+            font-size: 10px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .opt-btn.active {
+            background: var(--gold);
+            color: #000;
+            border-color: var(--gold);
+            font-weight: 800;
+            box-shadow: 0 0 8px var(--gold-glow);
+        }
+
+        .auto-rotate-badge {
+            background: rgba(212, 175, 55, 0.15);
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 2px 6px;
+            border-radius: 8px;
+            font-size: 9px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        /* Visualizer Stage */
+        .stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 15px;
+            overflow: hidden;
+        }
+
+        #visualizer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Vinyl Disc */
+        .vinyl-container {
+            width: 160px;
+            height: 160px;
+            border-radius: 50%;
+            background: #111;
+            border: 4px solid var(--gold);
+            box-shadow: 0 0 25px rgba(0,0,0,0.9), 0 0 18px var(--gold-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 3;
+            animation: spin 10s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .vinyl-container.playing {
+            animation-play-state: running;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .vinyl-label {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, #d4af37, #553300);
+            border-radius: 50%;
+            border: 2px dashed #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            color: #000;
+            font-weight: 900;
+            text-align: center;
+        }
+
+        /* Track Info & Lyrics */
+        .info-box {
+            position: relative;
+            z-index: 4;
+            text-align: center;
+            margin-top: 12px;
+            width: 100%;
+            padding: 0 10px;
+        }
+
+        .song-title {
+            font-size: 15px;
+            font-weight: 800;
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold-glow);
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .lyrics-display {
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+            min-height: 38px;
+            text-shadow: 0 2px 6px rgba(0,0,0,0.9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.5);
+            border-radius: 10px;
+            padding: 4px 10px;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+        }
+
+        /* Controls Footer */
+        .controls-footer {
+            padding: 10px 14px;
+            background: rgba(6, 6, 10, 0.99);
+            border-top: 1px solid rgba(212, 175, 55, 0.25);
+            z-index: 20;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .player-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .ctrl-btn {
+            background: #12121c;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 13px;
+            box-shadow: 0 0 8px var(--gold-glow);
+            transition: all 0.2s;
+        }
+
+        .ctrl-btn.play-main {
+            width: 46px;
+            height: 46px;
+            font-size: 16px;
+            background: var(--gold);
+            color: #000;
+            font-weight: bold;
+        }
+
+        .ctrl-btn:hover {
+            transform: scale(1.1);
+            background: var(--gold);
+            color: #000;
+        }
+
+        .native-player-fallback {
+            width: 100%;
+            height: 28px;
+            accent-color: var(--gold);
+        }
+
+        .dsp-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 10px;
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.03);
+            padding: 6px 8px;
+            border-radius: 10px;
+        }
+
+        .dsp-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .dsp-item input[type=checkbox] {
+            accent-color: var(--gold);
+        }
+
+        .dsp-item input[type=range] {
+            width: 100%;
+            accent-color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="appContainer">
+        
+        <!-- Top Bar -->
+        <div class="top-bar">
+            <label for="file-input-audio" class="upload-btn-label">
+                📂 Choose / Upload MP3
+            </label>
+            <input type="file" id="file-input-audio" accept="audio/mp3, audio/wav, audio/*">
+
+            <button class="mode-toggle" onclick="toggleLayoutMode()">📱 9:16 / Frame</button>
+        </div>
+
+        <!-- Config Strip -->
+        <div class="config-strip">
+            
+            <!-- Spectrum Selection -->
+            <div class="btn-group-row">
+                <span class="group-label">Spectrum:</span>
+                <button class="opt-btn active" onclick="setSpectrumMode('radial', this)">Radial Ring</button>
+                <button class="opt-btn" onclick="setSpectrumMode('bars', this)">FFT Bars</button>
+                <button class="opt-btn" onclick="setSpectrumMode('dna', this)">DNA Helix</button>
+                <button class="opt-btn" onclick="setSpectrumMode('bulbs', this)">Neon Bulbs</button>
+                <button class="opt-btn" onclick="setSpectrumMode('waveform', this)">Waveform</button>
+                <button class="opt-btn" onclick="setSpectrumMode('hybrid', this)">Hybrid</button>
+            </div>
+
+            <!-- Auto Rotate -->
+            <div class="btn-group-row" style="justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span class="group-label">Auto-Rotate:</span>
+                    <button class="opt-btn active" id="autoRotateToggleBtn" onclick="toggleAutoRotate()">ENABLED ⏱️</button>
+                </div>
+                <div class="auto-rotate-badge" id="rotateStatusBadge">
+                    Interval: --s / Mode
+                </div>
+            </div>
+
+            <!-- FFT Resolution -->
+            <div class="btn-group-row">
+                <span class="group-label">FFT Resolution:</span>
+                <button class="opt-btn" onclick="setFFTSize(64, this)">64</button>
+                <button class="opt-btn active" onclick="setFFTSize(128, this)">128</button>
+                <button class="opt-btn" onclick="setFFTSize(256, this)">256</button>
+                <button class="opt-btn" onclick="setFFTSize(512, this)">512</button>
+            </div>
+
+            <!-- Color Theme Palette -->
+            <div class="btn-group-row">
+                <span class="group-label">Theme:</span>
+                <button class="opt-btn active" onclick="setThemePalette('gold', this)">Gold Amber</button>
+                <button class="opt-btn" onclick="setThemePalette('cyberpunk', this)">Cyber Neon</button>
+                <button class="opt-btn" onclick="setThemePalette('rainbow', this)">Rainbow</button>
+                <button class="opt-btn" onclick="setThemePalette('fire', this)">Heatmap</button>
+                <button class="opt-btn" onclick="setThemePalette('beatshift', this)">Beat Shift ⚡</button>
+            </div>
+
+        </div>
+
+        <!-- Visualizer Stage -->
+        <div class="stage">
+            <canvas id="visualizer-canvas"></canvas>
+            
+            <div class="vinyl-container" id="vinylDisc">
+                <div class="vinyl-label" id="vinylLabelText">SUNO<br>AI</div>
+            </div>
+
+            <div class="info-box">
+                <div class="song-title" id="songTitleDisplay">Sira Lata (Suno AI Punjabi Track)</div>
+                <div class="lyrics-display" id="lyricsTextDisplay">🎵 Select or Upload an MP3 to begin...</div>
+            </div>
+        </div>
+
+        <!-- Controls Footer & DSP -->
+        <div class="controls-footer">
+            
+            <audio id="coreAudioPlayer" controls class="native-player-fallback" crossorigin="anonymous" loop></audio>
+
+            <div class="player-row">
+                <button class="ctrl-btn" onclick="seekAudio(-5)">-5s</button>
+                <button class="ctrl-btn play-main" id="mainPlayBtn" onclick="toggleAudioPlay()">▶</button>
+                <button class="ctrl-btn" onclick="stopAudio()">⏹</button>
+                <button class="ctrl-btn" onclick="seekAudio(5)">+5s</button>
+            </div>
+
+            <!-- Full DSP Audio FX Panel -->
+            <div class="dsp-grid">
+                <label class="dsp-item">
+                    <input type="checkbox" id="reverbFx" onchange="applyAudioDSP()"> Slowed + Reverb
+                </label>
+                <label class="dsp-item">
+                    <input type="checkbox" id="bassBoostFx" onchange="applyAudioDSP()"> Bass Boost
+                </label>
+                <div class="dsp-item">
+                    <span>Speed:</span>
+                    <input type="range" id="speedRate" min="0.75" max="1.25" step="0.05" value="1.0" oninput="applyAudioDSP()">
+                    <span id="speedValText">1.0x</span>
+                </div>
+                <div class="dsp-item">
+                    <span>Treble:</span>
+                    <input type="range" id="trebleGain" min="-20" max="20" step="1" value="0" oninput="applyAudioDSP()">
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <script>
+        const audio = document.getElementById('coreAudioPlayer');
+        const playBtn = document.getElementById('mainPlayBtn');
+        const vinylDisc = document.getElementById('vinylDisc');
+        const songTitle = document.getElementById('songTitleDisplay');
+        const lyricsDisplay = document.getElementById('lyricsTextDisplay');
+        const canvas = document.getElementById('visualizer-canvas');
+        const ctx = canvas.getContext('2d');
+        const rotateBadge = document.getElementById('rotateStatusBadge');
+
+        // Web Audio Nodes
+        let audioCtx, analyser, sourceNode, bassFilter, trebleFilter;
+        let isAudioInit = false;
+        let currentFFT = 128;
+
+        // Visualizer Configuration
+        let currentMode = 'radial';
+        let currentTheme = 'gold';
+        const modesList = ['radial', 'bars', 'dna', 'bulbs', 'waveform', 'hybrid'];
+        let activeModeIndex = 0;
+
+        // Auto Rotation Interval Engine
+        let isAutoRotateEnabled = true;
+        let autoRotateIntervalSeconds = 10;
+        let lastSpectrumSwitchTime = 0;
+
+        // Background Particle System Array
+        const particles = [];
+        for(let i=0; i<35; i++) {
+            particles.push({
+                x: Math.random() * window.innerWidth,
+                y: Math.random() * window.innerHeight,
+                size: Math.random() * 3 + 1,
+                speedY: (Math.random() * 0.8 + 0.2) * -1,
+                alpha: Math.random() * 0.7 + 0.2
+            });
+        }
+
+        // Demo Lyrics
+        const lyricsDemo = [
+            "Sira lata... beat drop hundi ve!",
+            "Desi hip-hop vibe 80s rap rock style...",
+            "Suno AI Punjabi creation rolling heavy...",
+            "Equal length spectrum rotation active..."
+        ];
+        let lyricIdx = 0;
+
+        setInterval(() => {
+            if(!audio.paused) {
+                lyricsDisplay.textContent = lyricsDemo[lyricIdx];
+                lyricIdx = (lyricIdx + 1) % lyricsDemo.length;
+            }
+        }, 4000);
+
+        // File Upload Handlers
+        document.getElementById('file-input-audio').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const objectUrl = URL.createObjectURL(file);
+                audio.src = objectUrl;
+                const cleanName = file.name.replace(/\.[^/.]+$/, "");
+                songTitle.textContent = cleanName;
+                document.getElementById('vinylLabelText').innerHTML = "SUNO<br>TRACK";
+                
+                audio.play();
+                playBtn.textContent = "⏸";
+                vinylDisc.classList.add('playing');
+                initWebAudio();
+            }
+        });
+
+        audio.addEventListener('loadedmetadata', calculateAutoRotateInterval);
+        audio.addEventListener('durationchange', calculateAutoRotateInterval);
+
+        function calculateAutoRotateInterval() {
+            if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+                autoRotateIntervalSeconds = audio.duration / modesList.length;
+                rotateBadge.textContent = `Interval: ${autoRotateIntervalSeconds.toFixed(1)}s / Mode`;
+            } else {
+                autoRotateIntervalSeconds = 10;
+                rotateBadge.textContent = `Interval: 10s / Mode`;
+            }
+        }
+
+        function toggleAudioPlay() {
+            if (!audio.src) {
+                alert("Please click 'Choose / Upload MP3' to load your track first!");
+                return;
+            }
+            if (audio.paused) {
+                audio.play();
+                playBtn.textContent = "⏸";
+                vinylDisc.classList.add('playing');
+                if(!isAudioInit) initWebAudio();
+            } else {
+                audio.pause();
+                playBtn.textContent = "▶";
+                vinylDisc.classList.remove('playing');
+            }
+        }
+
+        function stopAudio() {
+            audio.pause();
+            audio.currentTime = 0;
+            playBtn.textContent = "▶";
+            vinylDisc.classList.remove('playing');
+        }
+
+        function seekAudio(sec) {
+            audio.currentTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + sec));
+        }
+
+        function toggleLayoutMode() {
+            document.getElementById('appContainer').classList.toggle('desktop-mode');
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function setSpectrumMode(mode, btn) {
+            currentMode = mode;
+            activeModeIndex = modesList.indexOf(mode);
+            highlightButtonInGroup(btn);
+        }
+
+        function setFFTSize(size, btn) {
+            currentFFT = size;
+            if (analyser) analyser.fftSize = size;
+            highlightButtonInGroup(btn);
+        }
+
+        function setThemePalette(theme, btn) {
+            currentTheme = theme;
+            highlightButtonInGroup(btn);
+        }
+
+        function toggleAutoRotate() {
+            isAutoRotateEnabled = !isAutoRotateEnabled;
+            const btn = document.getElementById('autoRotateToggleBtn');
+            btn.textContent = isAutoRotateEnabled ? "ENABLED ⏱️" : "DISABLED ⏸️";
+            btn.classList.toggle('active', isAutoRotateEnabled);
+        }
+
+        function highlightButtonInGroup(btn) {
+            if (!btn) return;
+            const parent = btn.parentElement;
+            const siblings = parent.querySelectorAll('.opt-btn');
+            siblings.forEach(s => s.classList.remove('active'));
+            btn.classList.add('active');
+        }
+
+        function initWebAudio() {
+            if (isAudioInit) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = currentFFT;
+
+                sourceNode = audioCtx.createMediaElementSource(audio);
+                
+                bassFilter = audioCtx.createBiquadFilter();
+                bassFilter.type = "lowshelf";
+                bassFilter.frequency.value = 250;
+
+                trebleFilter = audioCtx.createBiquadFilter();
+                trebleFilter.type = "highshelf";
+                trebleFilter.frequency.value = 4000;
+
+                sourceNode.connect(bassFilter);
+                bassFilter.connect(trebleFilter);
+                trebleFilter.connect(analyser);
+                analyser.connect(audioCtx.destination);
+
+                isAudioInit = true;
+                visualize();
+            } catch(e) {
+                console.log("Web Audio Init Error:", e);
+            }
+        }
+
+        function applyAudioDSP() {
+            const isReverb = document.getElementById('reverbFx').checked;
+            const isBass = document.getElementById('bassBoostFx').checked;
+            const speed = parseFloat(document.getElementById('speedRate').value);
+            const trebleGainVal = parseFloat(document.getElementById('trebleGain').value);
+
+            document.getElementById('speedValText').textContent = speed + 'x';
+            audio.playbackRate = isReverb ? speed * 0.85 : speed;
+
+            if (bassFilter) bassFilter.gain.value = isBass ? 15 : 0;
+            if (trebleFilter) trebleFilter.gain.value = trebleGainVal;
+        }
+
+        // Master Render Loop (Particles + Spectrum Effects)
+        function visualize() {
+            requestAnimationFrame(visualize);
+            if (!analyser) return;
+
+            // Auto-Rotation Timer
+            if (isAutoRotateEnabled && !audio.paused && audio.currentTime > 0) {
+                const now = audioCtx ? audioCtx.currentTime : performance.now() / 1000;
+                if (now - lastSpectrumSwitchTime >= autoRotateIntervalSeconds) {
+                    lastSpectrumSwitchTime = now;
+                    activeModeIndex = (activeModeIndex + 1) % modesList.length;
+                    currentMode = modesList[activeModeIndex];
+
+                    const buttons = document.querySelectorAll('.config-strip .btn-group-row:first-child .opt-btn');
+                    if (buttons[activeModeIndex]) highlightButtonInGroup(buttons[activeModeIndex]);
+                }
+            }
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Render Floating Background Particles / Sparkles
+            ctx.save();
+            particles.forEach(p => {
+                p.y += p.speedY;
+                if (p.y < 0) p.y = canvas.height;
+                ctx.fillStyle = `rgba(212, 175, 55, ${p.alpha})`;
+                ctx.beginPath();
+                ctx.arc(p.x % canvas.width, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+            });
+            ctx.restore();
+
+            const w = canvas.width;
+            const h = canvas.height;
+            const cx = w / 2;
+            const cy = h / 2 - 20;
+
+            // Spectrum Modes Rendering
+            if (currentMode === 'radial' || currentMode === 'hybrid') {
+                const radius = 85;
+                ctx.save();
+                ctx.translate(cx, cy);
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = dataArray[i] * 0.55;
+                    const angle = (i * 2 * Math.PI) / bufferLength;
+                    const x1 = radius * Math.cos(angle);
+                    const y1 = radius * Math.sin(angle);
+                    const x2 = (radius + barHeight) * Math.cos(angle);
+                    const y2 = (radius + barHeight) * Math.sin(angle);
+
+                    ctx.strokeStyle = getThemeColor(i, bufferLength, dataArray[i]);
+                    ctx.lineWidth = 3;
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.stroke();
+                }
+                ctx.restore();
+            }
+
+            if (currentMode === 'bars' || currentMode === 'hybrid') {
+                const barWidth = (w / bufferLength) * 1.5;
+                let x = 0;
+                for (let i = 0; i < bufferLength; i++) {
+                    const barHeight = (dataArray[i] / 255) * (h * 0.32);
+                    ctx.fillStyle = getThemeColor(i, bufferLength, dataArray[i]);
+                    ctx.fillRect(x, h - barHeight, barWidth - 1, barHeight);
+                    x += barWidth;
+                }
+            }
+
+            if (currentMode === 'dna') {
+                ctx.lineWidth = 2;
+                for (let i = 0; i < bufferLength; i += 2) {
+                    const amp = (dataArray[i] / 255) * 55;
+                    const yPos = (i / bufferLength) * h;
+                    const xOffset1 = cx + Math.sin(i * 0.2 + Date.now() * 0.003) * (amp + 25);
+                    const xOffset2 = cx - Math.sin(i * 0.2 + Date.now() * 0.003) * (amp + 25);
+
+                    ctx.strokeStyle = getThemeColor(i, bufferLength, dataArray[i]);
+                    ctx.beginPath();
+                    ctx.arc(xOffset1, yPos, 3.5, 0, Math.PI * 2);
+                    ctx.arc(xOffset2, yPos, 3.5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            if (currentMode === 'bulbs') {
+                const cols = 8;
+                const bulbWidth = w / cols;
+                for (let i = 0; i < cols; i++) {
+                    const val = dataArray[i * 2] || 0;
+                    const alpha = val / 255;
+                    ctx.fillStyle = getThemeColor(i, cols, val);
+                    ctx.shadowBlur = alpha * 18;
+                    ctx.shadowColor = ctx.fillStyle;
+                    ctx.beginPath();
+                    ctx.arc(i * bulbWidth + bulbWidth / 2, 22, 10 + alpha * 6, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            if (currentMode === 'waveform') {
+                const timeData = new Uint8Array(analyser.fftSize);
+                analyser.getByteTimeDomainData(timeData);
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = getThemeColor(10, 100, 200);
+                ctx.beginPath();
+                const sliceWidth = w / analyser.fftSize;
+                let x = 0;
+                for (let i = 0; i < analyser.fftSize; i++) {
+                    const v = timeData[i] / 128.0;
+                    const y = (v * h) / 2;
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                    x += sliceWidth;
+                }
+                ctx.stroke();
+            }
+        }
+
+        function getThemeColor(i, total, val) {
+            if (currentTheme === 'gold') {
+                return `hsl(45, 80%, ${30 + (val / 255) * 50}%)`;
+            } else if (currentTheme === 'cyberpunk') {
+                return i % 2 === 0 ? '#ff007f' : '#00f0ff';
+            } else if (currentTheme === 'rainbow') {
+                return `hsl(${(i / total) * 360}, 90%, 60%)`;
+            } else if (currentTheme === 'fire') {
+                return `hsl(${0 + (val / 255) * 50}, 100%, 50%)`;
+            } else if (currentTheme === 'beatshift') {
+                const hue = (Date.now() * 0.1 + i * 5) % 360;
+                return `hsl(${hue}, 90%, 55%)`;
+            }
+            return 'var(--gold)';
+        }
+    </script>
+</body>
+</html>
