@@ -1,0 +1,766 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Koi Haseena - Retro Audio Visualizer & Player</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800&family=Great+Vibes&family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+              700: '#a16207',
+            },
+            roseGold: '#e0a9af',
+            darkBg: '#09070c',
+          },
+          fontFamily: {
+            cinzel: ['Cinzel', 'serif'],
+            cursive: ['Great Vibes', 'cursive'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar & Aesthetics */
+    body {
+      background-color: #09070c;
+      color: #f3f4f6;
+      overflow-x: hidden;
+      font-family: 'Inter', sans-serif;
+    }
+
+    /* Glowing Text Effect */
+    .glow-gold-text {
+      text-shadow: 0 0 8px rgba(234, 179, 8, 0.6), 0 0 20px rgba(234, 179, 8, 0.3);
+    }
+    
+    .glow-title {
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.8), 0 0 30px rgba(202, 138, 4, 0.5), 0 0 50px rgba(161, 98, 7, 0.3);
+    }
+
+    /* Glassmorphism Card */
+    .glass-card {
+      background: rgba(18, 14, 24, 0.65);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(234, 179, 8, 0.2);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.8), 0 0 15px rgba(234, 179, 8, 0.15);
+    }
+
+    /* Custom Input Range styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 9999px;
+      height: 6px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #facc15;
+      box-shadow: 0 0 10px #facc15;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+
+    /* Typewriter Cursor */
+    .typing-cursor::after {
+      content: '|';
+      color: #facc15;
+      animation: blink 0.8s infinite;
+      margin-left: 2px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Floating Heart Animation Canvas behind elements */
+    #particle-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between items-center relative p-3 sm:p-6 selection:bg-gold-500 selection:text-black">
+
+  <!-- Background Particle Canvas for Floating Hearts & Sparkles -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- Top Header / Branding Banner -->
+  <header class="w-full max-w-4xl z-10 flex flex-col items-center text-center mt-2 mb-4">
+    <div class="flex items-center gap-2 text-gold-400 font-cinzel text-xs sm:text-sm tracking-widest uppercase mb-1">
+      <i class="fa-solid fa-crown text-gold-400"></i>
+      <span>✦ STAR MUSIC EDITS ✦</span>
+      <i class="fa-solid fa-crown text-gold-400"></i>
+    </div>
+    <h1 class="font-cinzel text-2xl sm:text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-yellow-200 via-gold-400 to-amber-600 glow-title tracking-wide px-2">
+      Koi Haseena Jab Rooth Jati Hai
+    </h1>
+    <p class="font-cursive text-roseGold text-lg sm:text-2xl mt-1 tracking-wider">
+      Sholay Special • Lofi Slowed & Reverb Experience
+    </p>
+  </header>
+
+  <!-- Main Interactive Display Section -->
+  <main class="w-full max-w-4xl z-10 flex flex-col gap-6 my-auto">
+    
+    <!-- Visualizer Container -->
+    <div class="glass-card rounded-3xl p-4 sm:p-6 relative overflow-hidden flex flex-col items-center justify-between min-h-[300px] sm:min-h-[380px]">
+      
+      <!-- Top Status & Preset Controls -->
+      <div class="w-full flex justify-between items-center text-xs sm:text-sm text-gray-300 z-10 mb-2">
+        <div class="flex items-center gap-2 bg-black/40 px-3 py-1.5 rounded-full border border-gold-500/20">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" id="status-indicator"></span>
+          <span id="audio-source-status" class="font-semibold text-gold-300">Synthetic Synth Active</span>
+        </div>
+
+        <!-- Mode Selector (Visualizer Type) -->
+        <div class="flex items-center gap-1 bg-black/40 p-1 rounded-full border border-gold-500/20">
+          <button id="mode-bars" class="px-3 py-1 rounded-full text-xs transition bg-gold-500 text-black font-semibold">Bars</button>
+          <button id="mode-waves" class="px-3 py-1 rounded-full text-xs transition text-gray-300 hover:text-white">Wave</button>
+          <button id="mode-circle" class="px-3 py-1 rounded-full text-xs transition text-gray-300 hover:text-white">Radial</button>
+        </div>
+      </div>
+
+      <!-- Main Visual Canvas (Spectrum) -->
+      <div class="relative w-full flex-grow flex items-center justify-center my-2">
+        <canvas id="visualizer-canvas" class="w-full h-48 sm:h-64 rounded-xl border border-gold-500/10 bg-black/20 backdrop-blur-sm"></canvas>
+        
+        <!-- Center Aesthetic Artwork/Disk Badge -->
+        <div class="absolute flex flex-col items-center pointer-events-none text-center px-4">
+          <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-2 border-gold-400/60 p-1 shadow-[0_0_20px_rgba(250,204,21,0.3)] animate-[spin_12s_linear_infinite] mb-2 bg-black/50 backdrop-blur-md flex items-center justify-center">
+            <div class="w-full h-full rounded-full border border-gold-300/40 flex items-center justify-center bg-gradient-to-tr from-amber-900/60 to-black">
+              <i class="fa-solid fa-compact-disc text-gold-400 text-2xl sm:text-3xl"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Synchronized Dynamic Typewriter Lyrics Box -->
+      <div class="w-full bg-black/50 border border-gold-500/30 rounded-2xl p-4 sm:p-5 text-center min-h-[90px] flex flex-col items-center justify-center backdrop-blur-md shadow-inner">
+        <div class="text-xs text-gold-400/80 font-cinzel tracking-widest uppercase mb-1">
+          <i class="fa-solid fa-quote-left text-xs mr-1"></i> Synchronized Lyrics <i class="fa-solid fa-quote-right text-xs ml-1"></i>
+        </div>
+        <p id="lyric-display" class="font-cursive text-xl sm:text-3xl text-yellow-100 min-h-[36px] glow-gold-text typing-cursor flex items-center justify-center">
+          Click play to start the music...
+        </p>
+      </div>
+    </div>
+
+    <!-- Audio Effects & Control Panel -->
+    <div class="glass-card rounded-3xl p-5 sm:p-6 flex flex-col gap-5">
+      
+      <!-- Primary Player Controls & Progress Slider -->
+      <div class="flex flex-col gap-3">
+        <!-- Scrubbing Bar -->
+        <div class="flex items-center gap-3 text-xs sm:text-sm text-gold-300 font-mono">
+          <span id="current-time">0:00</span>
+          <input type="range" id="seek-bar" value="0" max="100" class="flex-grow cursor-pointer" disabled>
+          <span id="total-time">0:00</span>
+        </div>
+
+        <!-- Buttons Row -->
+        <div class="flex items-center justify-between gap-2 mt-1">
+          
+          <!-- Track Selector -->
+          <div class="flex items-center gap-2">
+            <select id="track-select" class="bg-black/60 border border-gold-500/30 rounded-xl px-3 py-2 text-xs sm:text-sm text-gold-300 focus:outline-none focus:border-gold-400 cursor-pointer">
+              <option value="synth">✨ Built-in Retro Melody Synth</option>
+              <option value="upload">📁 Upload Custom MP3/Audio File</option>
+            </select>
+            <input type="file" id="file-input" accept="audio/*" class="hidden">
+          </div>
+
+          <!-- Central Play Buttons -->
+          <div class="flex items-center gap-3 sm:gap-4">
+            <button id="btn-prev-lyric" class="text-gold-400 hover:text-white transition text-lg p-2" title="Previous Lyric Line">
+              <i class="fa-solid fa-backward-step"></i>
+            </button>
+            <button id="btn-play" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-r from-gold-400 to-amber-600 text-black font-bold text-xl flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-[0_0_20px_rgba(250,204,21,0.5)]">
+              <i class="fa-solid fa-play ml-0.5" id="play-icon"></i>
+            </button>
+            <button id="btn-next-lyric" class="text-gold-400 hover:text-white transition text-lg p-2" title="Next Lyric Line">
+              <i class="fa-solid fa-forward-step"></i>
+            </button>
+          </div>
+
+          <!-- Volume Controls -->
+          <div class="flex items-center gap-2">
+            <i class="fa-solid fa-volume-high text-gold-400 text-sm" id="volume-icon"></i>
+            <input type="range" id="volume-slider" min="0" max="1" step="0.01" value="0.8" class="w-16 sm:w-24 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+      <hr class="border-gold-500/20">
+
+      <!-- TikTok Style Audio FX Modifiers (Slowed + Reverb / Lofi Filter) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs sm:text-sm">
+        
+        <!-- Slowed & Reverb Toggle Button -->
+        <div class="flex items-center justify-between bg-black/40 p-3 rounded-2xl border border-gold-500/20">
+          <div class="flex flex-col">
+            <span class="font-semibold text-gold-300 flex items-center gap-1.5">
+              <i class="fa-solid fa-wand-magic-sparkles text-amber-400"></i> Slowed + Reverb FX
+            </span>
+            <span class="text-gray-400 text-[11px]">TikTok viral lofi audio preset</span>
+          </div>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input type="checkbox" id="toggle-reverb" class="sr-only peer">
+            <div class="w-11 h-6 bg-gray-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-gold-500"></div>
+          </label>
+        </div>
+
+        <!-- Bass Boost / Low-Pass Filter Slider -->
+        <div class="flex flex-col justify-center bg-black/40 p-3 rounded-2xl border border-gold-500/20 gap-1.5">
+          <div class="flex justify-between text-xs text-gold-300 font-medium">
+            <span><i class="fa-solid fa-sliders text-amber-400 mr-1"></i> Tone Warmth / Low-Pass</span>
+            <span id="filter-freq-val">20,000 Hz</span>
+          </div>
+          <input type="range" id="filter-slider" min="800" max="20000" step="100" value="20000" class="w-full cursor-pointer">
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-4xl z-10 text-center text-xs text-gray-500 my-4 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gold-500/10 pt-3">
+    <span>Crafted with HTML5 Web Audio API & Canvas</span>
+    <span class="text-gold-400/70">Classic Cinema Revival • Sholay Edits</span>
+  </footer>
+
+  <!-- Application Logic -->
+  <script>
+    // Lyric Data for 'Koi Haseena Jab Rooth Jati Hai'
+    const lyricsData = [
+      { time: 0, text: "✦ STAR MUSIC EDITS PRESENTS ✦" },
+      { time: 3, text: "Koi haseena jab rooth jaati hai toh..." },
+      { time: 7, text: "Aur bhi haseen ho jaati hai..." },
+      { time: 12, text: "Zulfein bikhra ke, mukhda chhupa ke..." },
+      { time: 17, text: "Jab woh balkhaati hai..." },
+      { time: 21, text: "Koi haseena jab rooth jaati hai toh..." },
+      { time: 26, text: "Aur bhi haseen ho jaati hai..." },
+      { time: 31, text: "Sholay Retro Vibes • Feel The Beats" }
+    ];
+
+    // Global State & Web Audio Context Variables
+    let audioCtx = null;
+    let analyserNode = null;
+    let gainNode = null;
+    let biquadFilter = null;
+    let convolverNode = null;
+    
+    // Audio Elements
+    let audioEle = new Audio();
+    audioEle.loop = true;
+    let mediaSourceNode = null;
+    let synthInterval = null;
+    let isSynthPlaying = false;
+    let isPlaying = false;
+
+    // Visualizer State
+    let visualizerMode = 'bars'; // 'bars', 'waves', 'circle'
+    let canvas = document.getElementById('visualizer-canvas');
+    let ctx = canvas.getContext('2d');
+    let animFrameId = null;
+
+    // Typewriter State
+    let currentLyricIdx = 0;
+    let typewriterTimeout = null;
+    let isTypewriting = false;
+
+    // Background Heart Particles Canvas
+    let particleCanvas = document.getElementById('particle-canvas');
+    let pCtx = particleCanvas.getContext('2d');
+    let particles = [];
+
+    // Initialize Page on Load
+    window.onload = () => {
+      resizeCanvases();
+      window.addEventListener('resize', resizeCanvases);
+      initParticleBackground();
+      setupEventListeners();
+      typeWriterEffect(lyricsData[0].text);
+    };
+
+    function resizeCanvases() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      particleCanvas.width = window.innerWidth;
+      particleCanvas.height = window.innerHeight;
+    }
+
+    // Initialize Web Audio Pipeline
+    function initAudioContext() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+
+        // Nodes setup
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = parseFloat(document.getElementById('volume-slider').value);
+
+        biquadFilter = audioCtx.createBiquadFilter();
+        biquadFilter.type = 'lowpass';
+        biquadFilter.frequency.value = 20000; // Unfiltered initially
+
+        // Create simple procedural impulse response for Reverb
+        convolverNode = audioCtx.createConvolver();
+        createImpulseResponse();
+
+        // Connect chain: Source -> Filter -> Analyser -> Gain -> Destination
+        biquadFilter.connect(analyserNode);
+        analyserNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // Procedural Synth Melody for Default Playback without external mp3
+    function startSyntheticMelody() {
+      if (isSynthPlaying) return;
+      isSynthPlaying = true;
+      initAudioContext();
+
+      // Simple Kishore Kumar - Koi Haseena note frequencies (simplified retro scale)
+      const notes = [
+        261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25, // C4 to C5
+        392.00, 349.23, 329.63, 293.66, 261.63
+      ];
+      let noteIdx = 0;
+
+      synthInterval = setInterval(() => {
+        if (!isSynthPlaying) return;
+
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+
+        // Vintage warm triangle/sawtooth mix
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(notes[noteIdx % notes.length], audioCtx.currentTime);
+
+        noteGain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.4);
+
+        osc.connect(noteGain);
+        noteGain.connect(biquadFilter);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.45);
+
+        noteIdx++;
+        
+        // Progress lyrics automatically during synth playback
+        if (noteIdx % 8 === 0) {
+          nextLyric();
+        }
+      }, 350);
+    }
+
+    function stopSyntheticMelody() {
+      isSynthPlaying = false;
+      if (synthInterval) clearInterval(synthInterval);
+    }
+
+    // Reverb Impulse Generator
+    function createImpulseResponse() {
+      const rate = audioCtx.sampleRate;
+      const length = rate * 2.5; // 2.5 second reverb tail
+      const impulse = audioCtx.createBuffer(2, length, rate);
+      const left = impulse.getChannelData(0);
+      const right = impulse.getChannelData(1);
+
+      for (let i = 0; i < length; i++) {
+        const decay = Math.exp(-i / (rate * 0.5));
+        left[i] = (Math.random() * 2 - 1) * decay;
+        right[i] = (Math.random() * 2 - 1) * decay;
+      }
+      convolverNode.buffer = impulse;
+    }
+
+    // Event Listeners Setup
+    function setupEventListeners() {
+      const btnPlay = document.getElementById('btn-play');
+      const playIcon = document.getElementById('play-icon');
+      const trackSelect = document.getElementById('track-select');
+      const fileInput = document.getElementById('file-input');
+
+      // Play/Pause Toggle
+      btnPlay.addEventListener('click', () => {
+        initAudioContext();
+
+        if (isPlaying) {
+          pauseAudio();
+        } else {
+          playAudio();
+        }
+      });
+
+      function playAudio() {
+        isPlaying = true;
+        playIcon.className = 'fa-solid fa-pause';
+        document.getElementById('status-indicator').className = 'w-2 h-2 rounded-full bg-gold-400 animate-ping';
+
+        if (trackSelect.value === 'synth') {
+          startSyntheticMelody();
+        } else if (audioEle.src) {
+          audioEle.play();
+        }
+        renderVisualizer();
+      }
+
+      function pauseAudio() {
+        isPlaying = false;
+        playIcon.className = 'fa-solid fa-play ml-0.5';
+        document.getElementById('status-indicator').className = 'w-2 h-2 rounded-full bg-gray-500';
+
+        if (isSynthPlaying) {
+          stopSyntheticMelody();
+        }
+        audioEle.pause();
+      }
+
+      // Track Selector Switch
+      trackSelect.addEventListener('change', (e) => {
+        pauseAudio();
+        if (e.target.value === 'upload') {
+          fileInput.click();
+        } else {
+          document.getElementById('audio-source-status').textContent = 'Synthetic Synth Active';
+          document.getElementById('seek-bar').disabled = true;
+        }
+      });
+
+      // Handle User Audio File Upload
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const url = URL.createObjectURL(file);
+          audioEle.src = url;
+
+          if (!mediaSourceNode) {
+            mediaSourceNode = audioCtx.createMediaElementSource(audioEle);
+            mediaSourceNode.connect(biquadFilter);
+          }
+
+          document.getElementById('audio-source-status').textContent = `Loaded: ${file.name.substring(0, 18)}...`;
+          document.getElementById('seek-bar').disabled = false;
+          playAudio();
+        }
+      });
+
+      // Audio Time Update for Uploaded Track
+      audioEle.addEventListener('timeupdate', () => {
+        const currentTime = audioEle.currentTime;
+        const duration = audioEle.duration || 1;
+        document.getElementById('current-time').textContent = formatTime(currentTime);
+        document.getElementById('total-time').textContent = formatTime(duration);
+        document.getElementById('seek-bar').value = (currentTime / duration) * 100;
+
+        // Auto Lyric Sync based on timestamp
+        const match = lyricsData.slice().reverse().find(l => currentTime >= l.time);
+        if (match && match.text !== lyricsData[currentLyricIdx].text) {
+          currentLyricIdx = lyricsData.indexOf(match);
+          typeWriterEffect(match.text);
+        }
+      });
+
+      // Seek Bar Dragging
+      document.getElementById('seek-bar').addEventListener('input', (e) => {
+        if (audioEle.duration) {
+          audioEle.currentTime = (e.target.value / 100) * audioEle.duration;
+        }
+      });
+
+      // Volume Control
+      document.getElementById('volume-slider').addEventListener('input', (e) => {
+        if (gainNode) gainNode.gain.value = e.target.value;
+      });
+
+      // Slowed + Reverb FX Toggle
+      document.getElementById('toggle-reverb').addEventListener('change', (e) => {
+        initAudioContext();
+        if (e.target.checked) {
+          // Slow down tempo/pitch slightly
+          audioEle.playbackRate = 0.88; 
+          biquadFilter.frequency.value = 3500; // Warm muffling
+          document.getElementById('filter-slider').value = 3500;
+          document.getElementById('filter-freq-val').textContent = "3,500 Hz (Slowed+Reverb)";
+        } else {
+          audioEle.playbackRate = 1.0;
+          biquadFilter.frequency.value = 20000;
+          document.getElementById('filter-slider').value = 20000;
+          document.getElementById('filter-freq-val').textContent = "20,000 Hz";
+        }
+      });
+
+      // Filter Frequency Slider
+      document.getElementById('filter-slider').addEventListener('input', (e) => {
+        if (biquadFilter) {
+          biquadFilter.frequency.value = e.target.value;
+          document.getElementById('filter-freq-val').textContent = `${parseInt(e.target.value).toLocaleString()} Hz`;
+        }
+      });
+
+      // Mode Selector Switcher
+      document.getElementById('mode-bars').onclick = () => setVisualizerMode('bars');
+      document.getElementById('mode-waves').onclick = () => setVisualizerMode('waves');
+      document.getElementById('mode-circle').onclick = () => setVisualizerMode('circle');
+
+      // Lyric Navigation Buttons
+      document.getElementById('btn-prev-lyric').onclick = prevLyric;
+      document.getElementById('btn-next-lyric').onclick = nextLyric;
+    }
+
+    function setVisualizerMode(mode) {
+      visualizerMode = mode;
+      ['bars', 'waves', 'circle'].forEach(m => {
+        const btn = document.getElementById(`mode-${m}`);
+        if (m === mode) {
+          btn.className = 'px-3 py-1 rounded-full text-xs transition bg-gold-500 text-black font-semibold';
+        } else {
+          btn.className = 'px-3 py-1 rounded-full text-xs transition text-gray-300 hover:text-white';
+        }
+      });
+    }
+
+    // Typewriter Text Animation Engine
+    function typeWriterEffect(text) {
+      clearTimeout(typewriterTimeout);
+      const display = document.getElementById('lyric-display');
+      display.textContent = '';
+      let charIdx = 0;
+
+      function type() {
+        if (charIdx < text.length) {
+          display.textContent += text.charAt(charIdx);
+          charIdx++;
+          typewriterTimeout = setTimeout(type, 45);
+        }
+      }
+      type();
+    }
+
+    function nextLyric() {
+      currentLyricIdx = (currentLyricIdx + 1) % lyricsData.length;
+      typeWriterEffect(lyricsData[currentLyricIdx].text);
+    }
+
+    function prevLyric() {
+      currentLyricIdx = (currentLyricIdx - 1 + lyricsData.length) % lyricsData.length;
+      typeWriterEffect(lyricsData[currentLyricIdx].text);
+    }
+
+    // Dynamic Spectrum Visualizer Render Loop
+    function renderVisualizer() {
+      if (!isPlaying) return;
+
+      animFrameId = requestAnimationFrame(renderVisualizer);
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      if (visualizerMode === 'waves') {
+        analyserNode.getByteTimeDomainData(dataArray);
+      } else {
+        analyserNode.getByteFrequencyData(dataArray);
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (visualizerMode === 'bars') {
+        // Gold Neon Frequency Bars
+        const barWidth = (canvas.width / bufferLength) * 2.2;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height * 0.85;
+
+          // Gradient color from deep amber to bright gold neon
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, '#78350f');
+          gradient.addColorStop(0.5, '#eab308');
+          gradient.addColorStop(1, '#fef08a');
+
+          ctx.fillStyle = gradient;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#facc15';
+
+          // Draw Rounded Bars
+          ctx.beginPath();
+          ctx.roundRect(x, canvas.height - barHeight, barWidth - 2, barHeight, [4, 4, 0, 0]);
+          ctx.fill();
+
+          x += barWidth + 1;
+        }
+      } else if (visualizerMode === 'waves') {
+        // Glowing Oscilloscope Wave
+        ctx.lineWidth = 3;
+        ctx.strokeStyle = '#facc15';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#eab308';
+        ctx.beginPath();
+
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const v = dataArray[i] / 128.0;
+          const y = (v * canvas.height) / 2;
+
+          if (i === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+          x += sliceWidth;
+        }
+
+        ctx.lineTo(canvas.width, canvas.height / 2);
+        ctx.stroke();
+      } else if (visualizerMode === 'circle') {
+        // Circular Radial Audio Spectrum
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(centerX, centerY) * 0.45;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const value = dataArray[i];
+          const angle = (i / bufferLength) * Math.PI * 2;
+          const barLen = (value / 255) * 60;
+
+          const x1 = centerX + Math.cos(angle) * radius;
+          const y1 = centerY + Math.sin(angle) * radius;
+          const x2 = centerX + Math.cos(angle) * (radius + barLen);
+          const y2 = centerY + Math.sin(angle) * (radius + barLen);
+
+          ctx.strokeStyle = `hsl(${45 + (value / 255) * 15}, 100%, 55%)`;
+          ctx.lineWidth = 2.5;
+          ctx.shadowBlur = 8;
+          ctx.shadowColor = '#facc15';
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      }
+    }
+
+    // Floating Particles (Hearts & Glow Dust Background)
+    function initParticleBackground() {
+      particles = [];
+      const particleCount = 35;
+
+      for (let i = 0; i < particleCount; i++) {
+        particles.push({
+          x: Math.random() * particleCanvas.width,
+          y: Math.random() * particleCanvas.height,
+          size: Math.random() * 12 + 6,
+          speedY: Math.random() * -0.8 - 0.2,
+          speedX: (Math.random() - 0.5) * 0.4,
+          opacity: Math.random() * 0.6 + 0.2,
+          isHeart: Math.random() > 0.5
+        });
+      }
+      animateParticles();
+    }
+
+    function drawHeart(x, y, size, opacity) {
+      pCtx.save();
+      pCtx.globalAlpha = opacity;
+      pCtx.fillStyle = '#facc15';
+      pCtx.shadowBlur = 10;
+      pCtx.shadowColor = '#eab308';
+      pCtx.beginPath();
+      const topCurveHeight = size * 0.3;
+      pCtx.moveTo(x, y + topCurveHeight);
+      pCtx.bezierCurveTo(x, y, x - size / 2, y, x - size / 2, y + topCurveHeight);
+      pCtx.bezierCurveTo(x - size / 2, y + (size + topCurveHeight) / 2, x, y + size, x, y + size);
+      pCtx.bezierCurveTo(x, y + size, x + size / 2, y + (size + topCurveHeight) / 2, x + size / 2, y + topCurveHeight);
+      pCtx.bezierCurveTo(x + size / 2, y, x, y, x, y + topCurveHeight);
+      pCtx.closePath();
+      pCtx.fill();
+      pCtx.restore();
+    }
+
+    function animateParticles() {
+      pCtx.clearRect(0, 0, particleCanvas.width, particleCanvas.height);
+
+      particles.forEach((p) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        if (p.y < -20) {
+          p.y = particleCanvas.height + 20;
+          p.x = Math.random() * particleCanvas.width;
+        }
+
+        if (p.isHeart) {
+          drawHeart(p.x, p.y, p.size, p.opacity);
+        } else {
+          pCtx.save();
+          pCtx.globalAlpha = p.opacity;
+          pCtx.fillStyle = '#fef08a';
+          pCtx.shadowBlur = 8;
+          pCtx.shadowColor = '#eab308';
+          pCtx.beginPath();
+          pCtx.arc(p.x, p.y, p.size / 3, 0, Math.PI * 2);
+          pCtx.fill();
+          pCtx.restore();
+        }
+      });
+
+      requestAnimationFrame(animateParticles);
+    }
+
+    // Helper Utility: Time Formatting
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+  </script>
+</body>
+</html>
