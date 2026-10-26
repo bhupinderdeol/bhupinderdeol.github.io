@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suno AI Punjabi Visualizer & Player</title>
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --card-bg: rgba(18, 18, 26, 0.85);
+            --gold: #d4af37;
+            --gold-glow: rgba(212, 175, 55, 0.4);
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+            background-image: radial-gradient(circle at center, #1a1505 0%, var(--bg-dark) 70%);
+        }
+
+        /* App Container */
+        .app-container {
+            width: 100%;
+            max-width: 450px;
+            height: 100vh;
+            max-height: 900px;
+            background: var(--card-bg);
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 30px var(--gold-glow);
+            border-radius: 24px;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .app-container.desktop-mode {
+            max-width: 900px;
+            height: 600px;
+        }
+
+        /* Top Bar & Prominent Upload Button */
+        .top-bar {
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid rgba(212, 175, 55, 0.2);
+            background: rgba(10, 10, 15, 0.9);
+            z-index: 10;
+        }
+
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .btn-gold {
+            background: linear-gradient(135deg, #d4af37 0%, #aa771c 100%);
+            color: #000;
+            font-weight: 700;
+            padding: 10px 18px;
+            border-radius: 30px;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--gold-glow);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-gold:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 25px var(--gold);
+        }
+
+        .upload-btn-wrapper input[type=file] {
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            cursor: pointer;
+        }
+
+        .mode-toggle {
+            background: transparent;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Visualizer Stage */
+        .stage {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 20px;
+        }
+
+        #visualizer-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        /* Vinyl Record */
+        .vinyl-container {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            background: #111;
+            border: 4px solid var(--gold);
+            box-shadow: 0 0 20px rgba(0,0,0,0.8), 0 0 15px var(--gold-glow);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+            animation: spin 10s linear infinite;
+            animation-play-state: paused;
+        }
+
+        .vinyl-container.playing {
+            animation-play-state: running;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .vinyl-label {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #d4af37, #553300);
+            border-radius: 50%;
+            border: 2px dashed #000;
+        }
+
+        /* Song Title & Lyrics Box */
+        .info-box {
+            position: relative;
+            z-index: 3;
+            text-align: center;
+            margin-top: 20px;
+            width: 100%;
+            padding: 0 20px;
+        }
+
+        .song-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: var(--gold);
+            text-shadow: 0 0 10px var(--gold-glow);
+            margin-bottom: 8px;
+        }
+
+        .lyrics-display {
+            font-size: 16px;
+            font-style: italic;
+            color: var(--text-main);
+            min-height: 48px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* Controls Footer */
+        .controls-footer {
+            padding: 16px;
+            background: rgba(10, 10, 15, 0.95);
+            border-top: 1px solid rgba(212, 175, 55, 0.2);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .playback-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+        .control-icon-btn {
+            background: none;
+            border: 1px solid var(--gold);
+            color: var(--gold);
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 16px;
+            box-shadow: 0 0 10px var(--gold-glow);
+            transition: transform 0.2s;
+        }
+
+        .control-icon-btn:hover {
+            transform: scale(1.1);
+            background: var(--gold);
+            color: #000;
+        }
+
+        .effects-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .effect-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        .effect-toggle input {
+            accent-color: var(--gold);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app-container" id="appContainer">
+        <!-- Top Bar with Visible Upload Button -->
+        <div class="top-bar">
+            <div class="upload-btn-wrapper">
+                <button class="btn-gold">📁 Upload MP3</button>
+                <input type="file" id="audioUpload" accept="audio/mp3, audio/wav, audio/*">
+            </div>
+            <button class="mode-toggle" onclick="toggleMode()">📱 Toggle 9:16 / Desktop</button>
+        </div>
+
+        <!-- Visualizer Stage -->
+        <div class="stage">
+            <canvas id="visualizer-canvas"></canvas>
+            
+            <div class="vinyl-container" id="vinylDisc">
+                <div class="vinyl-label"></div>
+            </div>
+
+            <div class="info-box">
+                <div class="song-title" id="songTitle">Sira Lata (Suno AI Mix)</div>
+                <div class="lyrics-display" id="lyricsDisplay">🎵 Tap Play or Upload your Suno MP3 track...</div>
+            </div>
+        </div>
+
+        <!-- Controls Footer -->
+        <div class="controls-footer">
+            <audio id="audioElement" crossorigin="anonymous" loop></audio>
+            
+            <div class="playback-row">
+                <button class="control-icon-btn" id="playBtn" onclick="togglePlay()">▶</button>
+            </div>
+
+            <div class="effects-row">
+                <label class="effect-toggle">
+                    <input type="checkbox" id="reverbToggle" onchange="toggleReverb()"> Slowed + Reverb
+                </label>
+                <label class="effect-toggle">
+                    <input type="range" id="speedSlider" min="0.75" max="1.25" step="0.05" value="0.9" oninput="changeSpeed(this.value)"> Speed: <span id="speedVal">0.9x</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const audio = document.getElementById('audioElement');
+        const playBtn = document.getElementById('playBtn');
+        const vinylDisc = document.getElementById('vinylDisc');
+        const songTitle = document.getElementById('songTitle');
+        const lyricsDisplay = document.getElementById('lyricsDisplay');
+        const canvas = document.getElementById('visualizer-canvas');
+        const ctx = canvas.getContext('2d');
+
+        let audioCtx, analyser, sourceNode, gainNode, convolver;
+        let isInitialized = false;
+
+        // Sample Punjabi / Suno AI Lyrics sequence demo
+        const sampleLyrics = [
+            "Sira lata... beat drop hundi ve!",
+            "Desi hip-hop vibe 80s style...",
+            "Suno AI creation rolling smooth...",
+            "Reverb echo bouncing through the night..."
+        ];
+        let lyricIndex = 0;
+
+        setInterval(() => {
+            if(!audio.paused) {
+                lyricsDisplay.textContent = sampleLyrics[lyricIndex];
+                lyricIndex = (lyricIndex + 1) % sampleLyrics.length;
+            }
+        }, 4000);
+
+        // Handle File Upload
+        document.getElementById('audioUpload').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const fileURL = URL.createObjectURL(file);
+                audio.src = fileURL;
+                songTitle.textContent = file.name.replace(/\.[^/.]+$/, ""); // Remove extension
+                audio.play();
+                playBtn.textContent = "⏸";
+                vinylDisc.classList.add('playing');
+                initAudioContext();
+            }
+        });
+
+        function togglePlay() {
+            if (!audio.src) {
+                alert("Please click 'Upload MP3' first to load your Suno AI track!");
+                return;
+            }
+            if (audio.paused) {
+                audio.play();
+                playBtn.textContent = "⏸";
+                vinylDisc.classList.add('playing');
+                if(!isInitialized) initAudioContext();
+            } else {
+                audio.pause();
+                playBtn.textContent = "▶";
+                vinylDisc.classList.remove('playing');
+            }
+        }
+
+        function changeSpeed(val) {
+            audio.playbackRate = val;
+            document.getElementById('speedVal').textContent = val + 'x';
+        }
+
+        function toggleMode() {
+            document.getElementById('appContainer').classList.toggle('desktop-mode');
+            resizeCanvas();
+        }
+
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        function initAudioContext() {
+            if (isInitialized) return;
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                sourceNode = audioCtx.createMediaElementSource(audio);
+                
+                analyser.fftSize = 256;
+                sourceNode.connect(analyser);
+                analyser.connect(audioCtx.destination);
+                
+                isInitialized = true;
+                visualize();
+            } catch(e) {
+                console.log("AudioContext error: ", e);
+            }
+        }
+
+        function toggleReverb() {
+            const isChecked = document.getElementById('reverbToggle').checked;
+            if(isChecked) {
+                audio.playbackRate = 0.85;
+                document.getElementById('speedSlider').value = 0.85;
+                document.getElementById('speedVal').textContent = '0.85x';
+            } else {
+                audio.playbackRate = 1.0;
+                document.getElementById('speedSlider').value = 1.0;
+                document.getElementById('speedVal').textContent = '1.0x';
+            }
+        }
+
+        // Canvas Circular Spectrum Visualizer
+        function visualize() {
+            requestAnimationFrame(visualize);
+            if (!analyser) return;
+
+            const bufferLength = analyser.frequencyBinCount;
+            const dataArray = new Uint8Array(bufferLength);
+            analyser.getByteFrequencyData(dataArray);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2 - 40;
+            const radius = 95;
+
+            ctx.save();
+            ctx.translate(centerX, centerY);
+
+            for (let i = 0; i < bufferLength; i++) {
+                const barHeight = (dataArray[i] / 2);
+                const angle = (i * 2 * Math.PI) / bufferLength;
+
+                const x1 = (radius) * Math.cos(angle);
+                const y1 = (radius) * Math.sin(angle);
+                const x2 = (radius + barHeight * 0.6) * Math.cos(angle);
+                const y2 = (radius + barHeight * 0.6) * Math.sin(angle);
+
+                ctx.strokeStyle = `hsl(${i * 2 + 40}, 80%, 50%)`;
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+            ctx.restore();
+        }
+    </script>
+</body>
+</html>
