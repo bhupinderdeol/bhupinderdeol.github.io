@@ -1,0 +1,951 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suno AI Punjabi Music & Video Visualizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Orbitron:wght@500;700;900&family=Teko:wght@500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+            },
+            neonGold: '#ffd700',
+            darkBg: '#05040a',
+          },
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            teko: ['Teko', 'sans-serif'],
+            cinzel: ['Cinzel', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #05040a;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Text & Element Glows */
+    .glow-gold {
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.8), 0 0 25px rgba(234, 179, 8, 0.4);
+    }
+
+    .glass-box {
+      background: rgba(15, 12, 25, 0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(250, 204, 21, 0.35);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 20px rgba(234, 179, 8, 0.15);
+    }
+
+    /* 9:16 TikTok Frame Lock Mode */
+    .tiktok-frame {
+      width: 100% !important;
+      max-width: 415px !important;
+      height: 860px !important;
+      max-height: 95vh !important;
+      border-radius: 36px !important;
+      border: 3px solid rgba(250, 204, 21, 0.6) !important;
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.35), 0 0 100px rgba(0,0,0,0.95) !important;
+    }
+
+    /* Custom Input Range styling */
+    input[type=range] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 9999px;
+      height: 6px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #facc15;
+      box-shadow: 0 0 12px #facc15;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.25);
+    }
+
+    /* Typewriter Cursor */
+    .type-cursor::after {
+      content: '▋';
+      color: #facc15;
+      animation: blink 0.7s infinite;
+      margin-left: 3px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Native HTML5 Audio styling overrides */
+    audio::-webkit-media-controls-panel {
+      background-color: #12101a;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-6 relative selection:bg-gold-400 selection:text-black">
+
+  <!-- Background Particle Canvas (Hearts & Sparks) -->
+  <canvas id="bg-particle-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- Top Navigation Header -->
+  <header class="w-full max-w-6xl z-20 flex justify-between items-center mb-4 px-2">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-gold-600 to-amber-300 text-black font-extrabold flex items-center justify-center font-orbitron shadow-[0_0_15px_rgba(250,204,21,0.5)]">
+        S
+      </div>
+      <div>
+        <h1 class="font-orbitron text-lg font-bold text-gold-300 tracking-wider leading-none">SUNO STUDIO PRO</h1>
+        <p class="text-[10px] text-gray-400 tracking-widest uppercase">Punjabi Audio Visualizer & DSP Engine</p>
+      </div>
+    </div>
+
+    <!-- Mode & Editor Action Buttons -->
+    <div class="flex items-center gap-2">
+      <button id="btn-toggle-aspect" type="button" class="px-3.5 py-1.5 rounded-full glass-box text-xs font-semibold text-gold-300 hover:bg-gold-500 hover:text-black transition flex items-center gap-1.5 shadow-lg">
+        <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+        <span id="aspect-label">9:16 Record Mode</span>
+      </button>
+
+      <button id="btn-open-lyric-modal" type="button" class="px-3.5 py-1.5 rounded-full glass-box text-xs font-semibold text-gold-300 hover:bg-gold-500 hover:text-black transition flex items-center gap-1.5">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Lyrics Editor</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main id="app-viewport" class="w-full max-w-6xl z-10 flex flex-col lg:flex-row gap-6 my-auto transition-all duration-300 items-center justify-center">
+
+    <!-- LEFT VISUALIZER STAGE -->
+    <div id="visualizer-stage" class="w-full glass-box rounded-3xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 min-h-[560px]">
+      
+      <!-- Stage Header Metadata -->
+      <div class="flex flex-col items-center text-center z-10 w-full px-2">
+        <div class="flex items-center gap-2 text-[11px] font-orbitron text-gold-400 tracking-widest uppercase bg-black/70 px-3 py-1 rounded-full border border-gold-500/40 mb-2 shadow-inner">
+          <i class="fa-solid fa-compact-disc text-amber-400 animate-spin"></i>
+          <span>STAR MUSIC • PUNJABI AI VISUALIZER</span>
+        </div>
+        
+        <h2 id="display-track-title" class="font-teko text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-100 via-gold-400 to-amber-500 glow-gold tracking-wide uppercase leading-tight max-w-full truncate">
+          Sira Lata
+        </h2>
+        <p id="display-artist-name" class="font-cinzel text-xs sm:text-sm text-gray-300 tracking-wider">
+          Single • Suno AI Beats
+        </p>
+      </div>
+
+      <!-- Canvas Visualizer & Spinning Vinyl Center -->
+      <div class="relative w-full flex-grow flex items-center justify-center my-3 min-h-[250px]">
+        <canvas id="visualizer-canvas" class="w-full h-full absolute inset-0 rounded-2xl pointer-events-none"></canvas>
+
+        <!-- Center Bass-Reactive Disc -->
+        <div id="vinyl-disc-container" class="relative z-10 w-36 h-36 sm:w-48 sm:h-48 rounded-full border-4 border-gold-400/80 p-2 bg-black/90 shadow-[0_0_35px_rgba(250,204,21,0.4)] flex items-center justify-center transition-transform duration-75">
+          <div id="vinyl-disc" class="w-full h-full rounded-full border-2 border-gold-500/40 bg-gradient-to-tr from-amber-950 via-zinc-900 to-black flex items-center justify-center relative overflow-hidden shadow-inner">
+            <div class="absolute inset-2 rounded-full border border-white/5"></div>
+            <div class="absolute inset-5 rounded-full border border-white/5"></div>
+            <div class="absolute inset-9 rounded-full border border-white/5"></div>
+            
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-gold-500 to-amber-600 border-2 border-yellow-200 flex flex-col items-center justify-center text-black font-extrabold text-[10px] text-center p-1 shadow-lg">
+              <i class="fa-solid fa-music text-base mb-0.5"></i>
+              <span class="leading-none text-[8px] font-orbitron">BEATS</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Synchronized Dynamic Lyrics Display -->
+      <div class="z-10 w-full bg-black/85 border border-gold-500/40 rounded-2xl p-4 text-center backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center min-h-[100px]">
+        <div class="text-[10px] font-orbitron text-gold-400/80 tracking-widest uppercase mb-1 flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+          <span>SYNCED LYRIC STREAM</span>
+        </div>
+        <p id="lyric-active-line" class="font-teko text-2xl sm:text-4xl text-yellow-100 glow-gold tracking-wide leading-snug type-cursor px-2 min-h-[40px] flex items-center justify-center">
+          Upload an MP3 or press Play to start...
+        </p>
+        <p id="lyric-next-line" class="text-xs sm:text-sm text-gray-400 font-sans italic mt-1 max-w-md truncate">
+          (Up Next: Waiting for playback)
+        </p>
+      </div>
+
+    </div>
+
+    <!-- RIGHT PANEL: CONTROLS, PLAYER & AUDIO DSP -->
+    <div id="controls-panel" class="w-full lg:max-w-md glass-box rounded-3xl p-5 sm:p-6 flex flex-col gap-4 justify-between max-h-[90vh] overflow-y-auto">
+      
+      <!-- 1. RELIABLE MP3 UPLOADER & EDITABLE METADATA -->
+      <div class="flex flex-col gap-2.5">
+        <label class="text-xs font-orbitron text-gold-300 font-bold uppercase tracking-wider flex items-center justify-between">
+          <span><i class="fa-solid fa-file-audio text-amber-400 mr-1.5"></i> Audio File Selection</span>
+          <span class="text-[10px] text-gray-400 font-normal">MP3 / WAV / M4A</span>
+        </label>
+
+        <!-- Visible Standard Upload Label Button -->
+        <label for="file-input-audio" class="w-full py-3 px-4 bg-gradient-to-r from-gold-400 via-amber-500 to-gold-600 text-black font-extrabold text-xs rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.4)] hover:brightness-110 active:scale-98 transition flex items-center justify-center gap-2 cursor-pointer text-center">
+          <i class="fa-solid fa-cloud-arrow-up text-base"></i>
+          <span>CHOOSE / UPLOAD MP3 FILE</span>
+        </label>
+        <input type="file" id="file-input-audio" accept="audio/*" class="hidden">
+
+        <!-- Metadata Input Fields -->
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <input type="text" id="input-song-title" value="Sira Lata" placeholder="Song Title" class="bg-black/70 border border-gold-500/30 rounded-lg px-3 py-1.5 text-xs text-gold-200 focus:outline-none focus:border-gold-400">
+          <input type="text" id="input-artist-name" value="Suno AI Beats" placeholder="Artist Name" class="bg-black/70 border border-gold-500/30 rounded-lg px-3 py-1.5 text-xs text-gold-200 focus:outline-none focus:border-gold-400">
+        </div>
+      </div>
+
+      <hr class="border-gold-500/20">
+
+      <!-- 2. PROMINENT MEDIA PLAYER CONTROLS (HIGH VISIBILITY CSS BUTTONS) -->
+      <div class="flex flex-col gap-3">
+        <label class="text-xs font-orbitron text-gold-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-circle-play text-amber-400"></i>
+          <span>Playback Controls</span>
+        </label>
+
+        <!-- Main Button Row -->
+        <div class="flex items-center justify-between gap-2 bg-black/60 p-2.5 rounded-2xl border border-gold-500/30">
+          <!-- Play Button -->
+          <button type="button" id="btn-play" class="flex-grow py-2.5 px-3 bg-gradient-to-r from-gold-400 to-amber-500 text-black font-extrabold text-xs rounded-xl hover:brightness-110 active:scale-95 transition flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(250,204,21,0.4)]">
+            <i class="fa-solid fa-play text-sm" id="icon-play"></i>
+            <span id="text-play">PLAY</span>
+          </button>
+
+          <!-- Pause Button -->
+          <button type="button" id="btn-pause" class="py-2.5 px-3.5 bg-zinc-800 border border-gold-500/40 text-gold-300 font-bold text-xs rounded-xl hover:bg-gold-500 hover:text-black active:scale-95 transition flex items-center justify-center gap-1">
+            <i class="fa-solid fa-pause text-sm"></i>
+            <span>PAUSE</span>
+          </button>
+
+          <!-- Stop Button -->
+          <button type="button" id="btn-stop" class="py-2.5 px-3.5 bg-red-950/80 border border-red-500/50 text-red-300 font-bold text-xs rounded-xl hover:bg-red-600 hover:text-white active:scale-95 transition flex items-center justify-center gap-1">
+            <i class="fa-solid fa-stop text-sm"></i>
+            <span>STOP</span>
+          </button>
+        </div>
+
+        <!-- Seek & Jump Row -->
+        <div class="flex items-center justify-between gap-2">
+          <button type="button" id="btn-rewind" class="py-1.5 px-3 bg-black/50 border border-gold-500/30 text-gold-300 text-xs rounded-lg hover:bg-gold-500/20">
+            <i class="fa-solid fa-backward-step mr-1"></i> -5s
+          </button>
+
+          <!-- Time Display -->
+          <div class="text-xs font-mono text-gold-300 font-bold bg-black/80 px-2.5 py-1 rounded-md border border-gold-500/20">
+            <span id="time-current">00:00</span> / <span id="time-total">00:00</span>
+          </div>
+
+          <button type="button" id="btn-forward" class="py-1.5 px-3 bg-black/50 border border-gold-500/30 text-gold-300 text-xs rounded-lg hover:bg-gold-500/20">
+            +5s <i class="fa-solid fa-forward-step ml-1"></i>
+          </button>
+        </div>
+
+        <!-- Scrubber Range Input -->
+        <input type="range" id="seek-bar" value="0" max="100" class="w-full cursor-pointer">
+
+        <!-- Volume & Mute Row -->
+        <div class="flex items-center justify-between gap-3 bg-black/40 p-2 rounded-xl border border-gold-500/20">
+          <button type="button" id="btn-mute" class="text-gold-400 text-xs font-bold flex items-center gap-1">
+            <i class="fa-solid fa-volume-high" id="icon-volume"></i>
+            <span id="text-mute">Mute</span>
+          </button>
+          <input type="range" id="slider-volume" min="0" max="1" step="0.01" value="0.85" class="w-28 cursor-pointer">
+        </div>
+
+        <!-- Explicit HTML5 Native Fallback Player -->
+        <div class="mt-1">
+          <p class="text-[10px] text-gray-400 mb-1 font-orbitron">NATIVE AUDIO PLAYER ENGINE:</p>
+          <audio id="native-audio" controls class="w-full h-9 rounded-xl"></audio>
+        </div>
+      </div>
+
+      <hr class="border-gold-500/20">
+
+      <!-- 3. DUAL-ENGINE AUDIO EFFECT PROCESSING (DSP CHAIN) -->
+      <div class="flex flex-col gap-3">
+        <label class="text-xs font-orbitron text-gold-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          <span>DSP Audio FX Modifiers</span>
+        </label>
+
+        <!-- Speed / Pitch Adjustment Slider -->
+        <div class="flex flex-col gap-1 bg-black/50 p-2.5 rounded-xl border border-gold-500/20">
+          <div class="flex justify-between text-xs text-gray-300">
+            <span><i class="fa-solid fa-gauge-high text-gold-400 mr-1"></i> Playback Speed (Pitch)</span>
+            <span id="label-speed-val" class="font-mono text-gold-300 font-bold">1.00x</span>
+          </div>
+          <input type="range" id="slider-speed" min="0.50" max="1.50" step="0.05" value="1.00" class="w-full cursor-pointer">
+        </div>
+
+        <!-- Bass Boost & Treble EQ Filters -->
+        <div class="grid grid-cols-2 gap-2">
+          <div class="flex flex-col gap-1 bg-black/50 p-2 rounded-xl border border-gold-500/20">
+            <div class="flex justify-between text-[11px] text-gray-300">
+              <span>🔊 Bass Boost</span>
+              <span id="label-bass-val" class="font-mono text-gold-400 font-bold">0 dB</span>
+            </div>
+            <input type="range" id="slider-bass" min="-6" max="16" step="1" value="0" class="w-full cursor-pointer">
+          </div>
+
+          <div class="flex flex-col gap-1 bg-black/50 p-2 rounded-xl border border-gold-500/20">
+            <div class="flex justify-between text-[11px] text-gray-300">
+              <span>✨ Treble EQ</span>
+              <span id="label-treble-val" class="font-mono text-gold-400 font-bold">0 dB</span>
+            </div>
+            <input type="range" id="slider-treble" min="-10" max="10" step="1" value="0" class="w-full cursor-pointer">
+          </div>
+        </div>
+
+        <!-- Toggle Switches: Slowed + Reverb, Tape Filter, 8D Panning -->
+        <div class="grid grid-cols-3 gap-2">
+          <!-- Slowed + Reverb Toggle -->
+          <button type="button" id="btn-toggle-reverb" class="p-2 bg-black/50 border border-gold-500/20 rounded-xl text-left flex flex-col justify-between hover:border-gold-400/60 transition">
+            <div class="flex justify-between items-center w-full mb-1">
+              <span class="text-[10px] font-semibold text-gray-200">Reverb</span>
+              <span id="reverb-badge" class="text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400">OFF</span>
+            </div>
+            <span class="text-[9px] text-gray-400 leading-tight">Echo Chamber</span>
+          </button>
+
+          <!-- Tape Warmth / Low Pass -->
+          <button type="button" id="btn-toggle-filter" class="p-2 bg-black/50 border border-gold-500/20 rounded-xl text-left flex flex-col justify-between hover:border-gold-400/60 transition">
+            <div class="flex justify-between items-center w-full mb-1">
+              <span class="text-[10px] font-semibold text-gray-200">Tape Warmth</span>
+              <span id="filter-badge" class="text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400">OFF</span>
+            </div>
+            <span class="text-[9px] text-gray-400 leading-tight">3kHz Low-Pass</span>
+          </button>
+
+          <!-- 8D Stereo Panning -->
+          <button type="button" id="btn-toggle-8d" class="p-2 bg-black/50 border border-gold-500/20 rounded-xl text-left flex flex-col justify-between hover:border-gold-400/60 transition">
+            <div class="flex justify-between items-center w-full mb-1">
+              <span class="text-[10px] font-semibold text-gray-200">8D Audio</span>
+              <span id="panner-badge" class="text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400">OFF</span>
+            </div>
+            <span class="text-[9px] text-gray-400 leading-tight">360° Panning</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL: LYRICS EDITOR -->
+  <div id="modal-lyrics" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-box rounded-3xl w-full max-w-lg p-6 flex flex-col gap-4 border border-gold-500/40 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gold-500/20 pb-3">
+        <h3 class="font-orbitron text-sm font-bold text-gold-300 flex items-center gap-2">
+          <i class="fa-solid fa-align-left text-amber-400"></i> Edit Song Lyrics
+        </h3>
+        <button type="button" id="btn-close-lyric-modal" class="text-gray-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-300">
+        Paste Punjabi or English lyrics line by line. The typewriter display will cycle through them during playback!
+      </p>
+
+      <textarea id="textarea-lyrics" rows="9" class="w-full bg-black/80 border border-gold-500/30 rounded-xl p-3 text-xs text-gold-200 font-mono focus:outline-none focus:border-gold-400 leading-relaxed" placeholder="Paste lyrics line by line..."></textarea>
+
+      <div class="flex justify-end gap-2">
+        <button type="button" id="btn-save-lyrics" class="px-5 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold text-xs rounded-xl hover:brightness-110 transition shadow-lg">
+          Apply Lyrics
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <footer class="w-full max-w-6xl z-10 text-center text-[11px] text-gray-500 my-2 flex justify-between items-center border-t border-gold-500/10 pt-2 px-2">
+    <span>Optimized for TikTok, Shorts & Reels Captures</span>
+    <span class="text-gold-400/80">Web Audio API • Suno AI Remix Studio</span>
+  </footer>
+
+  <script>
+    // PRESET DEFAULT LYRICS
+    let currentLyrics = [
+      "🔥 Suno AI Punjabi Hip-Hop Track Loaded!",
+      "Sira lata ni kudiye sira lata...",
+      "Vairi saare side te karke, bass ghuma ta!",
+      "Gaddi chaldi repeat te, loud bajde speaker...",
+      "Bapu da dream bada, munda ban gaya seeker!",
+      "Sira lata ni kudiye sira lata...",
+      "Gaddi vich bajde ne Punjabi beats, no stop!",
+      "Slowed + reverb aesthetic visualizer drop..."
+    ];
+    let lyricIndex = 0;
+    let lyricInterval = null;
+
+    // AUDIO & DSP VARIABLES
+    const audio = document.getElementById('native-audio');
+    let audioCtx = null;
+    let analyserNode = null;
+    let masterGainNode = null;
+    let bassFilter = null;
+    let trebleFilter = null;
+    let biquadFilter = null;
+    let delayNode = null;
+    let feedbackGain = null;
+    let stereoPanner = null;
+    let mediaSourceNode = null;
+
+    let isAudioCtxConnected = false;
+    let isReverbActive = false;
+    let isFilterActive = false;
+    let isPannerActive = false;
+    let pannerAngle = 0;
+    let pannerInterval = null;
+
+    // SYNTHETIC FALLBACK AUDIO ENGINE
+    let isSynthPlaying = false;
+    let synthInterval = null;
+
+    // VISUALIZER CANVAS
+    const canvas = document.getElementById('visualizer-canvas');
+    const ctx = canvas.getContext('2d');
+    let animFrameId = null;
+
+    // BACKGROUND PARTICLES
+    const bgCanvas = document.getElementById('bg-particle-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    let particles = [];
+
+    window.onload = () => {
+      resizeCanvases();
+      window.addEventListener('resize', resizeCanvases);
+      initBackgroundParticles();
+      setupEventListeners();
+      updateLyricDisplay();
+      generateFallbackAudioBuffer();
+    };
+
+    function resizeCanvases() {
+      if (canvas && canvas.parentElement) {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      }
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+
+    // GENERATE SYNTHETIC AUDIO FALLBACK BUFFER SO PLAYER WORKS IMMEDIATELY
+    function generateFallbackAudioBuffer() {
+      // Create a 5-second ambient rhythmic beat audio blob
+      const sampleRate = 44100;
+      const length = sampleRate * 5;
+      const offlineCtx = new OfflineAudioContext(1, length, sampleRate);
+      
+      const osc = offlineCtx.createOscillator();
+      const gain = offlineCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(110, 0);
+      osc.frequency.exponentialRampToValueAtTime(55, 0.5);
+      
+      gain.gain.setValueAtTime(0.3, 0);
+      gain.gain.exponentialRampToValueAtTime(0.001, 0.5);
+
+      osc.connect(gain);
+      gain.connect(offlineCtx.destination);
+      osc.start(0);
+
+      offlineCtx.startRendering().then(renderedBuffer => {
+        const wavData = bufferToWave(renderedBuffer, length);
+        const blob = new Blob([wavData], { type: 'audio/wav' });
+        audio.src = URL.createObjectURL(blob);
+        audio.loop = true;
+      }).catch(e => console.log("Fallback audio error:", e));
+    }
+
+    // CONVERT AUDIO BUFFER TO WAV BLOB
+    function bufferToWave(abuffer, len) {
+      let numOfChan = abuffer.numberOfChannels,
+          length = len * numOfChan * 2 + 44,
+          buffer = new ArrayBuffer(length),
+          view = new DataView(buffer),
+          channels = [], i, sample,
+          offset = 0,
+          pos = 0;
+
+      function setUint16(data) { view.setUint16(pos, data, true); pos += 2; }
+      function setUint32(data) { view.setUint32(pos, data, true); pos += 4; }
+
+      setUint32(0x46464952); setUint32(length - 8); setUint32(0x45564157);
+      setUint32(0x20746d66); setUint32(16); setUint16(1); setUint16(numOfChan);
+      setUint32(abuffer.sampleRate); setUint32(abuffer.sampleRate * 2 * numOfChan);
+      setUint16(numOfChan * 2); setUint16(16); setUint32(0x61746164); setUint32(length - pos - 4);
+
+      for (i = 0; i < abuffer.numberOfChannels; i++) channels.push(abuffer.getChannelData(i));
+
+      while (pos < length) {
+        for (i = 0; i < numOfChan; i++) {
+          sample = Math.max(-1, Math.min(1, channels[i][offset]));
+          sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+          view.setInt16(pos, sample, true); pos += 2;
+        }
+        offset++;
+      }
+      return buffer;
+    }
+
+    // INITIALIZE WEB AUDIO API GRAPH
+    function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+
+        bassFilter = audioCtx.createBiquadFilter();
+        bassFilter.type = 'lowshelf';
+        bassFilter.frequency.value = 250;
+        bassFilter.gain.value = 0;
+
+        trebleFilter = audioCtx.createBiquadFilter();
+        trebleFilter.type = 'highshelf';
+        trebleFilter.frequency.value = 4000;
+        trebleFilter.gain.value = 0;
+
+        biquadFilter = audioCtx.createBiquadFilter();
+        biquadFilter.type = 'lowpass';
+        biquadFilter.frequency.value = 20000;
+
+        stereoPanner = audioCtx.createStereoPanner ? audioCtx.createStereoPanner() : null;
+
+        delayNode = audioCtx.createDelay();
+        delayNode.delayTime.value = 0.28;
+        feedbackGain = audioCtx.createGain();
+        feedbackGain.gain.value = 0.35;
+
+        delayNode.connect(feedbackGain);
+        feedbackGain.connect(delayNode);
+
+        masterGainNode = audioCtx.createGain();
+        masterGainNode.gain.value = parseFloat(document.getElementById('slider-volume').value);
+      }
+
+      if (!isAudioCtxConnected) {
+        try {
+          mediaSourceNode = audioCtx.createMediaElementSource(audio);
+          mediaSourceNode.connect(bassFilter);
+          bassFilter.connect(trebleFilter);
+          trebleFilter.connect(biquadFilter);
+
+          if (stereoPanner) {
+            biquadFilter.connect(stereoPanner);
+            stereoPanner.connect(analyserNode);
+          } else {
+            biquadFilter.connect(analyserNode);
+          }
+
+          analyserNode.connect(masterGainNode);
+          masterGainNode.connect(audioCtx.destination);
+          isAudioCtxConnected = true;
+        } catch (e) {
+          console.log("MediaSource connection info:", e);
+        }
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // SETUP EVENT LISTENERS & UI CONTROLS
+    function setupEventListeners() {
+      const fileInput = document.getElementById('file-input-audio');
+      const inputTitle = document.getElementById('input-song-title');
+      const inputArtist = document.getElementById('input-artist-name');
+      const displayTitle = document.getElementById('display-track-title');
+      const displayArtist = document.getElementById('display-artist-name');
+
+      inputTitle.addEventListener('input', (e) => displayTitle.textContent = e.target.value || "Untitled");
+      inputArtist.addEventListener('input', (e) => displayArtist.textContent = e.target.value || "Suno AI");
+
+      // RELIABLE MP3 FILE UPLOAD HANDLER
+      fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+          initAudioEngine();
+
+          // Load via Blob Object URL
+          const fileUrl = URL.createObjectURL(file);
+          audio.src = fileUrl;
+
+          // Auto extract Title
+          let cleanedName = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+          inputTitle.value = cleanedName;
+          displayTitle.textContent = cleanedName;
+
+          audio.play().then(() => {
+            updatePlayUI(true);
+            startLyricTimer();
+            renderVisualizer();
+          }).catch(err => console.log("Play error:", err));
+        }
+      });
+
+      // MEDIA PLAYER BUTTONS
+      const btnPlay = document.getElementById('btn-play');
+      const btnPause = document.getElementById('btn-pause');
+      const btnStop = document.getElementById('btn-stop');
+      const btnRewind = document.getElementById('btn-rewind');
+      const btnForward = document.getElementById('btn-forward');
+
+      btnPlay.addEventListener('click', () => {
+        initAudioEngine();
+        audio.play();
+        updatePlayUI(true);
+        startLyricTimer();
+        renderVisualizer();
+      });
+
+      btnPause.addEventListener('click', () => {
+        audio.pause();
+        updatePlayUI(false);
+        clearInterval(lyricInterval);
+      });
+
+      btnStop.addEventListener('click', () => {
+        audio.pause();
+        audio.currentTime = 0;
+        updatePlayUI(false);
+        clearInterval(lyricInterval);
+      });
+
+      btnRewind.addEventListener('click', () => audio.currentTime = Math.max(0, audio.currentTime - 5));
+      btnForward.addEventListener('click', () => audio.currentTime = Math.min(audio.duration || 0, audio.currentTime + 5));
+
+      function updatePlayUI(isPlaying) {
+        document.getElementById('text-play').textContent = isPlaying ? "PLAYING" : "PLAY";
+        document.getElementById('icon-play').className = isPlaying ? "fa-solid fa-compact-disc animate-spin text-sm" : "fa-solid fa-play text-sm";
+      }
+
+      // Audio Timeupdate
+      audio.addEventListener('timeupdate', () => {
+        if (audio.duration) {
+          document.getElementById('time-current').textContent = formatTime(audio.currentTime);
+          document.getElementById('time-total').textContent = formatTime(audio.duration);
+          document.getElementById('seek-bar').value = (audio.currentTime / audio.duration) * 100;
+        }
+      });
+
+      document.getElementById('seek-bar').addEventListener('input', (e) => {
+        if (audio.duration) {
+          audio.currentTime = (e.target.value / 100) * audio.duration;
+        }
+      });
+
+      // Volume & Mute
+      const sliderVolume = document.getElementById('slider-volume');
+      const btnMute = document.getElementById('btn-mute');
+      const iconVolume = document.getElementById('icon-volume');
+
+      sliderVolume.addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        audio.volume = val;
+        if (masterGainNode) masterGainNode.gain.value = val;
+        iconVolume.className = val === 0 ? "fa-solid fa-volume-xmark" : "fa-solid fa-volume-high";
+      });
+
+      btnMute.addEventListener('click', () => {
+        audio.muted = !audio.muted;
+        iconVolume.className = audio.muted ? "fa-solid fa-volume-xmark text-red-400" : "fa-solid fa-volume-high text-gold-400";
+        document.getElementById('text-mute').textContent = audio.muted ? "Unmute" : "Mute";
+      });
+
+      // Speed Slider
+      document.getElementById('slider-speed').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        audio.playbackRate = val;
+        document.getElementById('label-speed-val').textContent = `${val.toFixed(2)}x`;
+      });
+
+      // Bass EQ
+      document.getElementById('slider-bass').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (bassFilter) bassFilter.gain.value = val;
+        document.getElementById('label-bass-val').textContent = `${val > 0 ? '+' : ''}${val} dB`;
+      });
+
+      // Treble EQ
+      document.getElementById('slider-treble').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        if (trebleFilter) trebleFilter.gain.value = val;
+        document.getElementById('label-treble-val').textContent = `${val > 0 ? '+' : ''}${val} dB`;
+      });
+
+      // Reverb Toggle
+      const btnReverb = document.getElementById('btn-toggle-reverb');
+      const reverbBadge = document.getElementById('reverb-badge');
+      btnReverb.addEventListener('click', () => {
+        isReverbActive = !isReverbActive;
+        if (isReverbActive) {
+          reverbBadge.textContent = "ON";
+          reverbBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gold-500 text-black font-bold";
+          if (biquadFilter) biquadFilter.connect(delayNode);
+          if (delayNode) delayNode.connect(masterGainNode);
+        } else {
+          reverbBadge.textContent = "OFF";
+          reverbBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400";
+        }
+      });
+
+      // Tape Filter Toggle
+      const btnFilter = document.getElementById('btn-toggle-filter');
+      const filterBadge = document.getElementById('filter-badge');
+      btnFilter.addEventListener('click', () => {
+        isFilterActive = !isFilterActive;
+        if (isFilterActive) {
+          filterBadge.textContent = "ON";
+          filterBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gold-500 text-black font-bold";
+          if (biquadFilter) biquadFilter.frequency.value = 3000;
+        } else {
+          filterBadge.textContent = "OFF";
+          filterBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400";
+          if (biquadFilter) biquadFilter.frequency.value = 20000;
+        }
+      });
+
+      // 8D Audio Toggle
+      const btnPanner = document.getElementById('btn-toggle-8d');
+      const pannerBadge = document.getElementById('panner-badge');
+      btnPanner.addEventListener('click', () => {
+        isPannerActive = !isPannerActive;
+        if (isPannerActive) {
+          pannerBadge.textContent = "ON";
+          pannerBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gold-500 text-black font-bold";
+          pannerInterval = setInterval(() => {
+            if (stereoPanner && isPannerActive) {
+              pannerAngle += 0.05;
+              stereoPanner.pan.value = Math.sin(pannerAngle);
+            }
+          }, 50);
+        } else {
+          pannerBadge.textContent = "OFF";
+          pannerBadge.className = "text-[8px] px-1 py-0.5 rounded bg-gray-800 text-gray-400";
+          clearInterval(pannerInterval);
+          if (stereoPanner) stereoPanner.pan.value = 0;
+        }
+      });
+
+      // 9:16 Aspect Frame Toggle
+      const btnToggleAspect = document.getElementById('btn-toggle-aspect');
+      const stage = document.getElementById('visualizer-stage');
+      const appViewport = document.getElementById('app-viewport');
+      const aspectLabel = document.getElementById('aspect-label');
+      let isTikTokFrame = false;
+
+      btnToggleAspect.addEventListener('click', () => {
+        isTikTokFrame = !isTikTokFrame;
+        if (isTikTokFrame) {
+          stage.classList.add('tiktok-frame');
+          aspectLabel.textContent = "Standard View";
+          appViewport.classList.remove('lg:flex-row');
+          appViewport.classList.add('flex-col');
+        } else {
+          stage.classList.remove('tiktok-frame');
+          aspectLabel.textContent = "9:16 Record Mode";
+          appViewport.classList.add('lg:flex-row');
+        }
+        setTimeout(resizeCanvases, 200);
+      });
+
+      // Lyric Modal Handlers
+      const modalLyrics = document.getElementById('modal-lyrics');
+      const textareaLyrics = document.getElementById('textarea-lyrics');
+      document.getElementById('btn-open-lyric-modal').onclick = () => {
+        textareaLyrics.value = currentLyrics.join('\n');
+        modalLyrics.classList.remove('hidden');
+      };
+      document.getElementById('btn-close-lyric-modal').onclick = () => modalLyrics.classList.add('hidden');
+      document.getElementById('btn-save-lyrics').onclick = () => {
+        const lines = textareaLyrics.value.split('\n').filter(l => l.trim() !== '');
+        if (lines.length > 0) {
+          currentLyrics = lines;
+          lyricIndex = 0;
+          updateLyricDisplay();
+        }
+        modalLyrics.classList.add('hidden');
+      };
+    }
+
+    // LYRIC TIMER & TYPEWRITER
+    function startLyricTimer() {
+      clearInterval(lyricInterval);
+      lyricInterval = setInterval(() => {
+        if (audio.paused) return;
+        lyricIndex = (lyricIndex + 1) % currentLyrics.length;
+        updateLyricDisplay();
+      }, 3800);
+    }
+
+    function updateLyricDisplay() {
+      const activeLine = document.getElementById('lyric-active-line');
+      const nextLine = document.getElementById('lyric-next-line');
+
+      const currentText = currentLyrics[lyricIndex] || "Suno AI Punjabi Beat";
+      const upcomingText = currentLyrics[(lyricIndex + 1) % currentLyrics.length] || "";
+
+      activeLine.textContent = "";
+      let charIdx = 0;
+      function typeChar() {
+        if (charIdx < currentText.length) {
+          activeLine.textContent += currentText.charAt(charIdx);
+          charIdx++;
+          setTimeout(typeChar, 35);
+        }
+      }
+      typeChar();
+
+      nextLine.textContent = upcomingText ? `(Next: ${upcomingText})` : '';
+    }
+
+    // REAL-TIME VISUALIZER
+    function renderVisualizer() {
+      if (audio.paused) return;
+      animFrameId = requestAnimationFrame(renderVisualizer);
+
+      const bufferLength = analyserNode ? analyserNode.frequencyBinCount : 0;
+      const dataArray = new Uint8Array(bufferLength);
+      if (analyserNode) analyserNode.getByteFrequencyData(dataArray);
+
+      // Bass scale pulsing for vinyl disc
+      let bassSum = 0;
+      for (let i = 0; i < 12; i++) bassSum += dataArray[i];
+      const bassAvg = bassSum / 12;
+      const bassScale = 1 + (bassAvg / 255) * 0.22;
+
+      const vinylDisc = document.getElementById('vinyl-disc-container');
+      if (vinylDisc) vinylDisc.style.transform = `scale(${bassScale})`;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Radial Spectrum
+      const centerX = canvas.width / 2;
+      const centerY = canvas.height / 2;
+      const radius = Math.min(centerX, centerY) * 0.42;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const value = dataArray[i];
+        const angle = (i / bufferLength) * Math.PI * 2;
+        const barHeight = (value / 255) * 75;
+
+        const x1 = centerX + Math.cos(angle) * radius;
+        const y1 = centerY + Math.sin(angle) * radius;
+        const x2 = centerX + Math.cos(angle) * (radius + barHeight);
+        const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+
+        ctx.strokeStyle = `hsl(${45 + (value / 255) * 20}, 100%, 55%)`;
+        ctx.lineWidth = 2.5;
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#facc15';
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+      }
+    }
+
+    // BACKGROUND FLOATING PARTICLES
+    function initBackgroundParticles() {
+      particles = [];
+      for (let i = 0; i < 35; i++) {
+        particles.push({
+          x: Math.random() * bgCanvas.width,
+          y: Math.random() * bgCanvas.height,
+          size: Math.random() * 10 + 4,
+          speedY: Math.random() * -0.6 - 0.2,
+          speedX: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.6 + 0.2,
+          isHeart: Math.random() > 0.4
+        });
+      }
+      animateBackgroundParticles();
+    }
+
+    function animateBackgroundParticles() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+      particles.forEach((p) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        if (p.y < -20) {
+          p.y = bgCanvas.height + 20;
+          p.x = Math.random() * bgCanvas.width;
+        }
+
+        bgCtx.save();
+        bgCtx.globalAlpha = p.opacity;
+
+        if (p.isHeart) {
+          bgCtx.fillStyle = '#facc15';
+          bgCtx.shadowBlur = 10;
+          bgCtx.shadowColor = '#eab308';
+          bgCtx.beginPath();
+          const topCurveHeight = p.size * 0.3;
+          bgCtx.moveTo(p.x, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x, p.y, p.x - p.size / 2, p.y, p.x - p.size / 2, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x - p.size / 2, p.y + (p.size + topCurveHeight) / 2, p.x, p.y + p.size, p.x, p.y + p.size);
+          bgCtx.bezierCurveTo(p.x, p.y + p.size, p.x + p.size / 2, p.y + (p.size + topCurveHeight) / 2, p.x + p.size / 2, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x + p.size / 2, p.y, p.x, p.y, p.x, p.y + topCurveHeight);
+          bgCtx.fill();
+        } else {
+          bgCtx.fillStyle = '#fff';
+          bgCtx.shadowBlur = 8;
+          bgCtx.shadowColor = '#facc15';
+          bgCtx.beginPath();
+          bgCtx.arc(p.x, p.y, p.size / 3, 0, Math.PI * 2);
+          bgCtx.fill();
+        }
+        bgCtx.restore();
+      });
+
+      requestAnimationFrame(animateBackgroundParticles);
+    }
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "00:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins < 10 ? '0' : ''}${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+  </script>
+</body>
+</html>
+```
