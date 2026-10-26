@@ -1,0 +1,870 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suno AI Punjabi Beats & Lofi Visualizer</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;800;900&family=Orbitron:wght@500;700;900&family=Teko:wght@500;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            gold: {
+              300: '#fde047',
+              400: '#facc15',
+              500: '#eab308',
+              600: '#ca8a04',
+            },
+            neonGold: '#ffd700',
+            neonRed: '#ff2a6d',
+            darkBg: '#05040a',
+          },
+          fontFamily: {
+            orbitron: ['Orbitron', 'sans-serif'],
+            teko: ['Teko', 'sans-serif'],
+            cinzel: ['Cinzel', 'serif'],
+            sans: ['Inter', 'sans-serif'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #05040a;
+      color: #f3f4f6;
+      font-family: 'Inter', sans-serif;
+      overflow-x: hidden;
+    }
+
+    /* Glows */
+    .glow-gold {
+      text-shadow: 0 0 10px rgba(250, 204, 21, 0.8), 0 0 25px rgba(234, 179, 8, 0.4);
+    }
+    
+    .glow-neon-red {
+      text-shadow: 0 0 10px rgba(255, 42, 109, 0.8), 0 0 25px rgba(255, 42, 109, 0.4);
+    }
+
+    .glass-box {
+      background: rgba(15, 12, 25, 0.7);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      border: 1px solid rgba(250, 204, 21, 0.25);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.9), 0 0 20px rgba(234, 179, 8, 0.15);
+    }
+
+    /* 9:16 TikTok Frame Lock Mode */
+    .tiktok-frame {
+      width: 100%;
+      max-width: 415px;
+      height: 860px;
+      max-height: 95vh;
+      border-radius: 40px;
+      border: 3px solid rgba(250, 204, 21, 0.4);
+      box-shadow: 0 0 40px rgba(250, 204, 21, 0.25), 0 0 100px rgba(0,0,0,0.95);
+    }
+
+    /* Custom Input Range */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+      height: 6px;
+    }
+
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 16px;
+      width: 16px;
+      border-radius: 50%;
+      background: #facc15;
+      box-shadow: 0 0 12px #facc15;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+    }
+
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.3);
+    }
+
+    /* Typewriter Cursor */
+    .type-cursor::after {
+      content: '▋';
+      color: #facc15;
+      animation: blink 0.7s infinite;
+      margin-left: 3px;
+    }
+
+    @keyframes blink {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0; }
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0,0,0,0.4);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #ca8a04;
+      border-radius: 10px;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col items-center justify-between p-2 sm:p-6 relative selection:bg-gold-400 selection:text-black">
+
+  <!-- Floating Particles Canvas (Hearts & Neon Dust) -->
+  <canvas id="bg-particle-canvas" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+  <!-- Top Navigation & Layout Toggle Bar -->
+  <header class="w-full max-w-5xl z-20 flex justify-between items-center mb-4 px-2">
+    <div class="flex items-center gap-2">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-gold-600 to-amber-300 text-black font-extrabold flex items-center justify-center font-orbitron shadow-[0_0_15px_rgba(250,204,21,0.5)]">
+        S
+      </div>
+      <div>
+        <h1 class="font-orbitron text-lg font-bold text-gold-300 tracking-wider leading-none">SUNO STUDIO</h1>
+        <p class="text-[10px] text-gray-400 tracking-widest uppercase">Punjabi Beat Visualizer & Lofi FX</p>
+      </div>
+    </div>
+
+    <!-- Controls to Toggle Layout -->
+    <div class="flex items-center gap-2">
+      <button id="btn-toggle-aspect" class="px-3.5 py-1.5 rounded-full glass-box text-xs font-semibold text-gold-300 hover:bg-gold-500 hover:text-black transition flex items-center gap-1.5 shadow-lg">
+        <i class="fa-solid fa-mobile-screen-button text-sm"></i>
+        <span id="aspect-label">9:16 Record Mode</span>
+      </button>
+
+      <button id="btn-open-lyric-modal" class="px-3.5 py-1.5 rounded-full glass-box text-xs font-semibold text-gold-300 hover:bg-gold-500 hover:text-black transition flex items-center gap-1.5">
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Lyrics Editor</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main id="app-viewport" class="w-full max-w-5xl z-10 flex flex-col lg:flex-row gap-6 my-auto transition-all duration-300 items-center justify-center">
+
+    <!-- LEFT / MAIN VISUALIZER STAGE (Recordable Frame) -->
+    <div id="visualizer-stage" class="w-full glass-card glass-box rounded-3xl p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden transition-all duration-300 min-h-[580px]">
+      
+      <!-- Top Recordable Header (Title & Tag) -->
+      <div class="flex flex-col items-center text-center z-10 w-full px-2">
+        <div class="flex items-center gap-2 text-[11px] font-orbitron text-gold-400 tracking-widest uppercase bg-black/50 px-3 py-1 rounded-full border border-gold-500/30 mb-2 shadow-inner">
+          <i class="fa-solid fa-compact-disc text-amber-400 animate-spin"></i>
+          <span>✦ STAR MUSIC • PUNJABI AI SOUNDS ✦</span>
+        </div>
+        
+        <!-- Track Title Auto-Extracted -->
+        <h2 id="display-track-title" class="font-teko text-3xl sm:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-yellow-100 via-gold-400 to-amber-500 glow-gold tracking-wide uppercase leading-tight max-w-full truncate">
+          Sira Lata - Suno AI Beat
+        </h2>
+        <p id="display-artist-name" class="font-cinzel text-xs sm:text-sm text-gray-300 tracking-wider">
+          Single • Punjabi Party Rap / Hip-Hop
+        </p>
+      </div>
+
+      <!-- Main Visualizer Canvas & Beat Pulse Ring -->
+      <div class="relative w-full flex-grow flex items-center justify-center my-3 min-h-[260px]">
+        <!-- Canvas Visualizer -->
+        <canvas id="visualizer-canvas" class="w-full h-full absolute inset-0 rounded-2xl"></canvas>
+
+        <!-- Bass-Reactive Center Vinyl Disc -->
+        <div id="vinyl-disc-container" class="relative z-10 w-36 h-36 sm:w-48 sm:h-48 rounded-full border-4 border-gold-400/80 p-2 bg-black/70 shadow-[0_0_30px_rgba(250,204,21,0.4)] flex items-center justify-center transition-transform duration-75">
+          <div id="vinyl-disc" class="w-full h-full rounded-full border-2 border-gold-500/40 bg-gradient-to-tr from-amber-950 via-zinc-900 to-black flex items-center justify-center relative overflow-hidden shadow-inner">
+            <!-- Groove Lines -->
+            <div class="absolute inset-2 rounded-full border border-white/5"></div>
+            <div class="absolute inset-5 rounded-full border border-white/5"></div>
+            <div class="absolute inset-9 rounded-full border border-white/5"></div>
+            
+            <!-- Disc Center Badge -->
+            <div class="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-gradient-to-r from-gold-500 to-amber-600 border-2 border-yellow-200 flex flex-col items-center justify-center text-black font-extrabold text-[10px] text-center p-1 shadow-lg">
+              <i class="fa-solid fa-record-vinyl text-base mb-0.5"></i>
+              <span class="leading-none text-[8px] font-orbitron">PUNJABI</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Synchronized Dynamic Typewriter & Animated Lyrics Box -->
+      <div class="z-10 w-full bg-black/70 border border-gold-500/40 rounded-2xl p-4 text-center backdrop-blur-md shadow-[0_0_20px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center min-h-[110px]">
+        <div class="text-[10px] font-orbitron text-gold-400/80 tracking-widest uppercase mb-1 flex items-center gap-2">
+          <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+          <span>SYNCED LYRIC STREAM</span>
+        </div>
+        <p id="lyric-active-line" class="font-teko text-2xl sm:text-4xl text-yellow-100 glow-gold tracking-wide leading-snug type-cursor px-2 min-h-[40px] flex items-center justify-center">
+          Tap Play to start Suno AI beat...
+        </p>
+        <p id="lyric-next-line" class="text-xs sm:text-sm text-gray-400 font-sans italic mt-1 max-w-md truncate">
+          (Up Next: Waiting for track...)
+        </p>
+      </div>
+
+    </div>
+
+    <!-- RIGHT / CONTROLS & FX PANEL -->
+    <div id="controls-panel" class="w-full lg:max-w-md glass-card glass-box rounded-3xl p-5 sm:p-6 flex flex-col gap-5 justify-between">
+      
+      <!-- Track Loader & MP3 Extractor -->
+      <div class="flex flex-col gap-3">
+        <label class="text-xs font-orbitron text-gold-300 font-bold uppercase tracking-wider flex items-center justify-between">
+          <span><i class="fa-solid fa-music mr-1.5"></i> Song Selector</span>
+          <span class="text-[10px] text-gray-400 font-normal">MP3 / SUNO AI</span>
+        </label>
+
+        <!-- Song Selector Dropdown + File Upload Button -->
+        <div class="flex gap-2">
+          <select id="preset-song-select" class="flex-grow bg-black/80 border border-gold-500/40 rounded-xl px-3 py-2.5 text-xs text-gold-300 focus:outline-none focus:border-gold-400 font-sans">
+            <option value="sira-lata">🔥 Sira Lata - Suno AI Punjabi Party Rap</option>
+            <option value="custom">📁 Custom MP3 File (Upload Below)</option>
+          </select>
+
+          <button id="btn-trigger-upload" class="px-4 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold text-xs rounded-xl hover:brightness-110 transition flex items-center gap-1.5 shadow-md">
+            <i class="fa-solid fa-file-arrow-up text-sm"></i>
+            <span>Upload</span>
+          </button>
+          <input type="file" id="file-input-audio" accept="audio/mp3,audio/wav,audio/m4a" class="hidden">
+        </div>
+
+        <!-- Editable Metadata Fields extracted from MP3 -->
+        <div class="grid grid-cols-2 gap-2 mt-1">
+          <input type="text" id="input-song-title" value="Sira Lata" placeholder="Song Title" class="bg-black/60 border border-gold-500/20 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-gold-400">
+          <input type="text" id="input-artist-name" value="Suno AI Beats" placeholder="Artist" class="bg-black/60 border border-gold-500/20 rounded-lg px-3 py-1.5 text-xs text-gray-200 focus:outline-none focus:border-gold-400">
+        </div>
+      </div>
+
+      <hr class="border-gold-500/20">
+
+      <!-- Web Audio FX Controls (TikTok Slowed + Reverb) -->
+      <div class="flex flex-col gap-3">
+        <label class="text-xs font-orbitron text-gold-300 font-bold uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-sliders text-amber-400"></i>
+          <span>TikTok Audio Modifiers (Slowed + Reverb)</span>
+        </label>
+
+        <!-- Speed / Tempo Control Slider -->
+        <div class="flex flex-col gap-1 bg-black/50 p-2.5 rounded-xl border border-gold-500/20">
+          <div class="flex justify-between text-xs text-gray-300">
+            <span><i class="fa-solid fa-gauge-high text-gold-400 mr-1"></i> Speed / Pitch</span>
+            <span id="label-speed-val" class="font-mono text-gold-300 font-bold">1.00x</span>
+          </div>
+          <input type="range" id="slider-speed" min="0.75" max="1.25" step="0.02" value="1.00" class="w-full cursor-pointer">
+        </div>
+
+        <!-- Slowed + Reverb Toggle & Tape Warmth Filter -->
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Reverb Switch -->
+          <button id="btn-toggle-reverb" class="p-2.5 bg-black/50 border border-gold-500/20 rounded-xl text-left flex flex-col justify-between hover:border-gold-400/60 transition">
+            <div class="flex justify-between items-center w-full mb-1">
+              <span class="text-[11px] font-semibold text-gray-200">Echo Reverb</span>
+              <span id="reverb-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">OFF</span>
+            </div>
+            <span class="text-[10px] text-gray-400">Spatial chamber resonance</span>
+          </button>
+
+          <!-- Low Pass Tape Warmth Filter Switch -->
+          <button id="btn-toggle-filter" class="p-2.5 bg-black/50 border border-gold-500/20 rounded-xl text-left flex flex-col justify-between hover:border-gold-400/60 transition">
+            <div class="flex justify-between items-center w-full mb-1">
+              <span class="text-[11px] font-semibold text-gray-200">Tape Warmth</span>
+              <span id="filter-badge" class="text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400">OFF</span>
+            </div>
+            <span class="text-[10px] text-gray-400">Low-pass frequency muffle</span>
+          </button>
+        </div>
+      </div>
+
+      <hr class="border-gold-500/20">
+
+      <!-- Primary Playback Controls -->
+      <div class="flex flex-col gap-3">
+        <!-- Progress Bar -->
+        <div class="flex items-center gap-2 text-xs font-mono text-gold-300">
+          <span id="time-current">0:00</span>
+          <input type="range" id="seek-bar" value="0" max="100" class="flex-grow cursor-pointer">
+          <span id="time-total">0:00</span>
+        </div>
+
+        <!-- Buttons Row -->
+        <div class="flex items-center justify-between gap-3 mt-1">
+          <!-- Visualizer Pattern Selector -->
+          <div class="flex gap-1 bg-black/60 p-1 rounded-xl border border-gold-500/20">
+            <button id="mode-radial" class="px-2.5 py-1 rounded-lg text-xs font-semibold bg-gold-500 text-black">Radial</button>
+            <button id="mode-bars" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white">Bars</button>
+          </div>
+
+          <!-- Play/Pause Core Button -->
+          <button id="btn-main-play" class="w-14 h-14 rounded-full bg-gradient-to-r from-gold-400 via-amber-500 to-yellow-300 text-black font-extrabold text-2xl flex items-center justify-center hover:scale-105 active:scale-95 transition shadow-[0_0_25px_rgba(250,204,21,0.6)]">
+            <i class="fa-solid fa-play ml-1" id="icon-play-state"></i>
+          </button>
+
+          <!-- Volume Slider -->
+          <div class="flex items-center gap-1.5">
+            <i class="fa-solid fa-volume-high text-gold-400 text-xs"></i>
+            <input type="range" id="slider-volume" min="0" max="1" step="0.01" value="0.85" class="w-16 cursor-pointer">
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- MODAL: DYNAMIC LYRICS EDITOR -->
+  <div id="modal-lyrics" class="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="glass-box rounded-3xl w-full max-w-lg p-6 flex flex-col gap-4 border border-gold-500/40 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-gold-500/20 pb-3">
+        <h3 class="font-orbitron text-sm font-bold text-gold-300 flex items-center gap-2">
+          <i class="fa-solid fa-align-left text-amber-400"></i> Edit Song Lyrics
+        </h3>
+        <button id="btn-close-lyric-modal" class="text-gray-400 hover:text-white text-lg">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-gray-300">
+        Paste Punjabi lyrics line by line. The app will auto-cycle through them during playback!
+      </p>
+
+      <textarea id="textarea-lyrics" rows="10" class="w-full bg-black/80 border border-gold-500/30 rounded-xl p-3 text-xs text-gold-200 font-mono focus:outline-none focus:border-gold-400 leading-relaxed" placeholder="Paste lyrics here (one line per line)..."></textarea>
+
+      <div class="flex justify-end gap-2">
+        <button id="btn-save-lyrics" class="px-5 py-2 bg-gradient-to-r from-gold-500 to-amber-600 text-black font-bold text-xs rounded-xl hover:brightness-110 transition shadow-lg">
+          Apply Lyrics to Song
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="w-full max-w-5xl z-10 text-center text-[11px] text-gray-500 my-2 flex justify-between items-center border-t border-gold-500/10 pt-2 px-2">
+    <span>Ready for TikTok, Shorts & Reels Captures</span>
+    <span class="text-gold-400/80">Web Audio API • Suno AI Remix Studio</span>
+  </footer>
+
+  <!-- APPLICATION LOGIC -->
+  <script>
+    // PRESET SONGS DATA (Includes default Suno AI Punjabi Rap mock audio & lyrics)
+    const presetSongs = {
+      'sira-lata': {
+        title: "Sira Lata",
+        artist: "Suno AI Punjabi Beat",
+        lyrics: [
+          "🔥 Suno AI Punjabi Hip-Hop Drop!",
+          "Sira lata ni kudiye sira lata...",
+          "Vairi saare side te karke, bass ghuma ta!",
+          "Gaddi chaldi repeat te, loud bajde speaker...",
+          "Bapu da dream bada, munda ban gaya seeker!",
+          "Sira lata ni kudiye sira lata...",
+          "Gaddi vich bajde ne Punjabi beats, no stop!",
+          "Lofi slowed + reverb aesthetic drop..."
+        ]
+      }
+    };
+
+    // GLOBAL AUDIO CONTEXT & VARIABLES
+    let audioCtx = null;
+    let analyserNode = null;
+    let gainNode = null;
+    let biquadFilter = null;
+    let delayNode = null;
+    let feedbackGain = null;
+    
+    // Audio Player State
+    let audioEle = new Audio();
+    audioEle.loop = true;
+    let mediaSourceNode = null;
+    let isPlaying = false;
+    let isReverbActive = false;
+    let isFilterActive = false;
+    
+    // Synthetic Synth Backup for immediate play without local files
+    let isSynthPlaying = false;
+    let synthInterval = null;
+
+    // Visualizer State
+    let visualizerMode = 'radial'; // 'radial' or 'bars'
+    const canvas = document.getElementById('visualizer-canvas');
+    const ctx = canvas.getContext('2d');
+    let animFrameId = null;
+
+    // Lyrics State
+    let currentLyrics = [...presetSongs['sira-lata'].lyrics];
+    let lyricIndex = 0;
+    let lyricInterval = null;
+
+    // Background Particle Canvas
+    const bgCanvas = document.getElementById('bg-particle-canvas');
+    const bgCtx = bgCanvas.getContext('2d');
+    let particles = [];
+
+    // INITIALIZATION ON LOAD
+    window.onload = () => {
+      resizeCanvases();
+      window.addEventListener('resize', resizeCanvases);
+      initBackgroundParticles();
+      setupEventListeners();
+      updateLyricDisplay();
+    };
+
+    function resizeCanvases() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+      bgCanvas.width = window.innerWidth;
+      bgCanvas.height = window.innerHeight;
+    }
+
+    // WEB AUDIO API PIPELINE INITIALIZATION
+    function initAudioEngine() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+
+        // 1. Analyser Node
+        analyserNode = audioCtx.createAnalyser();
+        analyserNode.fftSize = 256;
+
+        // 2. Volume Gain Node
+        gainNode = audioCtx.createGain();
+        gainNode.gain.value = parseFloat(document.getElementById('slider-volume').value);
+
+        // 3. Low-Pass Biquad Filter (Tape Warmth)
+        biquadFilter = audioCtx.createBiquadFilter();
+        biquadFilter.type = 'lowpass';
+        biquadFilter.frequency.value = 20000; // Bypass initially
+
+        // 4. Delay/Echo Node for Reverb effect
+        delayNode = audioCtx.createDelay();
+        delayNode.delayTime.value = 0.25; // 250ms echo
+
+        feedbackGain = audioCtx.createGain();
+        feedbackGain.gain.value = 0.35; // Echo decay
+
+        // Connect Delay Loop
+        delayNode.connect(feedbackGain);
+        feedbackGain.connect(delayNode);
+
+        // Chain Connections
+        biquadFilter.connect(analyserNode);
+        analyserNode.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+      }
+
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    // SYNTHETIC PUNJABI BEAT GENERATOR (When no custom audio is uploaded yet)
+    function startSyntheticPunjabiBeat() {
+      if (isSynthPlaying) return;
+      isSynthPlaying = true;
+      initAudioEngine();
+
+      // Punjabi Hip-Hop Synth Scale
+      const scale = [220.00, 246.94, 261.63, 293.66, 329.63, 349.23, 392.00];
+      let step = 0;
+
+      synthInterval = setInterval(() => {
+        if (!isSynthPlaying) return;
+
+        const osc = audioCtx.createOscillator();
+        const noteGain = audioCtx.createGain();
+
+        // Bass/Lead synth
+        osc.type = (step % 4 === 0) ? 'sawtooth' : 'triangle';
+        const freq = (step % 4 === 0) ? scale[0] / 2 : scale[step % scale.length];
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+        noteGain.gain.setValueAtTime((step % 4 === 0) ? 0.3 : 0.15, audioCtx.currentTime);
+        noteGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+        osc.connect(noteGain);
+        
+        // Connect through FX Filter Pipeline
+        noteGain.connect(biquadFilter);
+        if (isReverbActive) noteGain.connect(delayNode);
+
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.35);
+
+        step++;
+      }, 280);
+    }
+
+    function stopSyntheticBeat() {
+      isSynthPlaying = false;
+      if (synthInterval) clearInterval(synthInterval);
+    }
+
+    // EVENT LISTENERS & CONTROL LOGIC
+    function setupEventListeners() {
+      const btnMainPlay = document.getElementById('btn-main-play');
+      const iconPlayState = document.getElementById('icon-play-state');
+      const btnTriggerUpload = document.getElementById('btn-trigger-upload');
+      const fileInput = document.getElementById('file-input-audio');
+      const presetSelect = document.getElementById('preset-song-select');
+      const inputTitle = document.getElementById('input-song-title');
+      const inputArtist = document.getElementById('input-artist-name');
+      const displayTitle = document.getElementById('display-track-title');
+      const displayArtist = document.getElementById('display-artist-name');
+
+      // Title & Artist Sync
+      inputTitle.addEventListener('input', (e) => displayTitle.textContent = e.target.value || "Untitled Beat");
+      inputArtist.addEventListener('input', (e) => displayArtist.textContent = e.target.value || "Suno AI");
+
+      // Play/Pause Button
+      btnMainPlay.addEventListener('click', () => {
+        initAudioEngine();
+        if (isPlaying) {
+          pausePlayback();
+        } else {
+          startPlayback();
+        }
+      });
+
+      function startPlayback() {
+        isPlaying = true;
+        iconPlayState.className = "fa-solid fa-pause";
+        
+        if (presetSelect.value === 'sira-lata' && !audioEle.src) {
+          startSyntheticPunjabiBeat();
+        } else if (audioEle.src) {
+          audioEle.play();
+        } else {
+          startSyntheticPunjabiBeat();
+        }
+
+        startLyricTimer();
+        renderVisualizer();
+      }
+
+      function pausePlayback() {
+        isPlaying = false;
+        iconPlayState.className = "fa-solid fa-play ml-1";
+        stopSyntheticBeat();
+        audioEle.pause();
+        clearInterval(lyricInterval);
+      }
+
+      // MP3 Upload Extractor
+      btnTriggerUpload.addEventListener('click', () => fileInput.click());
+
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files[0];
+        if (file) {
+          const fileUrl = URL.createObjectURL(file);
+          audioEle.src = fileUrl;
+
+          // Extract Title from File Name
+          let cleanedTitle = file.name.replace(/\.[^/.]+$/, "").replace(/_/g, " ");
+          inputTitle.value = cleanedTitle;
+          displayTitle.textContent = cleanedTitle;
+          presetSelect.value = 'custom';
+
+          if (!mediaSourceNode) {
+            mediaSourceNode = audioCtx.createMediaElementSource(audioEle);
+            mediaSourceNode.connect(biquadFilter);
+            delayNode.connect(gainNode);
+          }
+
+          stopSyntheticBeat();
+          startPlayback();
+        }
+      });
+
+      // Speed / Tempo Control Slider
+      document.getElementById('slider-speed').addEventListener('input', (e) => {
+        const val = parseFloat(e.target.value);
+        audioEle.playbackRate = val;
+        document.getElementById('label-speed-val').textContent = `${val.toFixed(2)}x`;
+      });
+
+      // Toggle Reverb FX
+      const btnReverb = document.getElementById('btn-toggle-reverb');
+      const reverbBadge = document.getElementById('reverb-badge');
+      btnReverb.addEventListener('click', () => {
+        isReverbActive = !isReverbActive;
+        if (isReverbActive) {
+          reverbBadge.textContent = "ON";
+          reverbBadge.className = "text-[9px] px-1.5 py-0.5 rounded bg-gold-500 text-black font-bold";
+          if (biquadFilter) biquadFilter.connect(delayNode);
+        } else {
+          reverbBadge.textContent = "OFF";
+          reverbBadge.className = "text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400";
+        }
+      });
+
+      // Toggle Tape Warmth Low-Pass Filter
+      const btnFilter = document.getElementById('btn-toggle-filter');
+      const filterBadge = document.getElementById('filter-badge');
+      btnFilter.addEventListener('click', () => {
+        isFilterActive = !isFilterActive;
+        if (isFilterActive) {
+          filterBadge.textContent = "ON";
+          filterBadge.className = "text-[9px] px-1.5 py-0.5 rounded bg-gold-500 text-black font-bold";
+          if (biquadFilter) biquadFilter.frequency.value = 2800; // Muffled warm lofi tone
+        } else {
+          filterBadge.textContent = "OFF";
+          filterBadge.className = "text-[9px] px-1.5 py-0.5 rounded bg-gray-800 text-gray-400";
+          if (biquadFilter) biquadFilter.frequency.value = 20000;
+        }
+      });
+
+      // Visualizer Pattern Buttons
+      document.getElementById('mode-radial').onclick = () => switchVisualizerMode('radial');
+      document.getElementById('mode-bars').onclick = () => switchVisualizerMode('bars');
+
+      // Volume Slider
+      document.getElementById('slider-volume').addEventListener('input', (e) => {
+        if (gainNode) gainNode.gain.value = e.target.value;
+      });
+
+      // Track Scrubbing
+      audioEle.addEventListener('timeupdate', () => {
+        if (audioEle.duration) {
+          document.getElementById('time-current').textContent = formatTime(audioEle.currentTime);
+          document.getElementById('time-total').textContent = formatTime(audioEle.duration);
+          document.getElementById('seek-bar').value = (audioEle.currentTime / audioEle.duration) * 100;
+        }
+      });
+
+      document.getElementById('seek-bar').addEventListener('input', (e) => {
+        if (audioEle.duration) {
+          audioEle.currentTime = (e.target.value / 100) * audioEle.duration;
+        }
+      });
+
+      // 9:16 TikTok Frame Toggle
+      const btnToggleAspect = document.getElementById('btn-toggle-aspect');
+      const stage = document.getElementById('visualizer-stage');
+      const appViewport = document.getElementById('app-viewport');
+      const aspectLabel = document.getElementById('aspect-label');
+      let isTikTokFrame = false;
+
+      btnToggleAspect.addEventListener('click', () => {
+        isTikTokFrame = !isTikTokFrame;
+        if (isTikTokFrame) {
+          stage.classList.add('tiktok-frame');
+          aspectLabel.textContent = "Standard View";
+          appViewport.classList.remove('lg:flex-row');
+          appViewport.classList.add('flex-col');
+        } else {
+          stage.classList.remove('tiktok-frame');
+          aspectLabel.textContent = "9:16 Record Mode";
+          appViewport.classList.add('lg:flex-row');
+        }
+        setTimeout(resizeCanvases, 200);
+      });
+
+      // Lyrics Modal Handling
+      const modalLyrics = document.getElementById('modal-lyrics');
+      const textareaLyrics = document.getElementById('textarea-lyrics');
+      document.getElementById('btn-open-lyric-modal').onclick = () => {
+        textareaLyrics.value = currentLyrics.join('\n');
+        modalLyrics.classList.remove('hidden');
+      };
+      document.getElementById('btn-close-lyric-modal').onclick = () => modalLyrics.classList.add('hidden');
+      document.getElementById('btn-save-lyrics').onclick = () => {
+        const lines = textareaLyrics.value.split('\n').filter(l => l.trim() !== '');
+        if (lines.length > 0) {
+          currentLyrics = lines;
+          lyricIndex = 0;
+          updateLyricDisplay();
+        }
+        modalLyrics.classList.add('hidden');
+      };
+    }
+
+    function switchVisualizerMode(mode) {
+      visualizerMode = mode;
+      document.getElementById('mode-radial').className = mode === 'radial' ? 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-gold-500 text-black' : 'px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white';
+      document.getElementById('mode-bars').className = mode === 'bars' ? 'px-2.5 py-1 rounded-lg text-xs font-semibold bg-gold-500 text-black' : 'px-2.5 py-1 rounded-lg text-xs font-semibold text-gray-300 hover:text-white';
+    }
+
+    // LYRICS SYNCHRONIZER & TYPEWRITER ENGINE
+    function startLyricTimer() {
+      clearInterval(lyricInterval);
+      lyricInterval = setInterval(() => {
+        if (!isPlaying) return;
+        lyricIndex = (lyricIndex + 1) % currentLyrics.length;
+        updateLyricDisplay();
+      }, 3600);
+    }
+
+    function updateLyricDisplay() {
+      const activeLine = document.getElementById('lyric-active-line');
+      const nextLine = document.getElementById('lyric-next-line');
+
+      const currentText = currentLyrics[lyricIndex] || "Suno AI Punjabi Beat";
+      const upcomingText = currentLyrics[(lyricIndex + 1) % currentLyrics.length] || "";
+
+      // Typewriter Effect
+      activeLine.textContent = "";
+      let charIdx = 0;
+      function typeChar() {
+        if (charIdx < currentText.length) {
+          activeLine.textContent += currentText.charAt(charIdx);
+          charIdx++;
+          setTimeout(typeChar, 35);
+        }
+      }
+      typeChar();
+
+      nextLine.textContent = upcomingText ? `(Next: ${upcomingText})` : '';
+    }
+
+    // HIGH-END SPECTRUM VISUALIZER & BASS REACTION
+    function renderVisualizer() {
+      if (!isPlaying) return;
+
+      animFrameId = requestAnimationFrame(renderVisualizer);
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteFrequencyData(dataArray);
+
+      // Compute Average Bass Level for Beat Reaction
+      let bassSum = 0;
+      for (let i = 0; i < 15; i++) bassSum += dataArray[i];
+      const bassAvg = bassSum / 15; // 0 to 255
+      const bassScale = 1 + (bassAvg / 255) * 0.22; // Scale factor for vinyl disc
+
+      // Pulse Vinyl Disk on Beat
+      const vinylDisc = document.getElementById('vinyl-disc-container');
+      if (vinylDisc) {
+        vinylDisc.style.transform = `scale(${bassScale})`;
+      }
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      if (visualizerMode === 'radial') {
+        // 360 Radial Audio Spectrum
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const radius = Math.min(centerX, centerY) * 0.42;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const value = dataArray[i];
+          const angle = (i / bufferLength) * Math.PI * 2;
+          const barHeight = (value / 255) * 75;
+
+          const x1 = centerX + Math.cos(angle) * radius;
+          const y1 = centerY + Math.sin(angle) * radius;
+          const x2 = centerX + Math.cos(angle) * (radius + barHeight);
+          const y2 = centerY + Math.sin(angle) * (radius + barHeight);
+
+          ctx.strokeStyle = `hsl(${45 + (value / 255) * 20}, 100%, 55%)`;
+          ctx.lineWidth = 2.5;
+          ctx.shadowBlur = 12;
+          ctx.shadowColor = '#facc15';
+
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
+      } else {
+        // Frequency Bars
+        const barWidth = (canvas.width / bufferLength) * 2.2;
+        let x = 0;
+
+        for (let i = 0; i < bufferLength; i++) {
+          const barHeight = (dataArray[i] / 255) * canvas.height * 0.8;
+
+          const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
+          gradient.addColorStop(0, '#78350f');
+          gradient.addColorStop(0.5, '#facc15');
+          gradient.addColorStop(1, '#ffffff');
+
+          ctx.fillStyle = gradient;
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = '#facc15';
+
+          ctx.fillRect(x, canvas.height - barHeight, barWidth - 2, barHeight);
+          x += barWidth;
+        }
+      }
+    }
+
+    // FLOATING HEART & NEON DUST PARTICLES
+    function initBackgroundParticles() {
+      particles = [];
+      for (let i = 0; i < 40; i++) {
+        particles.push({
+          x: Math.random() * bgCanvas.width,
+          y: Math.random() * bgCanvas.height,
+          size: Math.random() * 10 + 4,
+          speedY: Math.random() * -0.7 - 0.2,
+          speedX: (Math.random() - 0.5) * 0.3,
+          opacity: Math.random() * 0.6 + 0.2,
+          isHeart: Math.random() > 0.4
+        });
+      }
+      animateBackgroundParticles();
+    }
+
+    function animateBackgroundParticles() {
+      bgCtx.clearRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+      particles.forEach((p) => {
+        p.y += p.speedY;
+        p.x += p.speedX;
+
+        if (p.y < -20) {
+          p.y = bgCanvas.height + 20;
+          p.x = Math.random() * bgCanvas.width;
+        }
+
+        bgCtx.save();
+        bgCtx.globalAlpha = p.opacity;
+        
+        if (p.isHeart) {
+          // Draw Neon Heart
+          bgCtx.fillStyle = '#facc15';
+          bgCtx.shadowBlur = 10;
+          bgCtx.shadowColor = '#eab308';
+          bgCtx.beginPath();
+          const topCurveHeight = p.size * 0.3;
+          bgCtx.moveTo(p.x, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x, p.y, p.x - p.size / 2, p.y, p.x - p.size / 2, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x - p.size / 2, p.y + (p.size + topCurveHeight) / 2, p.x, p.y + p.size, p.x, p.y + p.size);
+          bgCtx.bezierCurveTo(p.x, p.y + p.size, p.x + p.size / 2, p.y + (p.size + topCurveHeight) / 2, p.x + p.size / 2, p.y + topCurveHeight);
+          bgCtx.bezierCurveTo(p.x + p.size / 2, p.y, p.x, p.y, p.x, p.y + topCurveHeight);
+          bgCtx.fill();
+        } else {
+          // Glow Dust
+          bgCtx.fillStyle = '#fff';
+          bgCtx.shadowBlur = 8;
+          bgCtx.shadowColor = '#facc15';
+          bgCtx.beginPath();
+          bgCtx.arc(p.x, p.y, p.size / 3, 0, Math.PI * 2);
+          bgCtx.fill();
+        }
+        bgCtx.restore();
+      });
+
+      requestAnimationFrame(animateBackgroundParticles);
+    }
+
+    function formatTime(seconds) {
+      if (isNaN(seconds)) return "0:00";
+      const mins = Math.floor(seconds / 60);
+      const secs = Math.floor(seconds % 60);
+      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
+    }
+  </script>
+</body>
+</html>
