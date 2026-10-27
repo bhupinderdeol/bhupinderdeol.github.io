@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>Wild Thing Audio Studio</title>
+
+https://cdn.tailwindcss.comscript>
+
+https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Poppins:wght@300;400;500;600&display=swap
+
+<style>
+
+:root{
+--gold:#f5c542;
+--gold2:#ffb300;
+--dark:#04050c;
+--card:#0b0d14;
+}
+
+body{
+background:
+radial-gradient(circle at top,#101420,#030409);
+font-family:'Poppins',sans-serif;
+color:white;
+min-height:100vh;
+}
+
+.gold-text{
+font-family:'Cinzel',serif;
+background:linear-gradient(
+180deg,
+#fff6b5,
+#ffd23d,
+#f59e0b
+);
+-webkit-background-clip:text;
+-webkit-text-fill-color:transparent;
+text-shadow:
+0 0 8px rgba(255,208,0,.7),
+0 0 18px rgba(255,208,0,.5);
+}
+
+.neon-card{
+background:var(--card);
+border:2px solid rgba(245,197,66,.35);
+border-radius:28px;
+box-shadow:
+0 0 15px rgba(245,197,66,.25),
+0 0 50px rgba(245,197,66,.12);
+}
+
+.neo-btn{
+background:linear-gradient(
+135deg,
+#ffdb70,
+#f59e0b
+);
+color:black;
+font-weight:700;
+border-radius:18px;
+transition:.3s;
+}
+
+.neo-btn:hover{
+transform:translateY(-2px);
+box-shadow:
+0 0 20px gold;
+}
+
+.fx-btn{
+background:#181920;
+border:1px solid #cfa42a;
+border-radius:16px;
+padding:18px;
+font-weight:600;
+transition:.3s;
+}
+
+.fx-btn:hover{
+background:#cfa42a;
+color:black;
+}
+
+input[type=range]{
+accent-color:#f5c542;
+width:100%;
+}
+
+canvas{
+width:100%;
+height:110px;
+background:black;
+border-radius:14px;
+}
+
+textarea{
+background:#07080f;
+border:2px solid #d2a531;
+border-radius:18px;
+color:white;
+font-size:18px;
+padding:15px;
+width:100%;
+min-height:220px;
+resize:vertical;
+}
+
+.lyrics-preview{
+
+font-family:'Cinzel',serif;
+
+font-size:24px;
+
+line-height:1.8;
+
+background:linear-gradient(
+90deg,
+#fff8c7,
+#ffd447,
+#ff9f1a
+);
+
+-webkit-background-clip:text;
+
+-webkit-text-fill-color:transparent;
+
+text-shadow:
+0 0 10px rgba(255,215,0,.6),
+0 0 25px rgba(255,179,0,.4);
+
+white-space:pre-wrap;
+}
+
+label{
+font-size:13px;
+letter-spacing:1px;
+color:#f3d46d;
+}
+
+</style>
+</head>
+
+<body class="p-4">
+
+<div class="max-w-7xl mx-auto">
+
+<div class="neon-card p-5 md:p-8">
+
+<div class="text-center">
+
+<h1 class="gold-text text-4xl md:text-6xl font-bold">
+Wild Thing
+</h1>
+
+<p class="mt-3 text-xl text-white">
+And this is what the lady had to say...
+</p>
+
+</div>
+
+<div class="mt-6">
+
+<input
+id="audioFile"
+type="file"
+accept="audio/*"
+class="w-full text-yellow-300">
+
+</div>
+
+<div class="grid md:grid-cols-3 gap-4 mt-6">
+
+<button id="playBtn" class="neo-btn p-5 text-2xl">
+▶ PLAY
+</button>
+
+<button id="pauseBtn"
+class="p-5 rounded-2xl border border-yellow-500 bg-black text-yellow-300 text-2xl">
+⏸ PAUSE
+</button>
+
+<button id="stopBtn"
+class="p-5 rounded-2xl border border-red-500 bg-black text-red-400 text-2xl">
+■ STOP
+</button>
+
+</div>
+
+<div class="grid md:grid-cols-3 gap-4 mt-5">
+
+<button id="backBtn"
+class="rounded-xl border border-yellow-500 p-3">
+◀ -5s
+</button>
+
+<div id="timeDisplay"
+class="rounded-xl border border-yellow-500 p-3 text-center">
+00:00 / 00:00
+</div>
+
+<button id="fwdBtn"
+class="rounded-xl border border-yellow-500 p-3">
++5s ▶
+</button>
+
+</div>
+
+<div class="mt-4">
+<input id="seekBar" type="range" min="0" value="0">
+</div>
+
+<div class="mt-6">
+<label>Volume</label>
+<input id="volume" type="range" min="0" max="100" value="80">
+</div>
+
+<div class="mt-10 text-center">
+
+<h2 class="gold-text text-2xl">
+DSP AUDIO FX MODIFIERS STUDIO RACK
+</h2>
+
+</div>
+
+<div class="grid md:grid-cols-3 gap-4 mt-6">
+
+<div class="neon-card p-4">
+<label>Speed</label>
+<input id="speed" type="range"
+min="50" max="200" value="100">
+<div id="speedVal">1.00x</div>
+</div>
+
+<div class="neon-card p-4">
+<label>Bass Boost</label>
+<input id="bass" type="range"
+min="-20" max="20" value="0">
+<div id="bassVal">0 dB</div>
+</div>
+
+<div class="neon-card p-4">
+<label>Treble EQ</label>
+<input id="treble" type="range"
+min="-20" max="20" value="0">
+<div id="trebleVal">0 dB</div>
+</div>
+
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+
+<div class="fx-btn">Reverb</div>
+<div class="fx-btn">Tape</div>
+<div class="fx-btn">8D Audio</div>
+<div class="fx-btn">Phaser</div>
+<div class="fx-btn">Flanger</div>
+<div class="fx-btn">Tremolo</div>
+<div class="fx-btn">Bitcrusher</div>
+<div class="fx-btn">Compressor</div>
+
+</div>
+
+<div class="mt-12">
+
+<h2 class="gold-text text-center text-3xl mb-6">
+Spectrum Analyzer Wall
+</h2>
+
+<div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+<canvas id="c1"></canvas>
+<canvas id="c2"></canvas>
+<canvas id="c3"></canvas>
+<canvas id="c4"></canvas>
+<canvas id="c5"></canvas>
+<canvas id="c6"></canvas>
+
+</div>
+
+</div>
+
+<div class="mt-12 grid lg:grid-cols-2 gap-8">
+
+<div>
+
+<h2 class="gold-text text-3xl mb-4">
+Lyrics Editor
+</h2>
+
+<textarea
+id="lyricsInput"
+placeholder="Paste lyrics here...">
+</textarea>
+
+<button
+id="copyLyrics"
+class="neo-btn mt-4 px-8 py-3">
+Copy Lyrics
+</button>
+
+</div>
+
+<div>
+
+<h2 class="gold-text text-3xl mb-4">
+Beautiful Preview
+</h2>
+
+<div
+id="lyricsPreview"
+class="lyrics-preview neon-card p-6">
+
+Lyrics will appear here...
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+<audio id="audio"></audio>
+
+<script>
+
+const audio=document.getElementById("audio");
+const fileInput=document.getElementById("audioFile");
+
+const AudioContext=
+window.AudioContext||
+window.webkitAudioContext;
+
+const ctx=new AudioContext();
+
+let source;
+
+const bass=ctx.createBiquadFilter();
+bass.type="lowshelf";
+bass.frequency.value=200;
+
+const treble=ctx.createBiquadFilter();
+treble.type="highshelf";
+treble.frequency.value=3000;
+
+const gain=ctx.createGain();
+
+const analyser=ctx.createAnalyser();
+
+analyser.fftSize=2048;
+
+fileInput.addEventListener("change",e=>{
+
+const file=e.target.files[0];
+
+if(!file)return;
+
+audio.src=URL.createObjectURL(file);
+
+if(!source){
+
+source=ctx.createMediaElementSource(audio);
+
+source.connect(bass);
+
+bass.connect(treble);
+
+treble.connect(gain);
+
+gain.connect(analyser);
+
+analyser.connect(ctx.destination);
+
+}
+
+});
+
+const canvases=[
+c1,c2,c3,c4,c5,c6
+];
+
+function draw(){
+
+requestAnimationFrame(draw);
+
+const buffer=
+new Uint8Array(
+analyser.frequencyBinCount
+);
+
+analyser.getByteFrequencyData(buffer);
+
+canvases.forEach(canvas=>{
+
+const g=canvas.getContext("2d");
+
+canvas.width=canvas.offsetWidth;
+canvas.height=110;
+
+g.clearRect(
+0,0,
+canvas.width,
+canvas.height
+);
+
+let bw=
+canvas.width/
+buffer.length*2.5;
+
+let x=0;
+
+for(let i=0;i<buffer.length;i+=4){
+
+let h=
+buffer[i]*0.4;
+
+let grad=
+g.createLinearGradient(
+0,
+canvas.height,
+0,
+0
+);
+
+grad.addColorStop(
+0,
+"#ff00ff"
+);
+
+grad.addColorStop(
+0.5,
+"#00ffff"
+);
+
+grad.addColorStop(
+1,
+"#ffd700"
+);
+
+g.fillStyle=grad;
+
+g.fillRect(
+x,
+canvas.height-h,
+bw,
+h
+);
+
+x+=bw+1;
+
+}
+
+});
+
+}
+
+draw();
+
+playBtn.onclick=async()=>{
+
+await ctx.resume();
+
+audio.play();
+
+};
+
+pauseBtn.onclick=()=>audio.pause();
+
+stopBtn.onclick=()=>{
+
+audio.pause();
+audio.currentTime=0;
+
+};
+
+backBtn.onclick=()=>{
+
+audio.currentTime=
+Math.max(
+0,
+audio.currentTime-5
+);
+
+};
+
+fwdBtn.onclick=()=>{
+
+audio.currentTime+=5;
+
+};
+
+volume.oninput=()=>{
+
+gain.gain.value=
+volume.value/100;
+
+};
+
+bass.oninput=()=>{
+
+bass.gain.value=
+bass.value;
+
+bassVal.innerText=
+bass.value+" dB";
+
+};
+
+treble.oninput=()=>{
+
+treble.gain.value=
+treble.value;
+
+trebleVal.innerText=
+treble.value+" dB";
+
+};
+
+speed.oninput=()=>{
+
+const v=speed.value/100;
+
+audio.playbackRate=v;
+
+speedVal.innerText=
+v.toFixed(2)+"x";
+
+};
+
+audio.addEventListener(
+"timeupdate",
+()=>{
+
+seekBar.max=
+audio.duration||0;
+
+seekBar.value=
+audio.currentTime;
+
+const format=s=>{
+
+let m=
+Math.floor(s/60);
+
+let sec=
+Math.floor(s%60);
+
+return m+
+":"+
+String(sec)
+.padStart(2,"0");
+
+};
+
+timeDisplay.innerText=
+format(audio.currentTime)+
+" / "+
+format(audio.duration||0);
+
+}
+);
+
+seekBar.oninput=()=>{
+
+audio.currentTime=
+seekBar.value;
+
+};
+
+lyricsInput.addEventListener(
+"input",
+()=>{
+
+lyricsPreview.textContent=
+lyricsInput.value;
+
+}
+);
+
+copyLyrics.onclick=()=>{
+
+navigator.clipboard.writeText(
+lyricsInput.value
+);
+
+copyLyrics.innerText=
+"Copied ✓";
+
+setTimeout(()=>{
+copyLyrics.innerText=
+"Copy Lyrics";
+},2000);
+
+};
+
+</script>
+
+</body>
+</html>
