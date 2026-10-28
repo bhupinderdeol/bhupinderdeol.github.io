@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MP3 Player + 18 Effects + 128 FFT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    body   { font-family: system-ui, sans-serif; background:#14161a; color:#e8e8e8;
+             margin:0; padding:24px; }
+    h1     { margin:0 0 20px; font-size:1.4rem; }
+    h2     { font-size:1rem; color:#9aa4b2; margin:0 0 10px; text-transform:uppercase;
+             letter-spacing:.08em; display:flex; align-items:center; justify-content:space-between; }
+    section{ background:#1d2128; border:1px solid #2a2f38; border-radius:10px;
+             padding:16px; margin-bottom:18px; }
+    button { background:#2b6cb0; color:#fff; border:0; border-radius:6px;
+             padding:8px 14px; cursor:pointer; font-size:.9rem; }
+    button:hover { background:#3182ce; }
+    input[type=file] { color:#e8e8e8; }
+    .track { display:block; width:100%; text-align:left; background:#242a33;
+             margin-bottom:6px; }
+    .track:hover { background:#2f3742; }
+    #now   { margin-left:12px; color:#9aa4b2; font-size:.9rem; }
+
+    /* --- Effect cards --- */
+    .fx-grid {
+        display:grid;
+        grid-template-columns:repeat(auto-fill, minmax(240px, 1fr));
+        gap:10px;
+    }
+    .fx {
+        display:flex; flex-direction:column; gap:6px;
+        background:#242a33; padding:10px; border-radius:6px;
+        font-size:.85rem;
+    }
+    .fx-toggle {
+        display:flex; align-items:center; gap:8px; cursor:pointer;
+        font-weight:500;
+    }
+    .fx-row {
+        display:flex; align-items:center; gap:8px;
+    }
+    .fx-row small {
+        color:#9aa4b2; font-size:.72rem; min-width:44px;
+        text-transform:uppercase; letter-spacing:.05em;
+    }
+    .fx-row select {
+        flex:1; background:#1d2128; color:#e8e8e8;
+        border:1px solid #3a4048; border-radius:4px;
+        padding:4px 6px; font-size:.8rem; cursor:pointer;
+    }
+    .fx-row select:focus { outline:2px solid #4a9eff; outline-offset:1px; }
+
+    /* --- Spectrum --- */
+    #spectrum {
+        width:100%; height:170px; display:block; border-radius:8px;
+        background: radial-gradient(ellipse at 50% 110%, #1a2130, #0d1117 70%);
+        box-shadow: inset 0 0 30px #0004;
+    }
+    .slider-row { display:flex; align-items:center; gap:12px; margin-top:12px;
+                  font-size:.85rem; color:#9aa4b2; }
+    .slider-row input[type=range] { flex:1; max-width:260px; accent-color:#4a9eff; }
+    #opacityVal { min-width:2.5em; text-align:right; color:#e8e8e8; }
+</style>
+</head>
+<body>
+
+<h1>🎵 MP3 Player + 18 Tone.js Effects</h1>
+
+<section>
+    <h2>Upload MP3s from your device</h2>
+    <input type="file" id="fileInput" accept="audio/mpeg,.mp3" multiple>
+</section>
+
+<section>
+    <h2>Playlist (<span id="count">0</span> files)</h2>
+    <div id="playlist"></div>
+</section>
+
+<section>
+    <h2>Transport</h2>
+    <button id="stop">■ Stop</button>
+    <span id="now">Nothing playing</span>
+</section>
+
+<section>
+    <h2>Spectrum Analyser (128 FFT)
+        <button id="rerollColors" title="Randomise colours">🎨 Reroll</button>
+    </h2>
+    <canvas id="spectrum"></canvas>
+    <div class="slider-row">
+        <span>Opacity</span>
+        <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.85">
+        <span id="opacityVal">0.85</span>
+    </div>
+</section>
+
+<section>
+    <h2>Effects Chain (toggle live, pick value)</h2>
+    <div class="fx-grid" id="fxGrid"></div>
+</section>
+
+<script>
+(function () {
+    // ===========================================================
+    // EFFECT CONFIG  (one primary param per effect + preset values)
+    // ===========================================================
+    const EFFECTS = [
+        { key:'distortion',       label:'Distortion',    param:'distortion', paramLabel:'Amt',
+          def: 0.6,  options:[0.1, 0.3, 0.6, 0.9] },
+        { key:'bitcrusher',       label:'BitCrusher',    param:'bits',       paramLabel:'Bits',
+          def: 6,    options:[4, 6, 8, 12, 16] },
+        { key:'chebyshev',        label:'Chebyshev',     param:'order',      paramLabel:'Order',
+          def: 3,    options:[1, 2, 3, 5, 8, 12] },
+        { key:'pitchshift',       label:'PitchShift',    param:'pitch',      paramLabel:'Semi',
+          def: 5,    options:[-12, -7, -5, 0, 5, 7, 12] },
+        { key:'frequencyshifter', label:'FreqShifter',   param:'frequency',  paramLabel:'Hz',
+          def: 30,   options:[5, 10, 30, 100, 300, 1000] },
+        { key:'autowah',          label:'AutoWah',       param:'octaves',    paramLabel:'Oct',
+          def: 6,    options:[2, 4, 6, 8] },
+        { key:'autofilter',       label:'AutoFilter',    param:'depth',      paramLabel:'Depth',
+          def: 0.7,  options:[0.3, 0.5, 0.7, 1.0] },
+        { key:'phaser',           label:'Phaser',        param:'frequency',  paramLabel:'Rate',
+          def: 0.5,  options:[0.1, 0.5, 1, 2, 5] },
+        { key:'chorus',           label:'Chorus',        param:'frequency',  paramLabel:'Rate',
+          def: 1.5,  options:[0.5, 1, 1.5, 3, 6] },
+        { key:'tremolo',          label:'Tremolo',       param:'frequency',  paramLabel:'Rate',
+          def: 5,    options:[1, 3, 5, 8, 12] },
+        { key:'vibrato',          label:'Vibrato',       param:'depth',      paramLabel:'Depth',
+          def: 0.1,  options:[0.02, 0.05, 0.1, 0.2, 0.4] },
+        { key:'autopanner',       label:'AutoPanner',    param:'frequency',  paramLabel:'Rate',
+          def: 1,    options:[0.2, 0.5, 1, 2, 5] },
+        { key:'stereowidener',    label:'StereoWiden',   param:'width',      paramLabel:'Width',
+          def: 0.7,  options:[0.3, 0.5, 0.7, 0.9, 1.0] },
+        { key:'feedbackdelay',    label:'FbDelay',       param:'feedback',   paramLabel:'FB',
+          def: 0.3,  options:[0.1, 0.3, 0.5, 0.7, 0.9] },
+        { key:'pingpongdelay',    label:'PingPong',      param:'feedback',   paramLabel:'FB',
+          def: 0.3,  options:[0.1, 0.3, 0.5, 0.7, 0.9] },
+        { key:'freeverb',         label:'Freeverb',      param:'roomSize',   paramLabel:'Room',
+          def: 0.7,  options:[0.3, 0.5, 0.7, 0.9] },
+        { key:'jcreverb',         label:'JCReverb',      param:'roomSize',   paramLabel:'Room',
+          def: 0.5,  options:[0.1, 0.3, 0.5, 0.7, 0.9] },
+        { key:'reverb',           label:'Reverb',        param:'decay',      paramLabel:'Decay',
+          def: 2,    options:[0.5, 1, 2, 4, 8] }
+    ];
+    const ORDER = EFFECTS.map(e => e.key);
+
+    // ===========================================================
+    // INSTANTIATE 18 EFFECTS
+    // ===========================================================
+    const fx = {
+        distortion:       new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher:       new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev:        new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift:       new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah:          new Tone.AutoWah({ baseFrequency: 100, octaves: 6, sensitivity: 0, wet: 0.5 }),
+        autofilter:       new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser:           new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 350 }),
+        chorus:           new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo:          new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato:          new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner:       new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener:    new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay:    new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay:    new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb:         new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb:         new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb:           new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+    Tone.Destination.volume.value = -6;
+
+    // ===========================================================
+    // APPLY PARAM HELPER
+    //   Tone params come in two flavours:
+    //     - Param / Signal objects → set via `.value`
+    //     - plain numbers with setters → direct assignment
+    // ===========================================================
+    function applyParam(effectKey, paramName, value) {
+        const current = fx[effectKey][paramName];
+        try {
+            if (current && typeof current === 'object' && 'value' in current) {
+                current.value = value;              // Param / Signal
+            } else {
+                fx[effectKey][paramName] = value;   // plain setter
+            }
+        } catch (e) {
+            console.warn('Could not set', effectKey, paramName, value, e);
+        }
+    }
+
+    // ===========================================================
+    // RENDER EFFECT CARDS  (checkbox + label + select)
+    // ===========================================================
+    const fxGrid = document.getElementById('fxGrid');
+
+    EFFECTS.forEach(cfg => {
+        const card = document.createElement('div');
+        card.className = 'fx';
+
+        // -- label + checkbox --
+        const lab = document.createElement('label');
+        lab.className = 'fx-toggle';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.fx = cfg.key;
+        cb.addEventListener('change', rebuildChain);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + cfg.label));
+        card.appendChild(lab);
+
+        // -- param row: small + select --
+        const row = document.createElement('div');
+        row.className = 'fx-row';
+
+        const small = document.createElement('small');
+        small.textContent = cfg.paramLabel;
+        row.appendChild(small);
+
+        const sel = document.createElement('select');
+        sel.title = cfg.label + ' → ' + cfg.param;
+        cfg.options.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v;
+            opt.textContent = v;
+            if (Number(v) === cfg.def) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', () => {
+            const val = parseFloat(sel.value);
+            applyParam(cfg.key, cfg.param, val);
+        });
+        row.appendChild(sel);
+        card.appendChild(row);
+
+        fxGrid.appendChild(card);
+    });
+
+    // ===========================================================
+    // 128-bin FFT analyser (parallel tap at the end of the chain)
+    // ===========================================================
+    const analyser = new Tone.Analyser({ type: 'fft', size: 256, smoothing: 0.85 });
+
+    // ===========================================================
+    // CHAIN REBUILD
+    // ===========================================================
+    let player = null;
+    const objectUrls = [];
+
+    function rebuildChain() {
+        if (!player) return;
+        try { player.disconnect(); } catch (e) {}
+        ORDER.forEach(id => { try { fx[id].disconnect(); } catch (e) {} });
+
+        const active = ORDER
+            .filter(id => document.querySelector(`input[data-fx="${id}"]`).checked)
+            .map(id => fx[id]);
+
+        if (active.length) {
+            player.chain(...active, Tone.Destination);
+            active[active.length - 1].connect(analyser);
+        } else {
+            player.toDestination();
+            player.connect(analyser);
+        }
+    }
+
+    // ===========================================================
+    // PLAY TRACK
+    // ===========================================================
+    async function playTrack(url, name) {
+        await Tone.start();
+        if (player) {
+            try { player.stop(); player.dispose(); } catch (e) {}
+            player = null;
+        }
+        document.getElementById('now').textContent = '⏳ Loading ' + name + '…';
+
+        player = new Tone.Player(url);
+        await Promise.all([ Tone.loaded(), fx.reverb.ready ]);
+
+        rebuildChain();
+        player.start();
+        document.getElementById('now').textContent = '▶ ' + name;
+
+        baseHue = Math.random() * 360;
+    }
+
+    // ===========================================================
+    // UPLOAD → PLAYLIST
+    // ===========================================================
+    const fileInput = document.getElementById('fileInput');
+    const playlist  = document.getElementById('playlist');
+    const countEl   = document.getElementById('count');
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files).filter(f =>
+            f.type === 'audio/mpeg' || f.name.toLowerCase().endsWith('.mp3')
+        );
+        files.forEach(file => {
+            const url = URL.createObjectURL(file);
+            objectUrls.push(url);
+            const btn = document.createElement('button');
+            btn.className = 'track';
+            btn.textContent = '▶ ' + file.name;
+            btn.addEventListener('click', () => playTrack(url, file.name));
+            playlist.appendChild(btn);
+        });
+        countEl.textContent = playlist.querySelectorAll('.track').length;
+        fileInput.value = '';
+    });
+
+    document.getElementById('stop').addEventListener('click', () => {
+        if (player) player.stop();
+        document.getElementById('now').textContent = '■ Stopped';
+    });
+
+    // ===========================================================
+    // SPECTRUM RENDER
+    // ===========================================================
+    const canvas = document.getElementById('spectrum');
+    const ctx    = canvas.getContext('2d');
+    let baseHue  = Math.random() * 360;
+
+    function fitCanvas() {
+        const dpr  = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    }
+    fitCanvas();
+    window.addEventListener('resize', fitCanvas);
+
+    document.getElementById('rerollColors').addEventListener('click', () => {
+        baseHue = Math.random() * 360;
+    });
+
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityVal    = document.getElementById('opacityVal');
+    function applyOpacity() {
+        canvas.style.opacity = opacitySlider.value;
+        opacityVal.textContent = Number(opacitySlider.value).toFixed(2);
+    }
+    opacitySlider.addEventListener('input', applyOpacity);
+    applyOpacity();
+
+    function draw() {
+        requestAnimationFrame(draw);
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        let values;
+        try { values = analyser.getValue(); } catch (e) { return; }
+        if (!values) return;
+
+        const N    = values.length;
+        const barW = W / N;
+        const gap  = Math.max(1, barW * 0.18);
+        const t    = performance.now() * 0.001;
+
+        for (let i = 0; i < N; i++) {
+            const v    = values[i];
+            const norm = Math.max(0, Math.min(1, (v + 90) / 90));
+            const h    = norm * H * 0.98;
+            if (h < 0.6) continue;
+
+            const hue = (baseHue
+                       + (i / N) * 300
+                       + Math.sin(t * 0.6 + i * 0.05) * 15) % 360;
+
+            const grad = ctx.createLinearGradient(0, H - h, 0, H);
+            grad.addColorStop(0,   `hsl(${hue}, 100%, 70%)`);
+            grad.addColorStop(0.6, `hsl(${(hue + 20) % 360}, 100%, 55%)`);
+            grad.addColorStop(1,   `hsl(${(hue + 40) % 360}, 100%, 40%)`);
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(i * barW + gap / 2, H - h, barW - gap, h);
+        }
+    }
+    draw();
+
+    window.addEventListener('beforeunload', () => {
+        objectUrls.forEach(u => URL.revokeObjectURL(u));
+    });
+})();
+</script>
+</body>
+</html>
