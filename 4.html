@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MP3 Player + 18 Tone.js Effects (Upload)</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    body   { font-family: system-ui, sans-serif; background:#14161a; color:#e8e8e8;
+             margin:0; padding:24px; }
+    h1     { margin:0 0 20px; font-size:1.4rem; }
+    h2     { font-size:1rem; color:#9aa4b2; margin:0 0 10px; text-transform:uppercase;
+             letter-spacing:.08em; }
+    section{ background:#1d2128; border:1px solid #2a2f38; border-radius:10px;
+             padding:16px; margin-bottom:18px; }
+    button { background:#2b6cb0; color:#fff; border:0; border-radius:6px;
+             padding:8px 14px; cursor:pointer; font-size:.9rem; }
+    button:hover { background:#3182ce; }
+    input[type=file] { color:#e8e8e8; }
+    .track { display:block; width:100%; text-align:left; background:#242a33;
+             margin-bottom:6px; }
+    .track:hover { background:#2f3742; }
+    #now   { margin-left:12px; color:#9aa4b2; font-size:.9rem; }
+    .fx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+               gap:8px; }
+    .fx    { display:flex; align-items:center; gap:8px; background:#242a33;
+             padding:8px 10px; border-radius:6px; cursor:pointer; font-size:.85rem; }
+    .fx:hover { background:#2f3742; }
+</style>
+</head>
+<body>
+
+<h1>🎵 MP3 Player + 18 Tone.js Effects</h1>
+
+<!-- ============ UPLOAD ============ -->
+<section>
+    <h2>Upload MP3s from your device</h2>
+    <input type="file" id="fileInput" accept="audio/mpeg,.mp3" multiple>
+</section>
+
+<!-- ============ PLAYLIST (empty until files chosen) ============ -->
+<section>
+    <h2>Playlist (<span id="count">0</span> files)</h2>
+    <div id="playlist"></div>
+</section>
+
+<!-- ============ TRANSPORT ============ -->
+<section>
+    <h2>Transport</h2>
+    <button id="stop">■ Stop</button>
+    <span id="now">Nothing playing</span>
+</section>
+
+<!-- ============ 18 EFFECT CHECKBOXES (rendered by JS) ============ -->
+<section>
+    <h2>Effects Chain (toggle live)</h2>
+    <div class="fx-grid" id="fxGrid"></div>
+</section>
+
+<script>
+(function () {
+    // -----------------------------------------------------------
+    // The 18 effects, in signal-flow order
+    // -----------------------------------------------------------
+    const EFFECTS = [
+        ['distortion',      'Distortion'],
+        ['bitcrusher',      'BitCrusher'],
+        ['chebyshev',       'Chebyshev'],
+        ['pitchshift',      'PitchShift'],
+        ['frequencyshifter','FrequencyShifter'],
+        ['autowah',         'AutoWah'],
+        ['autofilter',      'AutoFilter'],
+        ['phaser',          'Phaser'],
+        ['chorus',          'Chorus'],
+        ['tremolo',         'Tremolo'],
+        ['vibrato',         'Vibrato'],
+        ['autopanner',      'AutoPanner'],
+        ['stereowidener',   'StereoWidener'],
+        ['feedbackdelay',   'FeedbackDelay'],
+        ['pingpongdelay',   'PingPongDelay'],
+        ['freeverb',        'Freeverb'],
+        ['jcreverb',        'JCReverb'],
+        ['reverb',          'Reverb']
+    ];
+    const ORDER = EFFECTS.map(e => e[0]);
+
+    // -----------------------------------------------------------
+    // Instantiate all 18 effects once
+    // -----------------------------------------------------------
+    const fx = {
+        distortion:       new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher:       new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev:        new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift:       new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah:          new Tone.AutoWah({ baseFrequency: 100, octaves: 6, sensitivity: 0, wet: 0.5 }),
+        autofilter:       new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser:           new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 350 }),
+        chorus:           new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo:          new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato:          new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner:       new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener:    new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay:    new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay:    new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb:         new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb:         new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb:           new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+    Tone.Destination.volume.value = -6;   // headroom
+
+    // -----------------------------------------------------------
+    // Render effect checkboxes
+    // -----------------------------------------------------------
+    const fxGrid = document.getElementById('fxGrid');
+    EFFECTS.forEach(([key, label]) => {
+        const lab = document.createElement('label');
+        lab.className = 'fx';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.fx = key;
+        cb.addEventListener('change', rebuildChain);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + label));
+        fxGrid.appendChild(lab);
+    });
+
+    // -----------------------------------------------------------
+    // Player + chain rebuild
+    // -----------------------------------------------------------
+    let player = null;
+    const objectUrls = [];   // keep for cleanup
+
+    function rebuildChain() {
+        if (!player) return;
+        try { player.disconnect(); } catch (e) {}
+        ORDER.forEach(id => { try { fx[id].disconnect(); } catch (e) {} });
+
+        const active = ORDER
+            .filter(id => document.querySelector(`input[data-fx="${id}"]`).checked)
+            .map(id => fx[id]);
+
+        if (active.length) {
+            player.chain(...active, Tone.Destination);
+        } else {
+            player.toDestination();
+        }
+    }
+
+    async function playTrack(url, name) {
+        await Tone.start();                        // unlock AudioContext
+        if (player) {
+            try { player.stop(); player.dispose(); } catch (e) {}
+            player = null;
+        }
+        document.getElementById('now').textContent = '⏳ Loading ' + name + '…';
+
+        player = new Tone.Player(url);
+        await Promise.all([ Tone.loaded(), fx.reverb.ready ]);
+
+        rebuildChain();
+        player.start();
+        document.getElementById('now').textContent = '▶ ' + name;
+    }
+
+    // -----------------------------------------------------------
+    // Upload handler → build playlist
+    // -----------------------------------------------------------
+    const fileInput = document.getElementById('fileInput');
+    const playlist  = document.getElementById('playlist');
+    const countEl   = document.getElementById('count');
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files).filter(f =>
+            f.type === 'audio/mpeg' || f.name.toLowerCase().endsWith('.mp3')
+        );
+
+        files.forEach(file => {
+            const url = URL.createObjectURL(file);
+            objectUrls.push(url);
+
+            const btn = document.createElement('button');
+            btn.className = 'track';
+            btn.textContent = '▶ ' + file.name;
+            btn.addEventListener('click', () => playTrack(url, file.name));
+            playlist.appendChild(btn);
+        });
+
+        countEl.textContent = playlist.querySelectorAll('.track').length;
+        fileInput.value = '';   // allow re-selecting the same file
+    });
+
+    // -----------------------------------------------------------
+    // Stop button
+    // -----------------------------------------------------------
+    document.getElementById('stop').addEventListener('click', () => {
+        if (player) player.stop();
+        document.getElementById('now').textContent = '■ Stopped';
+    });
+
+    // Clean up blob URLs when page unloads
+    window.addEventListener('beforeunload', () => {
+        objectUrls.forEach(u => URL.revokeObjectURL(u));
+    });
+})();
+</script>
+</body>
+</html>
