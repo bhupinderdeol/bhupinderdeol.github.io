@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MP3 Player + 18 Effects + 128 FFT Spectrum</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    body   { font-family: system-ui, sans-serif; background:#14161a; color:#e8e8e8;
+             margin:0; padding:24px; }
+    h1     { margin:0 0 20px; font-size:1.4rem; }
+    h2     { font-size:1rem; color:#9aa4b2; margin:0 0 10px; text-transform:uppercase;
+             letter-spacing:.08em; display:flex; align-items:center; justify-content:space-between; }
+    section{ background:#1d2128; border:1px solid #2a2f38; border-radius:10px;
+             padding:16px; margin-bottom:18px; }
+    button { background:#2b6cb0; color:#fff; border:0; border-radius:6px;
+             padding:8px 14px; cursor:pointer; font-size:.9rem; }
+    button:hover { background:#3182ce; }
+    input[type=file] { color:#e8e8e8; }
+    .track { display:block; width:100%; text-align:left; background:#242a33;
+             margin-bottom:6px; }
+    .track:hover { background:#2f3742; }
+    #now   { margin-left:12px; color:#9aa4b2; font-size:.9rem; }
+    .fx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(170px,1fr));
+               gap:8px; }
+    .fx    { display:flex; align-items:center; gap:8px; background:#242a33;
+             padding:8px 10px; border-radius:6px; cursor:pointer; font-size:.85rem; }
+    .fx:hover { background:#2f3742; }
+
+    /* --- Spectrum --- */
+    #spectrum {
+        width:100%; height:170px; display:block; border-radius:8px;
+        background: radial-gradient(ellipse at 50% 110%, #1a2130, #0d1117 70%);
+        box-shadow: inset 0 0 30px #0004;
+    }
+    .slider-row { display:flex; align-items:center; gap:12px; margin-top:12px;
+                  font-size:.85rem; color:#9aa4b2; }
+    .slider-row input[type=range] { flex:1; max-width:260px; accent-color:#4a9eff; }
+    #opacityVal { min-width:2.5em; text-align:right; color:#e8e8e8; }
+</style>
+</head>
+<body>
+
+<h1>🎵 MP3 Player + 18 Tone.js Effects</h1>
+
+<!-- ============ UPLOAD ============ -->
+<section>
+    <h2>Upload MP3s from your device</h2>
+    <input type="file" id="fileInput" accept="audio/mpeg,.mp3" multiple>
+</section>
+
+<!-- ============ PLAYLIST (empty until files chosen) ============ -->
+<section>
+    <h2>Playlist (<span id="count">0</span> files)</h2>
+    <div id="playlist"></div>
+</section>
+
+<!-- ============ TRANSPORT ============ -->
+<section>
+    <h2>Transport</h2>
+    <button id="stop">■ Stop</button>
+    <span id="now">Nothing playing</span>
+</section>
+
+<!-- ============ SPECTRUM ANALYSER (under the player) ============ -->
+<section>
+    <h2>Spectrum Analyser (128 FFT)
+        <button id="rerollColors" title="Randomise colours">🎨 Reroll</button>
+    </h2>
+    <canvas id="spectrum"></canvas>
+    <div class="slider-row">
+        <span>Opacity</span>
+        <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.85">
+        <span id="opacityVal">0.85</span>
+    </div>
+</section>
+
+<!-- ============ 18 EFFECT CHECKBOXES ============ -->
+<section>
+    <h2>Effects Chain (toggle live)</h2>
+    <div class="fx-grid" id="fxGrid"></div>
+</section>
+
+<script>
+(function () {
+    // -----------------------------------------------------------
+    // The 18 effects, in signal-flow order
+    // -----------------------------------------------------------
+    const EFFECTS = [
+        ['distortion',      'Distortion'],
+        ['bitcrusher',      'BitCrusher'],
+        ['chebyshev',       'Chebyshev'],
+        ['pitchshift',      'PitchShift'],
+        ['frequencyshifter','FrequencyShifter'],
+        ['autowah',         'AutoWah'],
+        ['autofilter',      'AutoFilter'],
+        ['phaser',          'Phaser'],
+        ['chorus',          'Chorus'],
+        ['tremolo',         'Tremolo'],
+        ['vibrato',         'Vibrato'],
+        ['autopanner',      'AutoPanner'],
+        ['stereowidener',   'StereoWidener'],
+        ['feedbackdelay',   'FeedbackDelay'],
+        ['pingpongdelay',   'PingPongDelay'],
+        ['freeverb',        'Freeverb'],
+        ['jcreverb',        'JCReverb'],
+        ['reverb',          'Reverb']
+    ];
+    const ORDER = EFFECTS.map(e => e[0]);
+
+    // -----------------------------------------------------------
+    // 18 effects
+    // -----------------------------------------------------------
+    const fx = {
+        distortion:       new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher:       new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev:        new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift:       new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah:          new Tone.AutoWah({ baseFrequency: 100, octaves: 6, sensitivity: 0, wet: 0.5 }),
+        autofilter:       new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser:           new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 350 }),
+        chorus:           new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo:          new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato:          new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner:       new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener:    new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay:    new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay:    new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb:         new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb:         new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb:           new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+    Tone.Destination.volume.value = -6;
+
+    // -----------------------------------------------------------
+    // 128-bin FFT analyser
+    //   Tone.Analyser size is the FFT length (power of 2).
+    //   size = 256  ->  256 / 2 = 128 usable frequency bins.
+    //   Connected as a *parallel tap* so it sees the final mix.
+    // -----------------------------------------------------------
+    const analyser = new Tone.Analyser({ type: 'fft', size: 256, smoothing: 0.85 });
+
+    // -----------------------------------------------------------
+    // Effect checkboxes
+    // -----------------------------------------------------------
+    const fxGrid = document.getElementById('fxGrid');
+    EFFECTS.forEach(([key, label]) => {
+        const lab = document.createElement('label');
+        lab.className = 'fx';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.fx = key;
+        cb.addEventListener('change', rebuildChain);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + label));
+        fxGrid.appendChild(lab);
+    });
+
+    // -----------------------------------------------------------
+    // Chain rebuild — analyser is tapped in parallel at the end
+    // -----------------------------------------------------------
+    let player = null;
+    const objectUrls = [];
+
+    function rebuildChain() {
+        if (!player) return;
+        try { player.disconnect(); } catch (e) {}
+        ORDER.forEach(id => { try { fx[id].disconnect(); } catch (e) {} });
+
+        const active = ORDER
+            .filter(id => document.querySelector(`input[data-fx="${id}"]`).checked)
+            .map(id => fx[id]);
+
+        if (active.length) {
+            player.chain(...active, Tone.Destination);
+            active[active.length - 1].connect(analyser);   // parallel tap
+        } else {
+            player.toDestination();
+            player.connect(analyser);                      // parallel tap
+        }
+    }
+
+    // -----------------------------------------------------------
+    // Play a track
+    // -----------------------------------------------------------
+    async function playTrack(url, name) {
+        await Tone.start();
+        if (player) {
+            try { player.stop(); player.dispose(); } catch (e) {}
+            player = null;
+        }
+        document.getElementById('now').textContent = '⏳ Loading ' + name + '…';
+
+        player = new Tone.Player(url);
+        await Promise.all([ Tone.loaded(), fx.reverb.ready ]);
+
+        rebuildChain();
+        player.start();
+        document.getElementById('now').textContent = '▶ ' + name;
+
+        baseHue = Math.random() * 360;   // fresh palette per track
+    }
+
+    // -----------------------------------------------------------
+    // Upload → playlist
+    // -----------------------------------------------------------
+    const fileInput = document.getElementById('fileInput');
+    const playlist  = document.getElementById('playlist');
+    const countEl   = document.getElementById('count');
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files).filter(f =>
+            f.type === 'audio/mpeg' || f.name.toLowerCase().endsWith('.mp3')
+        );
+        files.forEach(file => {
+            const url = URL.createObjectURL(file);
+            objectUrls.push(url);
+            const btn = document.createElement('button');
+            btn.className = 'track';
+            btn.textContent = '▶ ' + file.name;
+            btn.addEventListener('click', () => playTrack(url, file.name));
+            playlist.appendChild(btn);
+        });
+        countEl.textContent = playlist.querySelectorAll('.track').length;
+        fileInput.value = '';
+    });
+
+    // -----------------------------------------------------------
+    // Stop
+    // -----------------------------------------------------------
+    document.getElementById('stop').addEventListener('click', () => {
+        if (player) player.stop();
+        document.getElementById('now').textContent = '■ Stopped';
+    });
+
+    // ===========================================================
+    // SPECTRUM RENDERING
+    // ===========================================================
+    const canvas = document.getElementById('spectrum');
+    const ctx    = canvas.getContext('2d');
+
+    let baseHue = Math.random() * 360;
+
+    function fitCanvas() {
+        const dpr  = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    }
+    fitCanvas();
+    window.addEventListener('resize', fitCanvas);
+
+    // Randomise colours
+    document.getElementById('rerollColors').addEventListener('click', () => {
+        baseHue = Math.random() * 360;
+    });
+
+    // Opacity control
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityVal    = document.getElementById('opacityVal');
+    function applyOpacity() {
+        canvas.style.opacity = opacitySlider.value;
+        opacityVal.textContent = Number(opacitySlider.value).toFixed(2);
+    }
+    opacitySlider.addEventListener('input', applyOpacity);
+    applyOpacity();
+
+    // Draw loop
+    function draw() {
+        requestAnimationFrame(draw);
+
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        let values;
+        try { values = analyser.getValue(); } catch (e) { return; }
+        if (!values) return;
+
+        const N     = values.length;             // 128
+        const barW  = W / N;
+        const gap   = Math.max(1, barW * 0.18);
+        const t     = performance.now() * 0.001; // seconds, for subtle animation
+
+        for (let i = 0; i < N; i++) {
+            const v    = values[i];                       // dB, typically -100…0
+            const norm = Math.max(0, Math.min(1, (v + 90) / 90));
+            const h    = norm * H * 0.98;
+            if (h < 0.6) continue;
+
+            // Rainbow across the spectrum + slow breathing shift
+            const hue = (baseHue
+                       + (i / N) * 300
+                       + Math.sin(t * 0.6 + i * 0.05) * 15) % 360;
+
+            const grad = ctx.createLinearGradient(0, H - h, 0, H);
+            grad.addColorStop(0, `hsl(${hue}, 100%, 70%)`);
+            grad.addColorStop(0.6, `hsl(${(hue + 20) % 360}, 100%, 55%)`);
+            grad.addColorStop(1, `hsl(${(hue + 40) % 360}, 100%, 40%)`);
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(i * barW + gap / 2, H - h, barW - gap, h);
+        }
+    }
+    draw();
+
+    // Clean up blob URLs
+    window.addEventListener('beforeunload', () => {
+        objectUrls.forEach(u => URL.revokeObjectURL(u));
+    });
+})();
+</script>
+</body>
+</html>
