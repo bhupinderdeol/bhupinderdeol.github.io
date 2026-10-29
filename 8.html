@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>MP3 Player + 18 Effects + EQ + Speed</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    body   { font-family: system-ui, sans-serif; background:#14161a; color:#e8e8e8;
+             margin:0; padding:24px; max-width:1200px; margin-left:auto; margin-right:auto; }
+    h1     { margin:0 0 16px; font-size:1.4rem; }
+    h2     { font-size:1rem; color:#d4af37; margin:0 0 10px; text-transform:uppercase;
+             letter-spacing:.08em; display:flex; align-items:center;
+             justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    section{ background:#1d2128; border:1px solid #2a2f38; border-radius:10px;
+             padding:16px; margin-bottom:16px; }
+    button { background:#2b6cb0; color:#fff; border:0; border-radius:6px;
+             padding:8px 14px; cursor:pointer; font-size:.9rem; }
+    button:hover { background:#3182ce; }
+
+    /* Toolbar */
+    .toolbar { display:flex; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+    .toolbar button { background:#a07420; }
+    .toolbar button:hover { background:#c08a28; }
+
+    input[type=file] { color:#e8e8e8; }
+    .track { display:block; width:100%; text-align:left; background:#242a33;
+             margin-bottom:6px; }
+    .track:hover { background:#2f3742; }
+    #now   { color:#9aa4b2; font-size:.9rem; }
+
+    /* Transport rows */
+    .transport-row { display:flex; align-items:center; gap:14px;
+                     flex-wrap:wrap; margin-bottom:10px; }
+    .transport-row:last-child { margin-bottom:0; }
+    .transport-row label { display:flex; align-items:center; gap:8px;
+                           font-size:.85rem; color:#d4af37; flex:1; min-width:220px; }
+    .transport-row input[type=range] { flex:1; accent-color:#e0b040; }
+    .transport-row .val { min-width:3.4em; text-align:right; color:#e8e8e8;
+                          font-variant-numeric:tabular-nums; }
+    #resetSpeed { padding:6px 12px; font-size:.8rem; }
+
+    /* Effect cards */
+    .fx-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+               gap:10px; }
+    .fx { display:flex; flex-direction:column; gap:6px; background:#242a33;
+          padding:10px; border-radius:6px; font-size:.85rem; }
+    .fx-toggle { display:flex; align-items:center; gap:8px; cursor:pointer; font-weight:500; }
+    .fx-row { display:flex; align-items:center; gap:8px; }
+    .fx-row small { color:#9aa4b2; font-size:.72rem; min-width:44px;
+                    text-transform:uppercase; letter-spacing:.05em; }
+    .fx-row select { flex:1; background:#1d2128; color:#e8e8e8;
+                     border:1px solid #3a4048; border-radius:4px;
+                     padding:4px 6px; font-size:.8rem; cursor:pointer; }
+    .fx-row select:focus { outline:2px solid #e0b040; outline-offset:1px; }
+
+    /* EQ bands */
+    .eq-bands { display:grid; grid-template-columns:repeat(auto-fill,minmax(130px,1fr));
+                gap:10px; }
+    .eq-band  { background:#242a33; padding:12px 10px; border-radius:6px; text-align:center; }
+    .eq-band .freq { color:#d4af37; font-size:.72rem; text-transform:uppercase;
+                     letter-spacing:.05em; margin-bottom:8px; }
+    .eq-band input[type=range] { width:100%; accent-color:#e0b040; }
+    .eq-band .val  { color:#e8e8e8; font-size:.75rem; margin-top:6px;
+                     font-variant-numeric:tabular-nums; }
+
+    /* Spectrum */
+    #spectrum { width:100%; height:170px; display:block; border-radius:8px;
+                background: radial-gradient(ellipse at 50% 110%, #2a2210, #0d0d08 70%);
+                box-shadow: inset 0 0 30px #0004; }
+    .spectrum-controls { display:flex; align-items:center; gap:12px; margin-top:12px;
+                         font-size:.85rem; color:#d4af37; }
+    .spectrum-controls input[type=range] { flex:1; max-width:280px; accent-color:#e0b040; }
+</style>
+</head>
+<body>
+
+<h1>🎵 MP3 Player + 18 Effects + EQ + Speed</h1>
+
+<div class="toolbar">
+    <button id="copyHtml" title="Copy this page's HTML to clipboard">📋 Copy HTML</button>
+</div>
+
+<section>
+    <h2>Upload MP3s from your device</h2>
+    <input type="file" id="fileInput" accept="audio/mpeg,.mp3" multiple>
+</section>
+
+<section>
+    <h2>Playlist (<span id="count">0</span> files)</h2>
+    <div id="playlist"></div>
+</section>
+
+<!-- ===== TRANSPORT: Stop + Volume + Speed ===== -->
+<section>
+    <h2>Transport</h2>
+    <div class="transport-row">
+        <button id="stop">■ Stop</button>
+        <span id="now">Nothing playing</span>
+    </div>
+    <div class="transport-row">
+        <label>🔊 Volume
+            <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50">
+            <span class="val" id="volumeVal">50%</span>
+        </label>
+    </div>
+    <div class="transport-row">
+        <label>⏩ Speed
+            <input type="range" id="speedSlider" min="0.25" max="2" step="0.05" value="1">
+            <span class="val" id="speedVal">1.00×</span>
+        </label>
+        <button id="resetSpeed" title="Back to 1×">1×</button>
+    </div>
+</section>
+
+<!-- ===== EQ ===== -->
+<section>
+    <h2>Equalizer (5‑band, ±12 dB)
+        <button id="flatEq" title="Reset all bands to 0 dB">🔁 Flat</button>
+    </h2>
+    <div class="eq-bands" id="eqBands"></div>
+</section>
+
+<!-- ===== SPECTRUM ===== -->
+<section>
+    <h2>Spectrum Analyser (128 FFT)
+        <button id="rerollColors" title="Randomise golden tones">🎨 Reroll</button>
+    </h2>
+    <canvas id="spectrum"></canvas>
+    <div class="spectrum-controls">
+        <span>Opacity</span>
+        <input type="range" id="opacitySlider" min="0" max="1" step="0.05" value="0.85">
+        <span id="opacityVal" style="min-width:2.5em; text-align:right; color:#e8e8e8;">0.85</span>
+    </div>
+</section>
+
+<!-- ===== EFFECTS ===== -->
+<section>
+    <h2>Effects Chain (toggle live, pick value)</h2>
+    <div class="fx-grid" id="fxGrid"></div>
+</section>
+
+<script>
+(function () {
+    // ===========================================================
+    // 18 EFFECTS
+    // ===========================================================
+    const EFFECTS = [
+        { key:'distortion',       label:'Distortion',   param:'distortion', paramLabel:'Amt',   def:0.6, options:[0.1,0.3,0.6,0.9] },
+        { key:'bitcrusher',       label:'BitCrusher',   param:'bits',       paramLabel:'Bits',  def:6,   options:[4,6,8,12,16] },
+        { key:'chebyshev',        label:'Chebyshev',    param:'order',      paramLabel:'Order', def:3,   options:[1,2,3,5,8,12] },
+        { key:'pitchshift',       label:'PitchShift',   param:'pitch',      paramLabel:'Semi',  def:5,   options:[-12,-7,-5,0,5,7,12] },
+        { key:'frequencyshifter', label:'FreqShifter',  param:'frequency',  paramLabel:'Hz',    def:30,  options:[5,10,30,100,300,1000] },
+        { key:'autowah',          label:'AutoWah',      param:'octaves',    paramLabel:'Oct',   def:6,   options:[2,4,6,8] },
+        { key:'autofilter',       label:'AutoFilter',   param:'depth',      paramLabel:'Depth', def:0.7, options:[0.3,0.5,0.7,1.0] },
+        { key:'phaser',           label:'Phaser',       param:'frequency',  paramLabel:'Rate',  def:0.5, options:[0.1,0.5,1,2,5] },
+        { key:'chorus',           label:'Chorus',       param:'frequency',  paramLabel:'Rate',  def:1.5, options:[0.5,1,1.5,3,6] },
+        { key:'tremolo',          label:'Tremolo',      param:'frequency',  paramLabel:'Rate',  def:5,   options:[1,3,5,8,12] },
+        { key:'vibrato',          label:'Vibrato',      param:'depth',      paramLabel:'Depth', def:0.1, options:[0.02,0.05,0.1,0.2,0.4] },
+        { key:'autopanner',       label:'AutoPanner',   param:'frequency',  paramLabel:'Rate',  def:1,   options:[0.2,0.5,1,2,5] },
+        { key:'stereowidener',    label:'StereoWiden',  param:'width',      paramLabel:'Width', def:0.7, options:[0.3,0.5,0.7,0.9,1.0] },
+        { key:'feedbackdelay',    label:'FbDelay',      param:'feedback',   paramLabel:'FB',    def:0.3, options:[0.1,0.3,0.5,0.7,0.9] },
+        { key:'pingpongdelay',    label:'PingPong',     param:'feedback',   paramLabel:'FB',    def:0.3, options:[0.1,0.3,0.5,0.7,0.9] },
+        { key:'freeverb',         label:'Freeverb',     param:'roomSize',   paramLabel:'Room',  def:0.7, options:[0.3,0.5,0.7,0.9] },
+        { key:'jcreverb',         label:'JCReverb',     param:'roomSize',   paramLabel:'Room',  def:0.5, options:[0.1,0.3,0.5,0.7,0.9] },
+        { key:'reverb',           label:'Reverb',       param:'decay',      paramLabel:'Decay', def:2,   options:[0.5,1,2,4,8] }
+    ];
+    const ORDER = EFFECTS.map(e => e.key);
+
+    const fx = {
+        distortion:       new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher:       new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev:        new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift:       new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah:          new Tone.AutoWah({ baseFrequency: 100, octaves: 6, sensitivity: 0, wet: 0.5 }),
+        autofilter:       new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser:           new Tone.Phaser({ frequency: 0.5, octaves: 3, baseFrequency: 350 }),
+        chorus:           new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo:          new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato:          new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner:       new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener:    new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay:    new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay:    new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb:         new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb:         new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb:           new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+
+    // ===========================================================
+    // 5-BAND GRAPHIC EQ (always in chain)
+    // ===========================================================
+    const EQ_BANDS = [100, 400, 1000, 4000, 10000];
+    const eqFilters = EQ_BANDS.map(f => new Tone.Filter({
+        type: 'peaking', frequency: f, Q: 1, gain: 0
+    }));
+
+    const eqBandsEl = document.getElementById('eqBands');
+    EQ_BANDS.forEach((freq, i) => {
+        const card = document.createElement('div');
+        card.className = 'eq-band';
+
+        const label = document.createElement('div');
+        label.className = 'freq';
+        label.textContent = freq >= 1000 ? (freq/1000) + ' kHz' : freq + ' Hz';
+        card.appendChild(label);
+
+        const slider = document.createElement('input');
+        slider.type = 'range'; slider.min = -12; slider.max = 12;
+        slider.step = 1; slider.value = 0;
+        card.appendChild(slider);
+
+        const val = document.createElement('div');
+        val.className = 'val'; val.textContent = '0 dB';
+        card.appendChild(val);
+
+        slider.addEventListener('input', () => {
+            const db = parseFloat(slider.value);
+            val.textContent = (db > 0 ? '+' : '') + db + ' dB';
+            try { eqFilters[i].gain.rampTo(db, 0.05); }
+            catch (e) { eqFilters[i].gain.value = db; }
+        });
+
+        eqBandsEl.appendChild(card);
+    });
+
+    document.getElementById('flatEq').addEventListener('click', () => {
+        eqBandsEl.querySelectorAll('input[type=range]').forEach(s => {
+            s.value = 0;
+            s.dispatchEvent(new Event('input'));
+        });
+    });
+
+    // ===========================================================
+    // 128-bin FFT
+    // ===========================================================
+    const analyser = new Tone.Analyser({ type: 'fft', size: 256, smoothing: 0.85 });
+
+    // ===========================================================
+    // EFFECT CARDS
+    // ===========================================================
+    const fxGrid = document.getElementById('fxGrid');
+    EFFECTS.forEach(cfg => {
+        const card = document.createElement('div');
+        card.className = 'fx';
+
+        const lab = document.createElement('label');
+        lab.className = 'fx-toggle';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.dataset.fx = cfg.key;
+        cb.addEventListener('change', rebuildChain);
+        lab.appendChild(cb);
+        lab.appendChild(document.createTextNode(' ' + cfg.label));
+        card.appendChild(lab);
+
+        const row = document.createElement('div');
+        row.className = 'fx-row';
+        const small = document.createElement('small');
+        small.textContent = cfg.paramLabel;
+        row.appendChild(small);
+
+        const sel = document.createElement('select');
+        cfg.options.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v; opt.textContent = v;
+            if (Number(v) === cfg.def) opt.selected = true;
+            sel.appendChild(opt);
+        });
+        sel.addEventListener('change', () => {
+            const val = parseFloat(sel.value);
+            const cur = fx[cfg.key][cfg.param];
+            if (cur && typeof cur === 'object' && 'value' in cur) cur.value = val;
+            else fx[cfg.key][cfg.param] = val;
+        });
+        row.appendChild(sel);
+        card.appendChild(row);
+
+        fxGrid.appendChild(card);
+    });
+
+    // ===========================================================
+    // CHAIN REBUILD
+    //   player → [effects] → EQ (5 bands) → Destination
+    //                                        └→ analyser
+    // ===========================================================
+    let player = null;
+    const objectUrls = [];
+
+    function rebuildChain() {
+        if (!player) return;
+        try { player.disconnect(); } catch (e) {}
+        ORDER.forEach(id => { try { fx[id].disconnect(); } catch (e) {} });
+        eqFilters.forEach(f => { try { f.disconnect(); } catch (e) {} });
+
+        const active = ORDER
+            .filter(id => document.querySelector(`input[data-fx="${id}"]`).checked)
+            .map(id => fx[id]);
+
+        player.chain(...active, ...eqFilters, Tone.Destination);
+        eqFilters[eqFilters.length - 1].connect(analyser);
+    }
+
+    // ===========================================================
+    // VOLUME  (master, mapped to Tone.Destination)
+    // ===========================================================
+    const volumeSlider = document.getElementById('volumeSlider');
+    const volumeVal    = document.getElementById('volumeVal');
+
+    function applyVolume() {
+        const pct = parseFloat(volumeSlider.value);
+        volumeVal.textContent = pct + '%';
+        const gain = pct / 100;
+        Tone.Destination.volume.value = gain === 0 ? -Infinity : Tone.gainToDb(gain);
+    }
+    volumeSlider.addEventListener('input', applyVolume);
+    applyVolume();
+
+    // ===========================================================
+    // SPEED  (FIXED: direct assignment, not .value)
+    // ===========================================================
+    const speedSlider = document.getElementById('speedSlider');
+    const speedVal    = document.getElementById('speedVal');
+
+    function applySpeed() {
+        const v = parseFloat(speedSlider.value);
+        speedVal.textContent = v.toFixed(2) + '×';
+        if (player) {
+            try { player.playbackRate = v; }
+            catch (e) { console.warn('playbackRate set failed:', e); }
+        }
+    }
+    speedSlider.addEventListener('input', applySpeed);
+    document.getElementById('resetSpeed').addEventListener('click', () => {
+        speedSlider.value = 1;
+        applySpeed();
+    });
+
+    // ===========================================================
+    // PLAY
+    // ===========================================================
+    async function playTrack(url, name) {
+        await Tone.start();
+        if (player) {
+            try { player.stop(); player.dispose(); } catch (e) {}
+            player = null;
+        }
+        document.getElementById('now').textContent = '⏳ Loading ' + name + '…';
+
+        player = new Tone.Player(url);
+        await Promise.all([ Tone.loaded(), fx.reverb.ready ]);
+
+        applySpeed();       // store before start
+        rebuildChain();
+        player.start();
+        applySpeed();       // re-apply after start (source now exists)
+
+        document.getElementById('now').textContent = '▶ ' + name;
+        baseHue = 28 + Math.random() * 22;
+    }
+
+    // ===========================================================
+    // UPLOAD
+    // ===========================================================
+    const fileInput = document.getElementById('fileInput');
+    const playlist  = document.getElementById('playlist');
+    const countEl   = document.getElementById('count');
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files).filter(f =>
+            f.type === 'audio/mpeg' || f.name.toLowerCase().endsWith('.mp3')
+        );
+        files.forEach(file => {
+            const url = URL.createObjectURL(file);
+            objectUrls.push(url);
+            const btn = document.createElement('button');
+            btn.className = 'track';
+            btn.textContent = '▶ ' + file.name;
+            btn.addEventListener('click', () => playTrack(url, file.name));
+            playlist.appendChild(btn);
+        });
+        countEl.textContent = playlist.querySelectorAll('.track').length;
+        fileInput.value = '';
+    });
+
+    document.getElementById('stop').addEventListener('click', () => {
+        if (player) player.stop();
+        document.getElementById('now').textContent = '■ Stopped';
+    });
+
+    // ===========================================================
+    // SPECTRUM  (GOLDEN gradient)
+    // ===========================================================
+    const canvas = document.getElementById('spectrum');
+    const ctx    = canvas.getContext('2d');
+    let baseHue  = 28 + Math.random() * 22;   // 28–50 (orange→gold)
+
+    function fitCanvas() {
+        const dpr  = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        canvas.width  = Math.max(1, Math.floor(rect.width  * dpr));
+        canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    }
+    fitCanvas();
+    window.addEventListener('resize', fitCanvas);
+
+    document.getElementById('rerollColors').addEventListener('click', () => {
+        baseHue = 28 + Math.random() * 22;
+    });
+
+    const opacitySlider = document.getElementById('opacitySlider');
+    const opacityVal    = document.getElementById('opacityVal');
+    function applyOpacity() {
+        canvas.style.opacity = opacitySlider.value;
+        opacityVal.textContent = Number(opacitySlider.value).toFixed(2);
+    }
+    opacitySlider.addEventListener('input', applyOpacity);
+    applyOpacity();
+
+    function draw() {
+        requestAnimationFrame(draw);
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+
+        let values;
+        try { values = analyser.getValue(); } catch (e) { return; }
+        if (!values) return;
+
+        const N    = values.length;
+        const barW = W / N;
+        const gap  = Math.max(1, barW * 0.18);
+        const t    = performance.now() * 0.001;
+
+        for (let i = 0; i < N; i++) {
+            const v    = values[i];
+            const norm = Math.max(0, Math.min(1, (v + 90) / 90));
+            const h    = norm * H * 0.98;
+            if (h < 0.6) continue;
+
+            // GOLDEN: hue oscillates within warm band (≈26–62°)
+            const hue = baseHue
+                      + (i / N) * 12
+                      + Math.sin(t * 0.6 + i * 0.05) * 6;
+
+            const grad = ctx.createLinearGradient(0, H - h, 0, H);
+            grad.addColorStop(0,   `hsl(${hue},       100%, 70%)`);  // bright gold
+            grad.addColorStop(0.5, `hsl(${hue + 8},    95%, 55%)`);  // gold
+            grad.addColorStop(1,   `hsl(${hue + 15},   90%, 38%)`);  // deep amber
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(i * barW + gap / 2, H - h, barW - gap, h);
+        }
+    }
+    draw();
+
+    // ===========================================================
+    // COPY HTML BUTTON
+    // ===========================================================
+    document.getElementById('copyHtml').addEventListener('click', async () => {
+        const btn = document.getElementById('copyHtml');
+        const original = btn.textContent;
+
+        async function getSource() {
+            try {
+                const res = await fetch(location.href);
+                if (res.ok) return await res.text();
+            } catch (e) { /* file:// or CORS → fall through */ }
+            return '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        }
+
+        try {
+            const text = await getSource();
+            await navigator.clipboard.writeText(text);
+            btn.textContent = '✅ Copied!';
+        } catch (e) {
+            // Legacy fallback
+            try {
+                const ta = document.createElement('textarea');
+                ta.value = await getSource();
+                ta.style.position = 'fixed';
+                ta.style.left = '-9999px';
+                document.body.appendChild(ta);
+                ta.select();
+                document.execCommand('copy');
+                document.body.removeChild(ta);
+                btn.textContent = '✅ Copied!';
+            } catch (e2) {
+                btn.textContent = '❌ Copy failed';
+            }
+        }
+        setTimeout(() => { btn.textContent = original; }, 1500);
+    });
+
+    window.addEventListener('beforeunload', () => {
+        objectUrls.forEach(u => URL.revokeObjectURL(u));
+    });
+})();
+</script>
+</body>
+</html>
