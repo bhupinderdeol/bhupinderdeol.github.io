@@ -1,1 +1,504 @@
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Car MP3 Player - Web Audio</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    body {
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: #0a0a0a; color: #e8e8e8; margin: 0;
+        display: flex; justify-content: center; align-items: center;
+        min-height: 100vh; padding: 10px; box-sizing: border-box;
+    }
+
+    /* --- The Image Container --- */
+    .car-stereo-container {
+        position: relative;
+        width: 100%;
+        max-width: 900px;
+        
+        /* ⚠️ CHANGE THIS URL TO YOUR OWN IMAGE ⚠️ */
+        /* If you uploaded your image as car.jpg, change this to url('car.jpg') */
+        background-image: url('./car-image.jpg');
+        
+        background-size: cover;
+        background-position: center;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 0 2px #333;
+        aspect-ratio: 1 / 1; /* Matches your uploaded image ratio */
+    }
+
+    /* Darkens the background slightly so the screen pops */
+    .car-stereo-container::before {
+        content: '';
+        position: absolute; inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 0;
+    }
+
+    /* Hide actual file input */
+    #fileInput { display: none; }
+
+    /* --- The Screen Overlay (Center of the radio) --- */
+    .screen-area {
+        position: absolute;
+        top: 48%;    
+        left: 26%;
+        width: 57%;
+        height: 15%;
+        background: #111;
+        border: 2px solid #222;
+        border-radius: 4px;
+        box-shadow: inset 0 0 20px #000, 0 0 10px rgba(0, 255, 255, 0.2);
+        z-index: 10;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        color: #00ffff;
+        font-family: monospace;
+    }
+
+    /* Screen Headers */
+    .screen-header {
+        display: flex; justify-content: space-between;
+        padding: 4px 8px; font-size: 0.7rem; border-bottom: 1px solid #222;
+        background: #1a1a1a; color: #888;
+    }
+
+    /* Visualizer Canvas */
+    #visualizer {
+        flex: 1; width: 100%; height: 100%; display: block;
+    }
+
+    /* Scrolling Track Name */
+    .track-name {
+        position: absolute; top: 50%; left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 0.9rem; font-weight: bold;
+        text-shadow: 0 0 10px #00ffff;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        max-width: 90%; text-align: center; pointer-events: none;
+    }
+
+    /* Settings Menu Overlay (Inside the screen) */
+    .settings-menu {
+        position: absolute; inset: 0;
+        background: rgba(10, 10, 15, 0.95);
+        display: none;
+        flex-direction: column;
+        padding: 6px;
+        overflow-y: auto;
+        color: #fff; font-family: system-ui, sans-serif;
+    }
+    .settings-menu.active { display: flex; }
+    
+    .settings-menu h3 {
+        margin: 0 0 4px 0; font-size: 0.7rem; color: #00ffff;
+        border-bottom: 1px solid #333; padding-bottom: 2px;
+    }
+    .fx-grid-mini {
+        display: grid; grid-template-columns: repeat(3, 1fr);
+        gap: 3px; margin-bottom: 6px;
+    }
+    .fx-mini-item {
+        display: flex; align-items: center; gap: 2px;
+        font-size: 0.55rem; color: #ccc; background: #222;
+        padding: 2px; border-radius: 3px; cursor: pointer;
+    }
+    .fx-mini-item input { accent-color: #00ffff; margin: 0; transform: scale(0.8); }
+    .fx-mini-item select { width: 30px; background: #000; color: #0ff; border: none; font-size: 0.55rem; }
+
+    /* EQ Sliders */
+    .eq-mini { display: flex; gap: 4px; justify-content: space-between; }
+    .eq-mini input[type=range] {
+        width: 100%; accent-color: #00ffff; height: 50px;
+        writing-mode: vertical-lr; direction: rtl;
+    }
+
+    /* --- Physical Button Overlays (Transparent clickable areas) --- */
+    .btn-overlay {
+        position: absolute; cursor: pointer; z-index: 20;
+        background: rgba(0,255,255,0); border-radius: 5px;
+        transition: background 0.1s;
+    }
+    .btn-overlay:active { background: rgba(0,255,255,0.3); }
+
+    /* These percentages place buttons over the physical buttons in your image */
+    .btn-prev { bottom: 32%; left: 30%; width: 8%; height: 5%; }
+    .btn-next { bottom: 32%; left: 39%; width: 8%; height: 5%; }
+    .btn-mode { bottom: 32%; left: 53%; width: 9%; height: 5%; }
+    .btn-band { bottom: 32%; left: 64%; width: 9%; height: 5%; }
+    
+    .btn-usb  { bottom: 42%; right: 8%; width: 4%; height: 12%; }
+    .btn-sd   { bottom: 42%; right: 14%; width: 4%; height: 12%; }
+
+    /* --- Volume Knob Area --- */
+    .volume-knob-overlay {
+        position: absolute; top: 48%; left: 9%;
+        width: 14%; height: 14%; border-radius: 50%;
+        z-index: 20; display: flex; justify-content: center; align-items: center;
+    }
+    .volume-knob-overlay input[type=range] {
+        appearance: none; width: 140%; transform: rotate(-90deg);
+        opacity: 0; cursor: pointer; height: 100%;
+    }
+
+    /* Status Badges */
+    .status-badge {
+        position: absolute; top: 10px; right: 10px;
+        background: rgba(0,255,255,0.15); color: #00ffff;
+        padding: 6px 12px; border-radius: 20px; font-size: 0.8rem;
+        border: 1px solid #00ffff; z-index: 30; display: none;
+        backdrop-filter: blur(4px);
+    }
+
+    /* Playlist Modal (Mobile Responsive) */
+    .playlist-modal {
+        position: absolute; 
+        inset: 5% 10%; /* Made wider for mobile */
+        background: rgba(15, 15, 20, 0.95);
+        border: 2px solid #00ffff; border-radius: 10px; z-index: 40;
+        display: none; flex-direction: column; padding: 15px;
+        box-shadow: 0 0 50px rgba(0,255,255,0.3);
+        backdrop-filter: blur(10px);
+    }
+    .playlist-modal.active { display: flex; }
+    .playlist-modal h2 { margin-top: 0; color: #00ffff; font-size: 1.2rem; display: flex; justify-content: space-between; align-items: center;}
+    .playlist-modal h2 button { background: #333; color: #fff; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; }
+    .track-list { flex: 1; overflow-y: auto; }
+    .track-item {
+        display: block; width: 100%; text-align: left; background: #222;
+        color: #fff; border: 1px solid #333; padding: 12px; margin-bottom: 8px;
+        border-radius: 4px; cursor: pointer; font-size: 0.9rem;
+    }
+    .track-item:hover { background: #333; border-color: #00ffff; }
+</style>
+</head>
+<body>
+
+<!-- CAR STEREO CONTAINER -->
+<div class="car-stereo-container" id="stereo">
+    
+    <!-- SCREEN -->
+    <div class="screen-area" id="screen">
+        <div class="screen-header">
+            <span id="screenStatus">READY</span>
+            <span id="screenTime">00:00</span>
+        </div>
+        <canvas id="visualizer"></canvas>
+        <div class="track-name" id="trackName">NO TRACK</div>
+        
+        <!-- Settings Menu (EQ + FX) -->
+        <div class="settings-menu" id="settingsMenu">
+            <h3>Effects</h3>
+            <div class="fx-grid-mini" id="fxGridMini"></div>
+            <h3>EQ</h3>
+            <div class="eq-mini" id="eqMini"></div>
+        </div>
+    </div>
+
+    <!-- INVISIBLE OVERLAY BUTTONS -->
+    <div class="btn-overlay btn-prev" id="btnPrev" title="Previous"></div>
+    <div class="btn-overlay btn-next" id="btnNext" title="Next / Play"></div>
+    <div class="btn-overlay btn-mode" id="btnMode" title="Mode / Settings"></div>
+    <div class="btn-overlay btn-band" id="btnBand" title="Band / Presets"></div>
+    <div class="btn-overlay btn-usb" id="btnUsb" title="Load from USB"></div>
+    <div class="btn-overlay btn-sd" id="btnSd" title="Load from SD"></div>
+
+    <!-- VOLUME KNOB -->
+    <div class="volume-knob-overlay">
+        <input type="range" id="volumeSlider" min="0" max="100" step="1" value="50">
+    </div>
+
+    <!-- PLAYLIST MODAL -->
+    <div class="playlist-modal" id="playlistModal">
+        <h2>Playlist <button id="closePlaylist">✕ Close</button></h2>
+        <div class="track-list" id="playlist"></div>
+    </div>
+
+    <div class="status-badge" id="statusBadge">Vol: 50%</div>
+
+</div>
+
+<input type="file" id="fileInput" accept="audio/mpeg,.mp3" multiple>
+
+<script>
+(function () {
+    // --- AUDIO ENGINE ---
+    const master = new Tone.Gain(0.5).toDestination();
+    
+    const eqFilters = [100, 400, 1000, 4000, 10000].map(f => 
+        new Tone.Filter({ type: 'peaking', frequency: f, Q: 1, gain: 0 })
+    );
+    eqFilters[0].chain(...eqFilters.slice(1), master);
+    const eqLast = eqFilters[eqFilters.length - 1];
+
+    const analyser = new Tone.Analyser({ type: 'fft', size: 128, smoothing: 0.85 });
+    eqLast.connect(analyser);
+
+    // 18 Effects
+    const EFFECTS = [
+        { key:'distortion', label:'Distortion', param:'distortion', def:0.6, opts:[0.1,0.6,0.9] },
+        { key:'bitcrusher', label:'BitCrusher', param:'bits', def:6, opts:[4,6,8,16] },
+        { key:'chebyshev', label:'Chebyshev', param:'order', def:3, opts:[1,3,5,8] },
+        { key:'pitchshift', label:'PitchShift', param:'pitch', def:5, opts:[-5,0,5,7,12] },
+        { key:'frequencyshifter', label:'FreqShift', param:'frequency', def:30, opts:[10,30,100,300] },
+        { key:'autowah', label:'AutoWah', param:'octaves', def:6, opts:[2,4,6,8] },
+        { key:'autofilter', label:'AutoFilter', param:'depth', def:0.7, opts:[0.3,0.7,1.0] },
+        { key:'phaser', label:'Phaser', param:'frequency', def:0.5, opts:[0.1,0.5,2,5] },
+        { key:'chorus', label:'Chorus', param:'frequency', def:1.5, opts:[0.5,1.5,3,6] },
+        { key:'tremolo', label:'Tremolo', param:'frequency', def:5, opts:[1,5,8,12] },
+        { key:'vibrato', label:'Vibrato', param:'depth', def:0.1, opts:[0.02,0.1,0.2,0.4] },
+        { key:'autopanner', label:'AutoPanner', param:'frequency', def:1, opts:[0.5,1,2,5] },
+        { key:'stereowidener', label:'StereoWiden', param:'width', def:0.7, opts:[0.3,0.7,0.9] },
+        { key:'feedbackdelay', label:'FbDelay', param:'feedback', def:0.3, opts:[0.1,0.3,0.5,0.7] },
+        { key:'pingpongdelay', label:'PingPong', param:'feedback', def:0.3, opts:[0.1,0.3,0.5,0.7] },
+        { key:'freeverb', label:'Freeverb', param:'roomSize', def:0.7, opts:[0.3,0.7,0.9] },
+        { key:'jcreverb', label:'JCReverb', param:'roomSize', def:0.5, opts:[0.3,0.5,0.9] },
+        { key:'reverb', label:'Reverb', param:'decay', def:2, opts:[0.5,2,4,8] }
+    ];
+    const ORDER = EFFECTS.map(e => e.key);
+    const fx = {};
+    let currentPresetIndex = -1;
+
+    const FX_FACTORY = {
+        distortion: () => new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher: () => new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev: () => new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift: () => new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: () => new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah: () => new Tone.AutoWah({ baseFrequency: 100, octaves: 6, wet: 0.5 }),
+        autofilter: () => new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser: () => new Tone.Phaser({ frequency: 0.5, octaves: 3 }),
+        chorus: () => new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo: () => new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato: () => new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner: () => new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener: () => new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay: () => new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay: () => new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb: () => new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb: () => new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb: () => new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+
+    function getEffect(key) {
+        if (!fx[key]) {
+            const node = FX_FACTORY[key]();
+            const cfg = EFFECTS.find(e => e.key === key);
+            const val = parseFloat(document.getElementById('sel-' + key).value);
+            if (node[cfg.param] && typeof node[cfg.param] === 'object') node[cfg.param].value = val;
+            else node[cfg.param] = val;
+            fx[key] = node;
+        }
+        return fx[key];
+    }
+
+    // --- UI GENERATION ---
+    const fxGrid = document.getElementById('fxGridMini');
+    EFFECTS.forEach(cfg => {
+        const div = document.createElement('div');
+        div.className = 'fx-mini-item';
+        div.innerHTML = `
+            <input type="checkbox" id="chk-${cfg.key}" onchange="rebuildChain()">
+            <span>${cfg.label}</span>
+            <select id="sel-${cfg.key}" onchange="updateFx('${cfg.key}','${cfg.param}',this.value)">
+                ${cfg.opts.map(o => `<option value="${o}" ${o===cfg.def?'selected':''}>${o}</option>`).join('')}
+            </select>
+        `;
+        fxGrid.appendChild(div);
+    });
+
+    const eqMini = document.getElementById('eqMini');
+    [100, 400, 1000, 4000, 10000].forEach((freq, i) => {
+        const div = document.createElement('div');
+        div.style.flex = "1";
+        div.style.textAlign = "center";
+        div.innerHTML = `
+            <input type="range" min="-12" max="12" value="0" id="eq-${i}" oninput="updateEq(${i}, this.value)">
+            <div style="font-size:0.5rem;color:#888;margin-top:4px">${freq >= 1000 ? freq/1000+'k' : freq}</div>
+        `;
+        eqMini.appendChild(div);
+    });
+
+    window.updateFx = (key, param, val) => {
+        if (fx[key]) {
+            if (fx[key][param] && typeof fx[key][param] === 'object') fx[key][param].value = parseFloat(val);
+            else fx[key][param] = parseFloat(val);
+        }
+    };
+
+    window.updateEq = (i, val) => {
+        eqFilters[i].gain.rampTo(parseFloat(val), 0.05);
+    };
+
+    window.rebuildChain = () => {
+        if (!player) return;
+        try { player.disconnect(); } catch (e) {}
+        Object.values(fx).forEach(n => { try { n.disconnect(); } catch (e) {} });
+        
+        const active = [];
+        ORDER.forEach(id => {
+            if (document.getElementById('chk-' + id).checked) active.push(getEffect(id));
+        });
+        
+        player.chain(...active, eqFilters[0]);
+    };
+
+    // --- PLAYER LOGIC ---
+    let player = null;
+    let tracks = [];
+    let currentTrackIndex = -1;
+    let isPlaying = false;
+
+    const fileInput = document.getElementById('fileInput');
+    const playlistDiv = document.getElementById('playlist');
+    const playlistModal = document.getElementById('playlistModal');
+    const trackNameDisplay = document.getElementById('trackName');
+    const screenStatus = document.getElementById('screenStatus');
+    const volumeSlider = document.getElementById('volumeSlider');
+    const statusBadge = document.getElementById('statusBadge');
+
+    // File handling
+    document.getElementById('btnUsb').addEventListener('click', () => fileInput.click());
+    document.getElementById('btnSd').addEventListener('click', () => fileInput.click());
+    document.getElementById('btnNext').addEventListener('click', () => {
+        if (!tracks.length) return fileInput.click();
+        playTrack((currentTrackIndex + 1) % tracks.length);
+    });
+    document.getElementById('btnPrev').addEventListener('click', () => {
+        if (!tracks.length) return;
+        playTrack((currentTrackIndex - 1 + tracks.length) % tracks.length);
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        const files = Array.from(e.target.files).filter(f => f.type === 'audio/mpeg' || f.name.endsWith('.mp3'));
+        files.forEach(f => tracks.push({ name: f.name, url: URL.createObjectURL(f) }));
+        renderPlaylist();
+        playlistModal.classList.add('active');
+        fileInput.value = '';
+    });
+
+    function renderPlaylist() {
+        playlistDiv.innerHTML = '';
+        tracks.forEach((t, i) => {
+            const btn = document.createElement('button');
+            btn.className = 'track-item';
+            btn.textContent = (i === currentTrackIndex ? '▶ ' : '') + t.name;
+            btn.onclick = () => { playTrack(i); playlistModal.classList.remove('active'); };
+            playlistDiv.appendChild(btn);
+        });
+    }
+
+    async function playTrack(index) {
+        await Tone.start();
+        if (player) { player.stop(); player.dispose(); }
+        currentTrackIndex = index;
+        const track = tracks[index];
+        
+        trackNameDisplay.textContent = track.name.replace('.mp3', '');
+        trackNameDisplay.style.display = 'block';
+        screenStatus.textContent = "LOADING...";
+        
+        player = new Tone.Player(track.url);
+        await Tone.loaded();
+        
+        rebuildChain();
+        player.start();
+        isPlaying = true;
+        screenStatus.textContent = "PLAYING";
+        renderPlaylist();
+    }
+
+    document.getElementById('closePlaylist').onclick = () => playlistModal.classList.remove('active');
+
+    // Button Modes
+    document.getElementById('btnMode').addEventListener('click', () => {
+        const menu = document.getElementById('settingsMenu');
+        menu.classList.toggle('active');
+        trackNameDisplay.style.display = menu.classList.contains('active') ? 'none' : 'block';
+    });
+
+    // Volume Knob Overlay
+    volumeSlider.addEventListener('input', () => {
+        const v = volumeSlider.value;
+        master.gain.rampTo(v / 100, 0.05);
+        statusBadge.textContent = `Vol: ${v}%`;
+        statusBadge.style.display = 'block';
+        clearTimeout(window.volTimeout);
+        window.volTimeout = setTimeout(() => statusBadge.style.display = 'none', 1000);
+    });
+
+    // Presets (Cycled by Band/AMS button)
+    const PRESETS = [
+        { name: 'FLAT', fx: {}, eq: [0,0,0,0,0] },
+        { name: 'FEMALE', fx: { pitchshift:7, frequencyshifter:300, chorus:0.5 }, eq: [0,0,2,4,2] },
+        { name: 'LOFI', fx: { bitcrusher:6, distortion:0.6, tremolo:3, reverb:1 }, eq: [2,2,-2,-4,-6] },
+        { name: 'CATHEDRAL', fx: { reverb:8, freeverb:0.9, pingpongdelay:0.5, chorus:0.5 }, eq: [2,0,0,0,-2] }
+    ];
+
+    document.getElementById('btnBand').addEventListener('click', () => {
+        currentPresetIndex = (currentPresetIndex + 1) % PRESETS.length;
+        const p = PRESETS[currentPresetIndex];
+        
+        document.querySelectorAll('.fx-mini-item input[type=checkbox]').forEach(cb => cb.checked = false);
+        document.querySelectorAll('.fx-mini-item select').forEach(sel => sel.value = sel.options[0].value);
+        
+        Object.entries(p.fx).forEach(([key, val]) => {
+            if (document.getElementById('chk-' + key)) {
+                document.getElementById('chk-' + key).checked = true;
+                document.getElementById('sel-' + key).value = val;
+                updateFx(key, EFFECTS.find(e=>e.key===key).param, val);
+            }
+        });
+        
+        p.eq.forEach((val, i) => {
+            document.getElementById('eq-' + i).value = val;
+            updateEq(i, val);
+        });
+        
+        rebuildChain();
+        screenStatus.textContent = `EQ: ${p.name}`;
+        setTimeout(() => { if(isPlaying) screenStatus.textContent = "PLAYING"; }, 2000);
+    });
+
+    // --- VISUALIZER ---
+    const canvas = document.getElementById('visualizer');
+    const ctx = canvas.getContext('2d');
+    
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width * window.devicePixelRatio;
+        canvas.height = rect.height * window.devicePixelRatio;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    setTimeout(resizeCanvas, 100);
+
+    function draw() {
+        requestAnimationFrame(draw);
+        if (!canvas.width) return;
+        
+        const W = canvas.width, H = canvas.height;
+        ctx.clearRect(0, 0, W, H);
+        
+        const vals = analyser.getValue();
+        const N = vals.length;
+        const barW = W / N;
+        
+        for (let i = 0; i < N; i++) {
+            const norm = Math.max(0, Math.min(1, (vals[i] + 90) / 90));
+            const h = norm * H * 0.9;
+            ctx.fillStyle = `rgba(0, 255, 255, ${norm * 0.8 + 0.2})`;
+            ctx.fillRect(i * barW + 1, H - h, barW - 2, h);
+        }
+    }
+    draw();
+
+})();
+</script>
+</body>
+</html>
