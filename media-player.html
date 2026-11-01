@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>🎬 CapCut-Style Media Player</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<style>
+    :root {
+        --bg: #0f1115; --panel: #1d2128; --card: #242a33; --border: #2a2f38;
+        --accent: #00e5ff; --gold: #ffb300; --muted: #9aa4b2; --text: #e8e8e8;
+    }
+    * { box-sizing: border-box; }
+    body {
+        font-family: system-ui, sans-serif; background: var(--bg); color: var(--text);
+        margin: 0; padding: 20px; display: flex; flex-direction: column;
+        align-items: center; min-height: 100vh;
+    }
+    h1 { font-size: 1.4rem; margin-bottom: 16px; color: var(--accent); }
+    
+    .layout {
+        display: grid; grid-template-columns: 1fr 380px; gap: 20px;
+        width: 100%; max-width: 1300px;
+    }
+    @media (max-width: 950px) { .layout { grid-template-columns: 1fr; } }
+
+    /* --- Video Section --- */
+    .video-container {
+        background: #000; border-radius: 10px; overflow: hidden;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.5); display: flex; flex-direction: column;
+        position: relative;
+    }
+    
+    .video-wrapper {
+        width: 100%; aspect-ratio: 16/9; background: #000;
+        display: flex; justify-content: center; align-items: center;
+        overflow: hidden; position: relative;
+    }
+    
+    /* Canvas for rendering Video + Effects */
+    #videoCanvas {
+        width: 100%; height: 100%; object-fit: contain; display: block;
+        background: #111;
+    }
+    /* Hide the actual video element */
+    #video { display: none; }
+
+    /* Controls */
+    .controls {
+        background: var(--panel); padding: 12px 16px; display: flex;
+        align-items: center; gap: 12px; border-top: 1px solid var(--border);
+    }
+    .controls button {
+        background: transparent; color: #fff; border: none; cursor: pointer;
+        font-size: 1.2rem; padding: 5px;
+    }
+    .controls button:hover { color: var(--accent); }
+    .time-display { font-size: 0.85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+    
+    .seek-bar {
+        flex: 1; appearance: none; height: 6px; border-radius: 3px;
+        background: var(--card); outline: none; cursor: pointer;
+    }
+    .seek-bar::-webkit-slider-thumb {
+        appearance: none; width: 14px; height: 14px; border-radius: 50%;
+        background: var(--accent); cursor: pointer;
+    }
+
+    /* --- Side Panel --- */
+    .side-panel {
+        display: flex; flex-direction: column; gap: 16px;
+        max-height: calc(100vh - 100px); overflow-y: auto; padding-right: 8px;
+    }
+    .side-panel::-webkit-scrollbar { width: 6px; }
+    .side-panel::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    section {
+        background: var(--panel); border: 1px solid var(--border);
+        border-radius: 10px; padding: 16px;
+    }
+    h2 {
+        font-size: 0.9rem; color: var(--gold); margin: 0 0 12px 0;
+        text-transform: uppercase; letter-spacing: 0.08em;
+    }
+
+    .upload-btn {
+        width: 100%; background: var(--accent); color: #000; border: none;
+        padding: 10px; border-radius: 6px; cursor: pointer; font-weight: 700;
+    }
+    #fileInput { display: none; }
+
+    /* Fixed Visualizer Height */
+    #visualizer {
+        width: 100%; height: 100px; display: block; border-radius: 6px; background: #000;
+    }
+
+    .grid-list { display: flex; flex-direction: column; gap: 8px; }
+    .grid-item {
+        display: flex; align-items: center; justify-content: space-between;
+        background: var(--card); padding: 8px 10px; border-radius: 6px; font-size: 0.85rem;
+    }
+    .grid-item label { display: flex; align-items: center; gap: 8px; cursor: pointer; flex: 1; }
+    .grid-item input[type=checkbox] { accent-color: var(--accent); width: 16px; height: 16px; }
+    
+    .slider-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 0.8rem; }
+    .slider-row input[type=range] { flex: 1; accent-color: var(--accent); }
+    .slider-row span { width: 50px; text-align: right; color: var(--muted); }
+
+    .btn-ai { background: #8e24aa; color: white; padding: 8px; border-radius: 6px; border:none; cursor:pointer; width:100%; font-weight:bold; }
+    .btn-ai:hover { background: #ab47bc; }
+</style>
+</head>
+<body>
+
+<h1>🎬 Ultimate CapCut Player</h1>
+<input type="file" id="fileInput" accept="video/mp4,video/webm,audio/mpeg">
+
+<div class="layout">
+    <div class="video-container">
+        <div class="video-wrapper">
+            <!-- We draw video to canvas for effects -->
+            <canvas id="videoCanvas"></canvas>
+            <video id="video" playsinline></video>
+        </div>
+        <div class="controls">
+            <button id="playPause">▶</button>
+            <span class="time-display" id="timeDisplay">0:00 / 0:00</span>
+            <input type="range" id="seekBar" class="seek-bar" value="0" min="0" max="100" step="0.1">
+            <button id="muteBtn">🔊</button>
+        </div>
+    </div>
+
+    <div class="side-panel">
+        <section>
+            <h2>Load Media</h2>
+            <button class="upload-btn" id="uploadBtn">📁 Choose Video / Audio</button>
+            <div class="slider-row" style="margin-top:12px;">
+                <span>🔊 Vol</span>
+                <input type="range" id="volumeSlider" min="0" max="100" value="50">
+                <span id="volValue">50%</span>
+            </div>
+        </section>
+
+        <section>
+            <h2>Live Spectrum</h2>
+            <!-- Explicit dimensions prevent 0x0 render bug -->
+            <canvas id="visualizer" width="340" height="100"></canvas>
+        </section>
+
+        <section>
+            <h2>Video Effects (Canvas)</h2>
+            <div class="grid-list" style="margin-bottom: 12px;">
+                <div class="grid-item"><label><input type="checkbox" id="vid-grayscale"> Grayscale</label></div>
+                <div class="grid-item"><label><input type="checkbox" id="vid-sepia"> Sepia</label></div>
+                <div class="grid-item"><label><input type="checkbox" id="vid-invert"> Invert Colors</label></div>
+                <div class="grid-item"><label><input type="checkbox" id="vid-mirror"> Mirror</label></div>
+                <div class="grid-item"><label><input type="checkbox" id="vid-bgblur"> Background Blur</label></div>
+                <div class="grid-item" style="border: 1px solid #4caf50;">
+                    <label><input type="checkbox" id="vid-chromakey"> 🟢 Green Screen</label>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2>AI Integration</h2>
+            <button class="btn-ai" id="btnAi">✨ AI Background Removal</button>
+        </section>
+
+        <section>
+            <h2>Audio Equalizer</h2>
+            <div class="eq-grid" style="display:flex; gap:8px;" id="eqGrid"></div>
+        </section>
+
+        <section>
+            <h2>18 Audio Effects</h2>
+            <div class="grid-list" id="fxGrid"></div>
+        </section>
+    </div>
+</div>
+
+<script>
+(function () {
+    // --- DOM ELEMENTS ---
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('videoCanvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const visualizer = document.getElementById('visualizer');
+    const vCtx = visualizer.getContext('2d');
+    const fileInput = document.getElementById('fileInput');
+    
+    // ==========================================
+    // 1. AUDIO ENGINE (The Fixes are here)
+    // ==========================================
+    let master, chainInput, analyser, eqFilters = [];
+    let nativeMediaSource = null;
+    let audioInitialized = false;
+
+    async function initAudio() {
+        if (audioInitialized) return;
+        try {
+            // 1. Force AudioContext to resume
+            await Tone.start(); 
+            const rawContext = Tone.getContext().rawContext;
+            if (rawContext.state === 'suspended') await rawContext.resume();
+
+            // 2. Setup Tone Nodes
+            master = new Tone.Gain(0.5).toDestination();
+            eqFilters = [100, 400, 1000, 4000, 10000].map(f => 
+                new Tone.Filter({ type: 'peaking', frequency: f, Q: 1, gain: 0 })
+            );
+            eqFilters[0].chain(...eqFilters.slice(1), master);
+            const eqLast = eqFilters[eqFilters.length - 1];
+
+            // 3. Setup Analyser (fixed smoothing and size)
+            analyser = new Tone.Analyser({ type: 'fft', size: 256, smoothing: 0.8 });
+            eqLast.connect(analyser);
+
+            chainInput = new Tone.Gain(1);
+            
+            // 4. Route HTML5 Video to Tone.js
+            if (!nativeMediaSource) {
+                nativeMediaSource = rawContext.createMediaElementSource(video);
+                // Connect native node to Tone.js input
+                nativeMediaSource.connect(chainInput.input);
+            }
+            
+            // 5. CRITICAL FIX: Don't mute the video (it kills the stream). Set volume to 0.
+            video.muted = false; 
+            video.volume = 0;
+            
+            rebuildChain();
+            audioInitialized = true;
+            console.log("Audio Engine Ready");
+        } catch (e) {
+            console.error("Audio Init Error:", e);
+        }
+    }
+
+    // --- 18 Effects ---
+    const EFFECTS = [
+        { key:'distortion', label:'Distortion', param:'distortion', def:0.6, opts:[0.1,0.6,0.9] },
+        { key:'bitcrusher', label:'BitCrusher', param:'bits', def:6, opts:[4,6,8,16] },
+        { key:'chebyshev', label:'Chebyshev', param:'order', def:3, opts:[1,3,5,8] },
+        { key:'pitchshift', label:'PitchShift', param:'pitch', def:5, opts:[-5,0,5,7,12] },
+        { key:'frequencyshifter', label:'FreqShift', param:'frequency', def:30, opts:[10,30,100,300] },
+        { key:'autowah', label:'AutoWah', param:'octaves', def:6, opts:[2,4,6,8] },
+        { key:'autofilter', label:'AutoFilter', param:'depth', def:0.7, opts:[0.3,0.7,1.0] },
+        { key:'phaser', label:'Phaser', param:'frequency', def:0.5, opts:[0.1,0.5,2,5] },
+        { key:'chorus', label:'Chorus', param:'frequency', def:1.5, opts:[0.5,1.5,3,6] },
+        { key:'tremolo', label:'Tremolo', param:'frequency', def:5, opts:[1,5,8,12] },
+        { key:'vibrato', label:'Vibrato', param:'depth', def:0.1, opts:[0.02,0.1,0.2,0.4] },
+        { key:'autopanner', label:'AutoPanner', param:'frequency', def:1, opts:[0.5,1,2,5] },
+        { key:'stereowidener', label:'StereoWiden', param:'width', def:0.7, opts:[0.3,0.7,0.9] },
+        { key:'feedbackdelay', label:'FbDelay', param:'feedback', def:0.3, opts:[0.1,0.3,0.5,0.7] },
+        { key:'pingpongdelay', label:'PingPong', param:'feedback', def:0.3, opts:[0.1,0.3,0.5,0.7] },
+        { key:'freeverb', label:'Freeverb', param:'roomSize', def:0.7, opts:[0.3,0.7,0.9] },
+        { key:'jcreverb', label:'JCReverb', param:'roomSize', def:0.5, opts:[0.3,0.5,0.9] },
+        { key:'reverb', label:'Reverb', param:'decay', def:2, opts:[0.5,2,4,8] }
+    ];
+    const fx = {};
+    const FX_FACTORY = {
+        distortion: () => new Tone.Distortion({ distortion: 0.6, wet: 0.4 }),
+        bitcrusher: () => new Tone.BitCrusher({ bits: 6, wet: 0.4 }),
+        chebyshev: () => new Tone.Chebyshev({ order: 3, wet: 0.4 }),
+        pitchshift: () => new Tone.PitchShift({ pitch: 5, wet: 0.5 }),
+        frequencyshifter: () => new Tone.FrequencyShifter({ frequency: 30, wet: 0.4 }),
+        autowah: () => new Tone.AutoWah({ baseFrequency: 100, octaves: 6, wet: 0.5 }),
+        autofilter: () => new Tone.AutoFilter({ frequency: 1, depth: 0.7, wet: 0.5 }).start(),
+        phaser: () => new Tone.Phaser({ frequency: 0.5, octaves: 3 }),
+        chorus: () => new Tone.Chorus({ frequency: 1.5, delayTime: 3.5, depth: 0.7, wet: 0.5 }).start(),
+        tremolo: () => new Tone.Tremolo({ frequency: 5, depth: 0.5, wet: 0.5 }).start(),
+        vibrato: () => new Tone.Vibrato({ frequency: 5, depth: 0.1, wet: 0.5 }),
+        autopanner: () => new Tone.AutoPanner({ frequency: 1, depth: 0.8, wet: 0.5 }).start(),
+        stereowidener: () => new Tone.StereoWidener({ width: 0.7, wet: 0.5 }),
+        feedbackdelay: () => new Tone.FeedbackDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        pingpongdelay: () => new Tone.PingPongDelay({ delayTime: '8n', feedback: 0.3, wet: 0.4 }),
+        freeverb: () => new Tone.Freeverb({ roomSize: 0.7, dampening: 3000, wet: 0.4 }),
+        jcreverb: () => new Tone.JCReverb({ roomSize: 0.5, wet: 0.4 }),
+        reverb: () => new Tone.Reverb({ decay: 2, wet: 0.4 })
+    };
+
+    function rebuildChain() {
+        if (!chainInput) return;
+        try { chainInput.disconnect(); } catch(e) {}
+        Object.values(fx).forEach(n => { try { n.disconnect(); } catch(e) {} });
+
+        const active = [];
+        EFFECTS.forEach(cfg => {
+            const cb = document.getElementById('chk-' + cfg.key);
+            if (cb && cb.checked) {
+                if (!fx[cfg.key]) {
+                    fx[cfg.key] = FX_FACTORY[cfg.key]();
+                    const val = parseFloat(document.getElementById('sel-' + cfg.key).value);
+                    const cur = fx[cfg.key][cfg.param];
+                    if (cur && typeof cur === 'object') cur.value = val;
+                    else fx[cfg.key][cfg.param] = val;
+                }
+                active.push(fx[cfg.key]);
+            }
+        });
+
+        if (active.length > 0) chainInput.chain(...active, eqFilters[0]);
+        else chainInput.connect(eqFilters[0]);
+    }
+
+    // ==========================================
+    // 2. CAPCUT VIDEO ENGINE
+    // ==========================================
+    function renderVideo() {
+        requestAnimationFrame(renderVideo); // Always loop
+        
+        if (video.readyState < 2) return; 
+
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+        }
+
+        const isGray = document.getElementById('vid-grayscale').checked;
+        const isSepia = document.getElementById('vid-sepia').checked;
+        const isInvert = document.getElementById('vid-invert').checked;
+        const isMirror = document.getElementById('vid-mirror').checked;
+        const isBgBlur = document.getElementById('vid-bgblur').checked;
+
+        let cssFilter = `grayscale(${isGray?100:0}%) sepia(${isSepia?100:0}%) invert(${isInvert?100:0}%)`;
+        if (isBgBlur) cssFilter += ` blur(8px) brightness(0.5)`;
+        ctx.filter = cssFilter;
+        
+        if (isMirror) {
+            ctx.translate(canvas.width, 0);
+            ctx.scale(-1, 1);
+        }
+
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+
+        const useChroma = document.getElementById('vid-chromakey').checked;
+        if (useChroma) {
+            const frame = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const data = frame.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i], g = data[i+1], b = data[i+2];
+                // Green Screen Detection
+                if (g > 80 && g > r * 1.4 && g > b * 1.4) {
+                    data[i+3] = 0; // Transparent
+                }
+            }
+            ctx.putImageData(frame, 0, 0);
+        }
+    }
+
+    // ==========================================
+    // 3. UI & VISUALIZER LOOP
+    // ==========================================
+    
+    // Effects UI
+    const fxGrid = document.getElementById('fxGrid');
+    EFFECTS.forEach(cfg => {
+        const div = document.createElement('div');
+        div.className = 'grid-item';
+        div.innerHTML = `
+            <label>
+                <input type="checkbox" id="chk-${cfg.key}" onchange="window.rebuildChain()">
+                <span>${cfg.label}</span>
+            </label>
+            <select id="sel-${cfg.key}" style="background:#111;color:#fff;border:1px solid #333;border-radius:4px;" onchange="window.updateFx('${cfg.key}','${cfg.param}',this.value)">
+                ${cfg.opts.map(o => `<option value="${o}" ${o===cfg.def?'selected':''}>${o}</option>`).join('')}
+            </select>
+        `;
+        fxGrid.appendChild(div);
+    });
+
+    // EQ UI
+    const eqGrid = document.getElementById('eqGrid');
+    [100, 400, 1000, 4000, 10000].forEach((freq, i) => {
+        const div = document.createElement('div');
+        div.style.flex = '1'; div.style.textAlign = 'center';
+        div.innerHTML = `
+            <input type="range" min="-12" max="12" value="0" id="eq-${i}" style="writing-mode:vertical-lr;direction:rtl;height:60px;" oninput="window.updateEq(${i}, this.value)">
+            <div style="font-size:0.6rem;color:#888;margin-top:4px;">${freq>=1000?freq/1000+'k':freq}</div>
+        `;
+        eqGrid.appendChild(div);
+    });
+
+    window.rebuildChain = rebuildChain;
+    window.updateFx = (key, param, val) => {
+        if (fx[key]) {
+            const cur = fx[key][param];
+            if (cur && typeof cur === 'object') cur.value = parseFloat(val);
+            else fx[key][param] = parseFloat(val);
+        }
+    };
+    window.updateEq = (i, val) => {
+        if (eqFilters[i]) eqFilters[i].gain.rampTo(parseFloat(val), 0.05);
+    };
+
+    // Fixed Visualizer Loop
+    function drawVisualizer() {
+        requestAnimationFrame(drawVisualizer);
+        
+        const W = visualizer.width, H = visualizer.height;
+        vCtx.clearRect(0, 0, W, H);
+        
+        if (!analyser) return; // Wait for audio to init
+        
+        const vals = analyser.getValue();
+        const N = vals.length;
+        const barW = W / N;
+        
+        for (let i = 0; i < N; i++) {
+            // Convert dB (-100 to 0) to height (0 to 1)
+            const norm = Math.max(0, Math.min(1, (vals[i] + 90) / 90));
+            const h = norm * H * 0.9;
+            vCtx.fillStyle = `rgba(0, 229, 255, ${norm * 0.8 + 0.2})`;
+            vCtx.fillRect(i * barW + 1, H - h, barW - 2, h);
+        }
+    }
+    
+    // Start loops immediately
+    drawVisualizer();
+    requestAnimationFrame(renderVideo);
+
+    // ==========================================
+    // 4. MEDIA CONTROLS
+    // ==========================================
+    
+    document.getElementById('uploadBtn').addEventListener('click', () => fileInput.click());
+    
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        video.src = URL.createObjectURL(file);
+        video.load();
+        
+        // Init audio on user click event
+        await initAudio(); 
+        
+        try {
+            await video.play();
+        } catch (err) {
+            console.error("Autoplay blocked:", err);
+        }
+    });
+
+    const playPauseBtn = document.getElementById('playPause');
+    playPauseBtn.addEventListener('click', async () => {
+        await initAudio(); // Safe to call multiple times
+        if (video.paused) { video.play(); } 
+        else { video.pause(); }
+    });
+
+    video.addEventListener('play', () => { playPauseBtn.textContent = '⏸'; });
+    video.addEventListener('pause', () => { playPauseBtn.textContent = '▶'; });
+
+    video.addEventListener('timeupdate', () => {
+        if (!video.duration) return;
+        document.getElementById('seekBar').value = (video.currentTime / video.duration) * 100;
+        const m = Math.floor(video.currentTime / 60);
+        const s = Math.floor(video.currentTime % 60).toString().padStart(2, '0');
+        document.getElementById('timeDisplay').textContent = `${m}:${s}`;
+    });
+
+    document.getElementById('seekBar').addEventListener('input', (e) => {
+        if (video.duration) video.currentTime = (e.target.value / 100) * video.duration;
+    });
+
+    document.getElementById('volumeSlider').addEventListener('input', (e) => {
+        const v = e.target.value;
+        document.getElementById('volValue').textContent = v + '%';
+        if (master) master.gain.rampTo(v / 100, 0.05);
+    });
+
+    document.getElementById('muteBtn').addEventListener('click', (e) => {
+        if (!master) return;
+        if (master.gain.value > 0) {
+            master.gain.value = 0;
+            document.getElementById('volumeSlider').value = 0;
+            document.getElementById('volValue').textContent = '0%';
+            e.target.textContent = '🔇';
+        } else {
+            master.gain.value = 0.5;
+            document.getElementById('volumeSlider').value = 50;
+            document.getElementById('volValue').textContent = '50%';
+            e.target.textContent = '🔊';
+        }
+    });
+
+    // AI Mockup
+    document.getElementById('btnAi').addEventListener('click', (e) => {
+        e.target.textContent = '⏳ Processing AI...';
+        setTimeout(() => {
+            e.target.textContent = '✨ AI Active (Simulated)';
+            e.target.style.background = '#00c853';
+            alert('CapCut-style AI requires a neural network (like MediaPipe). For this browser demo, check the "🟢 Green Screen" box to see real-time canvas pixel manipulation!');
+        }, 1500);
+    });
+
+})();
+</script>
+</body>
+</html>
