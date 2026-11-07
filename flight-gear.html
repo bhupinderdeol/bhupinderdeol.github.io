@@ -1,0 +1,1617 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>YYZ Flight Deck — Advanced Simulator</title>
+<style>
+  :root {
+    --hud-green: #00ff88;
+    --hud-amber: #ffb000;
+    --hud-red: #ff3860;
+    --hud-cyan: #00d4ff;
+    --panel-bg: rgba(10, 15, 25, 0.85);
+    --panel-border: rgba(0, 255, 136, 0.3);
+    --text-dim: #8aa0b0;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+
+  html, body {
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: var(--hud-green);
+    font-family: 'Consolas', 'Courier New', monospace;
+  }
+
+  #scene { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+  /* ===== HUD OVERLAY ===== */
+  .hud {
+    position: fixed;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .hud * { pointer-events: auto; }
+
+  /* Top Bar */
+  .top-bar {
+    top: 0; left: 0; right: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.7), transparent);
+    font-size: 13px;
+    letter-spacing: 1px;
+  }
+
+  .top-bar .brand {
+    color: var(--hud-green);
+    font-weight: bold;
+    text-shadow: 0 0 10px var(--hud-green);
+  }
+
+  .top-bar .status {
+    display: flex;
+    gap: 20px;
+    color: var(--hud-amber);
+  }
+
+  .top-bar .status span { display: flex; align-items: center; gap: 6px; }
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--hud-green);
+    box-shadow: 0 0 8px var(--hud-green);
+    animation: pulse 2s infinite;
+  }
+  .status-dot.warn { background: var(--hud-amber); box-shadow: 0 0 8px var(--hud-amber); }
+  .status-dot.off { background: #555; box-shadow: none; animation: none; }
+
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+  /* Left Panel - Instruments */
+  .left-panel {
+    top: 80px; left: 20px;
+    width: 240px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px;
+    backdrop-filter: blur(10px);
+  }
+
+  .panel-title {
+    font-size: 10px;
+    color: var(--hud-amber);
+    letter-spacing: 2px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid rgba(255,176,0,0.3);
+    padding-bottom: 6px;
+  }
+
+  .instrument {
+    margin-bottom: 10px;
+    font-size: 12px;
+  }
+
+  .instrument-label {
+    color: var(--text-dim);
+    font-size: 9px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .instrument-value {
+    color: var(--hud-green);
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 0 0 8px rgba(0,255,136,0.5);
+    font-family: 'Consolas', monospace;
+  }
+
+  .instrument-unit {
+    color: var(--text-dim);
+    font-size: 10px;
+    margin-left: 4px;
+  }
+
+  /* Right Panel - Controls */
+  .right-panel {
+    top: 80px; right: 20px;
+    width: 240px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 14px;
+    backdrop-filter: blur(10px);
+  }
+
+  .control-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 11px;
+  }
+
+  .control-row label { color: var(--text-dim); }
+  .control-row .val { color: var(--hud-green); font-weight: bold; }
+
+  .slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(0,255,136,0.2);
+    border-radius: 2px;
+    outline: none;
+    margin: 4px 0;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px; height: 14px;
+    background: var(--hud-green);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 8px var(--hud-green);
+  }
+  .slider::-moz-range-thumb {
+    width: 14px; height: 14px;
+    background: var(--hud-green);
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 0 8px var(--hud-green);
+  }
+
+  .btn-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 10px;
+  }
+
+  .btn {
+    background: rgba(0,255,136,0.1);
+    border: 1px solid var(--panel-border);
+    color: var(--hud-green);
+    padding: 8px 4px;
+    font-size: 10px;
+    font-family: inherit;
+    letter-spacing: 1px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: all 0.2s;
+    text-transform: uppercase;
+  }
+
+  .btn:hover {
+    background: rgba(0,255,136,0.25);
+    box-shadow: 0 0 10px rgba(0,255,136,0.4);
+  }
+
+  .btn.active {
+    background: var(--hud-green);
+    color: #000;
+    font-weight: bold;
+  }
+
+  .btn.warn { border-color: var(--hud-amber); color: var(--hud-amber); }
+  .btn.warn.active { background: var(--hud-amber); color: #000; }
+
+  .btn.danger { border-color: var(--hud-red); color: var(--hud-red); }
+  .btn.danger.active { background: var(--hud-red); color: #fff; }
+
+  /* Bottom Bar - Compass & Attitude */
+  .bottom-bar {
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 20px;
+    align-items: center;
+  }
+
+  .compass {
+    width: 180px;
+    height: 80px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+
+  .compass-strip {
+    position: absolute;
+    top: 50%;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(to right, transparent, var(--hud-green), transparent);
+  }
+
+  .compass-marks {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 11px;
+    color: var(--hud-green);
+  }
+
+  .compass-pointer {
+    position: absolute;
+    top: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 8px solid var(--hud-amber);
+    filter: drop-shadow(0 0 4px var(--hud-amber));
+  }
+
+  .attitude {
+    width: 140px; height: 140px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 50%;
+    position: relative;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+  }
+
+  .attitude-horizon {
+    position: absolute;
+    top: 50%; left: -50%;
+    width: 200%; height: 200%;
+    background: linear-gradient(to bottom, #2a5a8a 0%, #2a5a8a 50%, #6b4423 50%, #6b4423 100%);
+    transform-origin: center center;
+    transition: transform 0.1s;
+  }
+
+  .attitude-crosshair {
+    position: absolute;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px; height: 2px;
+    background: var(--hud-amber);
+    box-shadow: 0 0 6px var(--hud-amber);
+  }
+  .attitude-crosshair::before, .attitude-crosshair::after {
+    content: '';
+    position: absolute;
+    width: 2px; height: 10px;
+    background: var(--hud-amber);
+    top: -4px;
+  }
+  .attitude-crosshair::before { left: -8px; }
+  .attitude-crosshair::after { right: -8px; }
+
+  .attitude-ring {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border: 2px solid var(--hud-green);
+    border-radius: 50%;
+    box-shadow: inset 0 0 10px rgba(0,255,136,0.3);
+  }
+
+  /* ATC Radio */
+  .atc-panel {
+    bottom: 20px; left: 20px;
+    width: 280px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 12px;
+    backdrop-filter: blur(10px);
+    max-height: 180px;
+    overflow-y: auto;
+  }
+
+  .atc-msg {
+    font-size: 10px;
+    margin-bottom: 6px;
+    padding: 4px 6px;
+    border-left: 2px solid var(--hud-green);
+    background: rgba(0,255,136,0.05);
+    line-height: 1.4;
+    animation: slideIn 0.3s;
+  }
+
+  .atc-msg.atc { border-left-color: var(--hud-amber); }
+  .atc-msg.sys { border-left-color: var(--hud-cyan); }
+
+  .atc-time { color: var(--text-dim); margin-right: 6px; }
+
+  @keyframes slideIn { from{opacity:0; transform:translateX(-10px);} to{opacity:1; transform:translateX(0);} }
+
+  /* Minimap */
+  .minimap {
+    bottom: 20px; right: 20px;
+    width: 180px; height: 180px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    backdrop-filter: blur(10px);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .minimap canvas { width: 100%; height: 100%; }
+
+  /* Warning Banner */
+  .warning {
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255,56,96,0.15);
+    border: 2px solid var(--hud-red);
+    padding: 20px 40px;
+    font-size: 24px;
+    color: var(--hud-red);
+    text-shadow: 0 0 10px var(--hud-red);
+    letter-spacing: 4px;
+    display: none;
+    animation: warningFlash 0.5s infinite;
+  }
+
+  .warning.show { display: block; }
+
+  @keyframes warningFlash { 0%,100%{opacity:1;} 50%{opacity:0.6;} }
+
+  /* Startup Screen */
+  .startup {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, #0a1520 0%, #000 100%);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    color: var(--hud-green);
+    padding: 20px;
+    overflow-y: auto;
+  }
+
+  .startup.hidden { display: none; }
+
+  .startup h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    letter-spacing: 6px;
+    text-shadow: 0 0 20px var(--hud-green);
+    margin-bottom: 8px;
+  }
+
+  .startup .subtitle {
+    color: var(--hud-amber);
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+    font-size: 12px;
+  }
+
+  .startup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    width: 100%;
+    margin-bottom: 30px;
+  }
+
+  .startup-card {
+    background: rgba(0,255,136,0.05);
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 20px;
+  }
+
+  .startup-card h3 {
+    color: var(--hud-amber);
+    font-size: 12px;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+  }
+
+  .option-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 12px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 12px;
+  }
+
+  .option:hover {
+    border-color: var(--hud-green);
+    background: rgba(0,255,136,0.1);
+  }
+
+  .option.selected {
+    border-color: var(--hud-green);
+    background: rgba(0,255,136,0.2);
+    box-shadow: 0 0 10px rgba(0,255,136,0.3);
+  }
+
+  .option-name { color: var(--hud-green); font-weight: bold; }
+  .option-desc { color: var(--text-dim); font-size: 10px; }
+
+  .launch-btn {
+    padding: 16px 50px;
+    background: transparent;
+    border: 2px solid var(--hud-green);
+    color: var(--hud-green);
+    font-family: inherit;
+    font-size: 16px;
+    letter-spacing: 4px;
+    cursor: pointer;
+    transition: all 0.3s;
+    text-transform: uppercase;
+  }
+
+  .launch-btn:hover {
+    background: var(--hud-green);
+    color: #000;
+    box-shadow: 0 0 30px var(--hud-green);
+  }
+
+  .disclaimer {
+    margin-top: 20px;
+    font-size: 10px;
+    color: var(--text-dim);
+    text-align: center;
+    max-width: 600px;
+  }
+
+  /* Mobile Touch Controls */
+  .touch-controls {
+    display: none;
+    position: fixed;
+    bottom: 20px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 20;
+    gap: 10px;
+  }
+
+  .touch-btn {
+    width: 60px; height: 60px;
+    background: rgba(0,255,136,0.15);
+    border: 1px solid var(--panel-border);
+    border-radius: 50%;
+    color: var(--hud-green);
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    touch-action: manipulation;
+  }
+
+  .touch-btn:active { background: rgba(0,255,136,0.4); }
+
+  @media (max-width: 900px) {
+    .left-panel, .right-panel { display: none; }
+    .atc-panel { width: 200px; font-size: 9px; }
+    .minimap { width: 120px; height: 120px; }
+    .compass { width: 140px; height: 60px; }
+    .attitude { width: 100px; height: 100px; }
+    .touch-controls { display: flex; }
+    .bottom-bar { bottom: 100px; }
+  }
+
+  @media (max-width: 600px) {
+    .atc-panel { display: none; }
+    .top-bar .status { gap: 10px; font-size: 10px; }
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: rgba(0,0,0,0.3); }
+  ::-webkit-scrollbar-thumb { background: var(--hud-green); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+
+<!-- HUD -->
+<div class="hud top-bar">
+  <div class="brand">◈ YYZ / FLIGHT DECK TORONTO PEARSON</div>
+  <div class="status">
+    <span><span class="status-dot" id="statusDot"></span><span id="statusText">PARKED</span></span>
+    <span id="clock">00:00:00Z</span>
+    <span id="fps">60 FPS</span>
+  </div>
+</div>
+
+<div class="hud left-panel">
+  <div class="panel-title">▸ FLIGHT INSTRUMENTS</div>
+  <div class="instrument">
+    <div class="instrument-label">Airspeed</div>
+    <div><span class="instrument-value" id="ias">0</span><span class="instrument-unit">KT</span></div>
+  </div>
+  <div class="instrument">
+    <div class="instrument-label">Altitude</div>
+    <div><span class="instrument-value" id="alt">0</span><span class="instrument-unit">FT</span></div>
+  </div>
+  <div class="instrument">
+    <div class="instrument-label">Heading</div>
+    <div><span class="instrument-value" id="hdg">057</span><span class="instrument-unit">°</span></div>
+  </div>
+  <div class="instrument">
+    <div class="instrument-label">Vertical Speed</div>
+    <div><span class="instrument-value" id="vs">0</span><span class="instrument-unit">FPM</span></div>
+  </div>
+  <div class="instrument">
+    <div class="instrument-label">Mach</div>
+    <div><span class="instrument-value" id="mach">0.000</span></div>
+  </div>
+  <div class="instrument">
+    <div class="instrument-label">G-Force</div>
+    <div><span class="instrument-value" id="gforce">1.0</span><span class="instrument-unit">G</span></div>
+  </div>
+</div>
+
+<div class="hud right-panel">
+  <div class="panel-title">▸ AIRCRAFT SYSTEMS</div>
+  <div class="control-row">
+    <label>THROTTLE</label>
+    <span class="val" id="throttleVal">0%</span>
+  </div>
+  <input type="range" class="slider" id="throttle" min="0" max="100" value="0">
+  <div class="control-row">
+    <label>FLAPS</label>
+    <span class="val" id="flapsVal">0°</span>
+  </div>
+  <input type="range" class="slider" id="flaps" min="0" max="40" step="5" value="0">
+  <div class="control-row">
+    <label>MIXTURE</label>
+    <span class="val">100%</span>
+  </div>
+  <div class="btn-group">
+    <button class="btn" id="gearBtn">GEAR DOWN</button>
+    <button class="btn" id="brakeBtn">PARK BRK</button>
+    <button class="btn warn" id="pauseBtn">PAUSE</button>
+    <button class="btn" id="soundBtn">SOUND OFF</button>
+    <button class="btn" id="viewBtn">CAM: COCKPIT</button>
+    <button class="btn danger" id="resetBtn">RESET</button>
+  </div>
+</div>
+
+<div class="hud bottom-bar">
+  <div class="compass">
+    <div class="compass-pointer"></div>
+    <div class="compass-marks" id="compassMarks">057°</div>
+  </div>
+  <div class="attitude">
+    <div class="attitude-horizon" id="attitudeHorizon"></div>
+    <div class="attitude-crosshair"></div>
+    <div class="attitude-ring"></div>
+  </div>
+</div>
+
+<div class="hud atc-panel">
+  <div class="panel-title">▸ ATC / SYSTEM LOG</div>
+  <div id="atcLog"></div>
+</div>
+
+<div class="hud minimap">
+  <canvas id="minimap" width="180" height="180"></canvas>
+</div>
+
+<div class="hud warning" id="warning">⚠ STALL WARNING</div>
+
+<div class="touch-controls">
+  <div class="touch-btn" data-action="pitchUp">▲</div>
+  <div class="touch-btn" data-action="rollLeft">◀</div>
+  <div class="touch-btn" data-action="pitchDown">▼</div>
+  <div class="touch-btn" data-action="rollRight">▶</div>
+  <div class="touch-btn" data-action="throttleUp">+</div>
+  <div class="touch-btn" data-action="throttleDown">−</div>
+</div>
+
+<!-- Startup Screen -->
+<div class="startup" id="startup">
+  <h1>YYZ FLIGHT DECK</h1>
+  <div class="subtitle">TORONTO PEARSON · ADVANCED EDITION · v2.0</div>
+  <div class="startup-grid">
+    <div class="startup-card">
+      <h3>▸ 01 · SELECT AIRCRAFT</h3>
+      <div class="option-list" id="aircraftList">
+        <div class="option selected" data-ac="a320">
+          <div>
+            <div class="option-name">AIRBUS A320</div>
+            <div class="option-desc">Commercial · 250 kt cruise</div>
+          </div>
+          <span>◉</span>
+        </div>
+        <div class="option" data-ac="b2">
+          <div>
+            <div class="option-name">B-2 STEALTH BOMBER</div>
+            <div class="option-desc">Flying wing · High altitude</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-ac="ufo">
+          <div>
+            <div class="option-name">UFO EXPERIMENTAL</div>
+            <div class="option-desc">VTOL · Anti-gravity</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-ac="cessna">
+          <div>
+            <div class="option-name">CESSNA 172</div>
+            <div class="option-desc">Trainer · VFR</div>
+          </div>
+          <span>○</span>
+        </div>
+      </div>
+    </div>
+    <div class="startup-card">
+      <h3>▸ 02 · SELECT RUNWAY</h3>
+      <div class="option-list" id="runwayList">
+        <div class="option selected" data-rwy="05">
+          <div>
+            <div class="option-name">RWY 05</div>
+            <div class="option-desc">Heading 057° · 9000 ft</div>
+          </div>
+          <span>◉</span>
+        </div>
+        <div class="option" data-rwy="06L">
+          <div>
+            <div class="option-name">RWY 06L / 24R</div>
+            <div class="option-desc">Heading 057° · 11000 ft</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-rwy="06R">
+          <div>
+            <div class="option-name">RWY 06R / 24L</div>
+            <div class="option-desc">Heading 057° · 9600 ft</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-rwy="15L">
+          <div>
+            <div class="option-name">RWY 15L / 33R</div>
+            <div class="option-desc">Heading 147° · 11000 ft</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-rwy="15R">
+          <div>
+            <div class="option-name">RWY 15R / 33L</div>
+            <div class="option-desc">Heading 147° · 9000 ft</div>
+          </div>
+          <span>○</span>
+        </div>
+      </div>
+    </div>
+    <div class="startup-card">
+      <h3>▸ 03 · ENVIRONMENT</h3>
+      <div class="option-list" id="envList">
+        <div class="option selected" data-env="clear">
+          <div>
+            <div class="option-name">CLEAR SKIES</div>
+            <div class="option-desc">CAVOK · Visibility 10+ SM</div>
+          </div>
+          <span>◉</span>
+        </div>
+        <div class="option" data-env="overcast">
+          <div>
+            <div class="option-name">OVERCAST</div>
+            <div class="option-desc">BKN030 · Light rain</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-env="night">
+          <div>
+            <div class="option-name">NIGHT OPS</div>
+            <div class="option-desc">ILS approach · Lights on</div>
+          </div>
+          <span>○</span>
+        </div>
+        <div class="option" data-env="snow">
+          <div>
+            <div class="option-name">WINTER STORM</div>
+            <div class="option-desc">Snow · Low visibility</div>
+          </div>
+          <span>○</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <button class="launch-btn" id="launchBtn">ENTER FLIGHT DECK →</button>
+  <div class="disclaimer">
+    ⚠ PROTOTYPE SIMULATOR · FOR ENTERTAINMENT ONLY · NOT FOR REAL-WORLD NAVIGATION OR FLIGHT TRAINING<br>
+    Controls: W/S pitch · A/D roll · Q/E rudder · ↑/↓ throttle · G gear · F flaps · Space pause · V camera
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// ============================================================
+// YYZ FLIGHT DECK — ADVANCED SIMULATOR
+// ============================================================
+
+// --- Configuration ---
+const RUNWAYS = {
+  '05':  { heading: 57,  length: 2743, pos: [0, 0, 0] },
+  '06L': { heading: 57,  length: 3353, pos: [-200, 0, -100] },
+  '06R': { heading: 57,  length: 2926, pos: [200, 0, -100] },
+  '15L': { heading: 147, length: 3353, pos: [-400, 0, 300] },
+  '15R': { heading: 147, length: 2743, pos: [400, 0, 300] }
+};
+
+const AIRCRAFT = {
+  a320:   { name:'A320',   mass:70000, thrust:120000, liftCoeff:1.5, dragCoeff:0.04, vStall:65,  vMax:450, color:0xe0e0e0 },
+  b2:     { name:'B-2',    mass:80000, thrust:170000, liftCoeff:1.2, dragCoeff:0.03, vStall:80,  vMax:550, color:0x2a2a2a },
+  ufo:    { name:'UFO',    mass:5000,  thrust:200000, liftCoeff:5.0, dragCoeff:0.02, vStall:0,   vMax:800, color:0x88ccff },
+  cessna: { name:'C172',   mass:1100,  thrust:3000,   liftCoeff:1.8, dragCoeff:0.05, vStall:45,  vMax:140, color:0xcc4444 }
+};
+
+// --- State ---
+const state = {
+  aircraft: 'a320',
+  runway: '05',
+  env: 'clear',
+  paused: false,
+  soundOn: false,
+  viewMode: 0, // 0=cockpit, 1=chase, 2=tower
+  gearDown: true,
+  brakeOn: true,
+  throttle: 0,
+  flaps: 0,
+  // Flight dynamics
+  pos: [0, 10, 0],
+  vel: [0, 0, 0],
+  pitch: 0, yaw: 57, roll: 0,
+  pitchRate: 0, yawRate: 0, rollRate: 0,
+  gForce: 1.0,
+  onGround: true
+};
+
+// --- Three.js Setup ---
+const canvas = document.getElementById('scene');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, window.innerWidth/window.innerHeight, 0.1, 50000);
+
+// --- Lighting ---
+let ambientLight, dirLight, hemiLight;
+function setupLighting(env) {
+  scene.children = scene.children.filter(c => !(c instanceof THREE.Light));
+  if (env === 'night') {
+    ambientLight = new THREE.AmbientLight(0x223344, 0.3);
+    dirLight = new THREE.DirectionalLight(0x8899bb, 0.4);
+    scene.background = new THREE.Color(0x050510);
+    scene.fog = new THREE.Fog(0x050510, 500, 8000);
+  } else if (env === 'overcast') {
+    ambientLight = new THREE.AmbientLight(0x8899aa, 0.6);
+    dirLight = new THREE.DirectionalLight(0xcccccc, 0.5);
+    scene.background = new THREE.Color(0x667788);
+    scene.fog = new THREE.Fog(0x667788, 300, 5000);
+  } else if (env === 'snow') {
+    ambientLight = new THREE.AmbientLight(0xaabbcc, 0.7);
+    dirLight = new THREE.DirectionalLight(0xffffff, 0.6);
+    scene.background = new THREE.Color(0xccddee);
+    scene.fog = new THREE.Fog(0xccddee, 200, 3000);
+  } else {
+    ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    dirLight = new THREE.DirectionalLight(0xffffee, 1.0);
+    dirLight.position.set(500, 1000, 500);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.set(2048, 2048);
+    dirLight.shadow.camera.left = -1000;
+    dirLight.shadow.camera.right = 1000;
+    dirLight.shadow.camera.top = 1000;
+    dirLight.shadow.camera.bottom = -1000;
+    scene.background = new THREE.Color(0x87ceeb);
+    scene.fog = new THREE.Fog(0x87ceeb, 1000, 20000);
+  }
+  hemiLight = new THREE.HemisphereLight(0xaaccff, 0x445533, 0.4);
+  scene.add(ambientLight, dirLight, hemiLight);
+}
+
+// --- Build Airport ---
+let airportGroup, aircraftMesh, propellers = [];
+function buildAirport() {
+  if (airportGroup) scene.remove(airportGroup);
+  airportGroup = new THREE.Group();
+
+  // Ground
+  const groundGeo = new THREE.PlaneGeometry(40000, 40000);
+  const groundMat = new THREE.MeshStandardMaterial({ color: 0x3a5a2a, roughness: 0.9 });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI/2;
+  ground.receiveShadow = true;
+  airportGroup.add(ground);
+
+  // Runways
+  Object.entries(RUNWAYS).forEach(([id, rwy]) => {
+    const rwyGroup = new THREE.Group();
+    // Asphalt
+    const rwyGeo = new THREE.PlaneGeometry(45, rwy.length);
+    const rwyMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8 });
+    const rwyMesh = new THREE.Mesh(rwyGeo, rwyMat);
+    rwyMesh.rotation.x = -Math.PI/2;
+    rwyMesh.position.y = 0.05;
+    rwyMesh.receiveShadow = true;
+    rwyGroup.add(rwyMesh);
+
+    // Centerline dashes
+    for (let i = -rwy.length/2 + 20; i < rwy.length/2; i += 40) {
+      const dashGeo = new THREE.PlaneGeometry(0.8, 15);
+      const dashMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const dash = new THREE.Mesh(dashGeo, dashMat);
+      dash.rotation.x = -Math.PI/2;
+      dash.position.set(0, 0.06, i);
+      rwyGroup.add(dash);
+    }
+
+    // Threshold markings
+    for (let s = -1; s <= 1; s += 2) {
+      for (let i = -8; i <= 8; i += 4) {
+        if (i === 0) continue;
+        const markGeo = new THREE.PlaneGeometry(1.5, 20);
+        const markMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const mark = new THREE.Mesh(markGeo, markMat);
+        mark.rotation.x = -Math.PI/2;
+        mark.position.set(i, 0.06, s * (rwy.length/2 - 15));
+        rwyGroup.add(mark);
+      }
+    }
+
+    // Edge lights
+    for (let i = -rwy.length/2; i <= rwy.length/2; i += 60) {
+      for (let s = -1; s <= 1; s += 2) {
+        const lightGeo = new THREE.SphereGeometry(0.5, 8, 8);
+        const lightMat = new THREE.MeshBasicMaterial({ color: 0xffff88 });
+        const light = new THREE.Mesh(lightGeo, lightMat);
+        light.position.set(s * 22, 0.5, i);
+        rwyGroup.add(light);
+      }
+    }
+
+    // Runway number
+    rwyGroup.rotation.y = -rwy.heading * Math.PI / 180;
+    rwyGroup.position.set(rwy.pos[0], 0.1, rwy.pos[2]);
+    airportGroup.add(rwyGroup);
+  });
+
+  // Terminal building
+  const termGeo = new THREE.BoxGeometry(400, 30, 80);
+  const termMat = new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.6 });
+  const terminal = new THREE.Mesh(termGeo, termMat);
+  terminal.position.set(0, 15, -300);
+  terminal.castShadow = true;
+  terminal.receiveShadow = true;
+  airportGroup.add(terminal);
+
+  // Terminal windows (emissive at night)
+  const winMat = new THREE.MeshBasicMaterial({ color: state.env === 'night' ? 0xffdd88 : 0x88ccff });
+  for (let i = -180; i <= 180; i += 10) {
+    const winGeo = new THREE.PlaneGeometry(6, 15);
+    const win = new THREE.Mesh(winGeo, winMat);
+    win.position.set(i, 18, -259);
+    airportGroup.add(win);
+  }
+
+  // Control tower
+  const towerBase = new THREE.Mesh(
+    new THREE.CylinderGeometry(8, 10, 40, 16),
+    new THREE.MeshStandardMaterial({ color: 0xaaaaaa })
+  );
+  towerBase.position.set(250, 20, -250);
+  towerBase.castShadow = true;
+  airportGroup.add(towerBase);
+
+  const towerTop = new THREE.Mesh(
+    new THREE.CylinderGeometry(12, 12, 8, 16),
+    new THREE.MeshStandardMaterial({ color: 0x445566, emissive: 0x223344, emissiveIntensity: 0.3 })
+  );
+  towerTop.position.set(250, 44, -250);
+  airportGroup.add(towerTop);
+
+  // Hangars
+  for (let i = 0; i < 4; i++) {
+    const hangarGeo = new THREE.BoxGeometry(60, 25, 40);
+    const hangarMat = new THREE.MeshStandardMaterial({ color: 0x556677 });
+    const hangar = new THREE.Mesh(hangarGeo, hangarMat);
+    hangar.position.set(-400 + i * 80, 12.5, -400);
+    hangar.castShadow = true;
+    airportGroup.add(hangar);
+  }
+
+  // Taxiway markings (simple)
+  const taxiGeo = new THREE.PlaneGeometry(20, 500);
+  const taxiMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+  const taxi = new THREE.Mesh(taxiGeo, taxiMat);
+  taxi.rotation.x = -Math.PI/2;
+  taxi.position.set(0, 0.04, -150);
+  airportGroup.add(taxi);
+
+  scene.add(airportGroup);
+}
+
+// --- Build Aircraft ---
+function buildAircraft(type) {
+  if (aircraftMesh) scene.remove(aircraftMesh);
+  propellers = [];
+  const cfg = AIRCRAFT[type];
+  const group = new THREE.Group();
+
+  if (type === 'a320') {
+    // Fuselage
+    const fuse = new THREE.Mesh(
+      new THREE.CylinderGeometry(2, 2, 35, 16),
+      new THREE.MeshStandardMaterial({ color: cfg.color, metalness: 0.5, roughness: 0.3 })
+    );
+    fuse.rotation.z = Math.PI/2;
+    fuse.castShadow = true;
+    group.add(fuse);
+    // Nose
+    const nose = new THREE.Mesh(
+      new THREE.SphereGeometry(2, 16, 16, 0, Math.PI*2, 0, Math.PI/2),
+      new THREE.MeshStandardMaterial({ color: 0x222222 })
+    );
+    nose.rotation.z = -Math.PI/2;
+    nose.position.x = 17.5;
+    group.add(nose);
+    // Wings
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(8, 0.5, 32),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    wing.position.y = -0.5;
+    wing.castShadow = true;
+    group.add(wing);
+    // Tail vertical
+    const vStab = new THREE.Mesh(
+      new THREE.BoxGeometry(5, 6, 0.5),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    vStab.position.set(-15, 3, 0);
+    group.add(vStab);
+    // Tail horizontal
+    const hStab = new THREE.Mesh(
+      new THREE.BoxGeometry(4, 0.4, 12),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    hStab.position.set(-15, 1, 0);
+    group.add(hStab);
+    // Engines
+    for (let s of [-1, 1]) {
+      const eng = new THREE.Mesh(
+        new THREE.CylinderGeometry(1.2, 1.2, 4, 12),
+        new THREE.MeshStandardMaterial({ color: 0x444444 })
+      );
+      eng.rotation.z = Math.PI/2;
+      eng.position.set(2, -1.5, s * 8);
+      group.add(eng);
+    }
+    // Cockpit windows
+    const cockpit = new THREE.Mesh(
+      new THREE.BoxGeometry(3, 1.5, 3),
+      new THREE.MeshStandardMaterial({ color: 0x112233, emissive: 0x224466, emissiveIntensity: 0.3 })
+    );
+    cockpit.position.set(15, 1.5, 0);
+    group.add(cockpit);
+  } else if (type === 'b2') {
+    // Flying wing
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(20, 0.8, 50),
+      new THREE.MeshStandardMaterial({ color: cfg.color, roughness: 0.9 })
+    );
+    wing.castShadow = true;
+    group.add(wing);
+    // Cockpit bump
+    const cockpit = new THREE.Mesh(
+      new THREE.SphereGeometry(2, 16, 8, 0, Math.PI*2, 0, Math.PI/2),
+      new THREE.MeshStandardMaterial({ color: 0x111111 })
+    );
+    cockpit.position.set(5, 0.4, 0);
+    group.add(cockpit);
+  } else if (type === 'ufo') {
+    // Saucer body
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(5, 32, 16),
+      new THREE.MeshStandardMaterial({ color: cfg.color, metalness: 0.8, roughness: 0.2, emissive: 0x224466, emissiveIntensity: 0.3 })
+    );
+    body.scale.set(1, 0.3, 1);
+    group.add(body);
+    // Dome
+    const dome = new THREE.Mesh(
+      new THREE.SphereGeometry(2.5, 32, 16, 0, Math.PI*2, 0, Math.PI/2),
+      new THREE.MeshStandardMaterial({ color: 0xaaddff, transparent: true, opacity: 0.7, emissive: 0x4488aa, emissiveIntensity: 0.5 })
+    );
+    dome.position.y = 1;
+    group.add(dome);
+    // Lights ring
+    for (let i = 0; i < 12; i++) {
+      const a = (i / 12) * Math.PI * 2;
+      const light = new THREE.Mesh(
+        new THREE.SphereGeometry(0.3, 8, 8),
+        new THREE.MeshBasicMaterial({ color: i % 2 ? 0x00ff88 : 0xff00ff })
+      );
+      light.position.set(Math.cos(a) * 4.5, 0, Math.sin(a) * 4.5);
+      group.add(light);
+    }
+  } else if (type === 'cessna') {
+    // Fuselage
+    const fuse = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.8, 0.8, 8, 12),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    fuse.rotation.z = Math.PI/2;
+    fuse.castShadow = true;
+    group.add(fuse);
+    // High wing
+    const wing = new THREE.Mesh(
+      new THREE.BoxGeometry(2.5, 0.2, 11),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    wing.position.y = 1.2;
+    wing.castShadow = true;
+    group.add(wing);
+    // Wing struts
+    for (let s of [-1, 1]) {
+      const strut = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.05, 0.05, 2),
+        new THREE.MeshStandardMaterial({ color: 0x333333 })
+      );
+      strut.position.set(0, 0.5, s * 3);
+      strut.rotation.z = s * 0.3;
+      group.add(strut);
+    }
+    // Tail
+    const vStab = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 2, 0.2),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    vStab.position.set(-3.5, 1, 0);
+    group.add(vStab);
+    const hStab = new THREE.Mesh(
+      new THREE.BoxGeometry(1.5, 0.15, 4),
+      new THREE.MeshStandardMaterial({ color: cfg.color })
+    );
+    hStab.position.set(-3.5, 0.3, 0);
+    group.add(hStab);
+    // Propeller
+    const prop = new THREE.Mesh(
+      new THREE.BoxGeometry(0.1, 2.5, 0.2),
+      new THREE.MeshStandardMaterial({ color: 0x222222 })
+    );
+    prop.position.set(4.2, 0, 0);
+    group.add(prop);
+    propellers.push(prop);
+  }
+
+  aircraftMesh = group;
+  scene.add(aircraftMesh);
+}
+
+// --- Initialize Scene ---
+function initScene() {
+  setupLighting(state.env);
+  buildAirport();
+  buildAircraft(state.aircraft);
+  // Position on runway
+  const rwy = RUNWAYS[state.runway];
+  const rad = rwy.heading * Math.PI / 180;
+  state.pos = [rwy.pos[0], 2, rwy.pos[2]];
+  state.yaw = rwy.heading;
+  state.pitch = 0;
+  state.roll = 0;
+  state.vel = [0, 0, 0];
+  state.onGround = true;
+  state.gearDown = true;
+  state.brakeOn = true;
+  state.throttle = 0;
+  state.flaps = 0;
+  document.getElementById('throttle').value = 0;
+  document.getElementById('flaps').value = 0;
+  updateGearBtn();
+  updateBrakeBtn();
+}
+
+// --- Physics ---
+const GRAVITY = 9.81;
+const AIR_DENSITY = 1.225;
+const FT_PER_M = 3.28084;
+const KT_PER_MS = 1.94384;
+
+function updatePhysics(dt) {
+  if (state.paused) return;
+  const cfg = AIRCRAFT[state.aircraft];
+  const throttle = state.throttle / 100;
+
+  // Angular control
+  const pitchInput = keys['KeyS'] ? 1 : keys['KeyW'] ? -1 : 0;
+  const rollInput = keys['KeyD'] ? 1 : keys['KeyA'] ? -1 : 0;
+  const yawInput = keys['KeyE'] ? 1 : keys['KeyQ'] ? -1 : 0;
+
+  const controlEff = state.onGround ? 0.3 : 1.0;
+  state.pitchRate += pitchInput * 1.2 * controlEff * dt;
+  state.rollRate += rollInput * 1.5 * controlEff * dt;
+  state.yawRate += yawInput * 0.8 * controlEff * dt;
+
+  // Damping
+  state.pitchRate *= 0.92;
+  state.rollRate *= 0.92;
+  state.yawRate *= 0.92;
+
+  state.pitch += state.pitchRate * dt;
+  state.roll += state.rollRate * dt;
+  state.yaw += state.yawRate * dt;
+
+  // Clamp
+  state.pitch = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, state.pitch));
+  state.roll = Math.max(-Math.PI/2, Math.min(Math.PI/2, state.roll));
+  state.yaw = ((state.yaw % 360) + 360) % 360;
+
+  // Thrust (along aircraft forward axis)
+  const thrustMag = throttle * cfg.thrust / cfg.mass;
+  // Aircraft forward vector
+  const cosP = Math.cos(state.pitch), sinP = Math.sin(state.pitch);
+  const cosY = Math.cos(state.yaw * Math.PI/180), sinY = Math.sin(state.yaw * Math.PI/180);
+  const cosR = Math.cos(state.roll), sinR = Math.sin(state.roll);
+
+  // Forward direction (simplified)
+  const fwdX = cosP * sinY;
+  const fwdY = sinP;
+  const fwdZ = cosP * cosY;
+
+  // Apply thrust
+  state.vel[0] += fwdX * thrustMag * dt;
+  state.vel[1] += fwdY * thrustMag * dt;
+  state.vel[2] += fwdZ * thrustMag * dt;
+
+  // Speed
+  const speed = Math.hypot(state.vel[0], state.vel[1], state.vel[2]);
+  const speedKt = speed * KT_PER_MS;
+
+  // Lift & Drag (only when moving and not UFO hovering)
+  if (state.aircraft !== 'ufo') {
+    const q = 0.5 * AIR_DENSITY * speed * speed;
+    const liftForce = q * cfg.liftCoeff * (1 + state.flaps/40) / cfg.mass;
+    const dragForce = q * (cfg.dragCoeff + (state.gearDown ? 0.02 : 0) + state.flaps/400) / cfg.mass;
+
+    // Lift opposes gravity (up vector)
+    const liftDir = [0, 1, 0];
+    state.vel[0] += liftDir[0] * liftForce * dt;
+    state.vel[1] += liftDir[1] * liftForce * dt;
+    state.vel[2] += liftDir[2] * liftForce * dt;
+
+    // Drag opposes velocity
+    if (speed > 0.01) {
+      state.vel[0] -= (state.vel[0]/speed) * dragForce * dt;
+      state.vel[1] -= (state.vel[1]/speed) * dragForce * dt;
+      state.vel[2] -= (state.vel[2]/speed) * dragForce * dt;
+    }
+  } else {
+    // UFO: VTOL - thrust directly controls vertical, minimal drag
+    const drag = 0.02;
+    if (speed > 0.01) {
+      state.vel[0] -= (state.vel[0]/speed) * drag * dt;
+      state.vel[1] -= (state.vel[1]/speed) * drag * dt;
+      state.vel[2] -= (state.vel[2]/speed) * drag * dt;
+    }
+  }
+
+  // Gravity
+  state.vel[1] -= GRAVITY * dt;
+
+  // Brake on ground
+  if (state.onGround && state.brakeOn) {
+    const brakeForce = 3.0;
+    const horizSpeed = Math.hypot(state.vel[0], state.vel[2]);
+    if (horizSpeed > 0.1) {
+      const factor = Math.max(0, 1 - brakeForce * dt / horizSpeed);
+      state.vel[0] *= factor;
+      state.vel[2] *= factor;
+    } else {
+      state.vel[0] = 0;
+      state.vel[2] = 0;
+    }
+  }
+
+  // Update position
+  state.pos[0] += state.vel[0] * dt;
+  state.pos[1] += state.vel[1] * dt;
+  state.pos[2] += state.vel[2] * dt;
+
+  // Ground collision
+  if (state.pos[1] <= 2) {
+    state.pos[1] = 2;
+    if (state.vel[1] < 0) state.vel[1] = 0;
+    if (!state.onGround) {
+      state.onGround = true;
+      addATC('sys', 'Touchdown · Welcome to YYZ');
+    }
+    // Ground friction
+    state.vel[0] *= 0.995;
+    state.vel[2] *= 0.995;
+  } else {
+    if (state.onGround && speed > 5) {
+      state.onGround = false;
+      addATC('sys', 'Liftoff · Positive rate');
+    }
+  }
+
+  // G-force (simplified)
+  state.gForce = 1.0 + (state.vel[1] > 0 ? state.vel[1] * 0.05 : 0);
+
+  // Update mesh
+  if (aircraftMesh) {
+    aircraftMesh.position.set(state.pos[0], state.pos[1], state.pos[2]);
+    aircraftMesh.rotation.order = 'YXZ';
+    aircraftMesh.rotation.y = -state.yaw * Math.PI/180;
+    aircraftMesh.rotation.x = state.pitch;
+    aircraftMesh.rotation.z = state.roll;
+  }
+
+  // Spin propellers
+  propellers.forEach(p => {
+    p.rotation.x += throttle * 2;
+  });
+
+  // UFO lights animation
+  if (state.aircraft === 'ufo' && aircraftMesh) {
+    aircraftMesh.children.forEach((c, i) => {
+      if (i > 2) c.material.color.setHSL((Date.now()/1000 + i*0.1) % 1, 1, 0.5);
+    });
+  }
+}
+
+// --- Camera ---
+function updateCamera() {
+  if (!aircraftMesh) return;
+  const p = state.pos;
+  const yawRad = state.yaw * Math.PI / 180;
+
+  if (state.viewMode === 0) {
+    // Cockpit
+    const offset = new THREE.Vector3(
+      Math.sin(yawRad) * 0.5,
+      1.5,
+      Math.cos(yawRad) * 0.5
+    );
+    camera.position.set(p[0] + offset.x, p[1] + offset.y, p[2] + offset.z);
+    const lookAt = new THREE.Vector3(
+      p[0] + Math.sin(yawRad) * 100,
+      p[1] + Math.sin(state.pitch) * 100 + 1.5,
+      p[2] + Math.cos(yawRad) * 100
+    );
+    camera.lookAt(lookAt);
+    camera.up.set(Math.sin(state.roll) * Math.sin(yawRad), Math.cos(state.roll), Math.sin(state.roll) * Math.cos(yawRad));
+  } else if (state.viewMode === 1) {
+    // Chase
+    const dist = 25;
+    const offset = new THREE.Vector3(
+      -Math.sin(yawRad) * dist,
+      8,
+      -Math.cos(yawRad) * dist
+    );
+    camera.position.set(p[0] + offset.x, p[1] + offset.y, p[2] + offset.z);
+    camera.lookAt(p[0], p[1], p[2]);
+  } else {
+    // Tower
+    camera.position.set(250, 50, -250);
+    camera.lookAt(p[0], p[1], p[2]);
+  }
+}
+
+// --- HUD Updates ---
+function updateHUD() {
+  const speed = Math.hypot(state.vel[0], state.vel[1], state.vel[2]);
+  const ias = Math.round(speed * KT_PER_MS);
+  const alt = Math.round(state.pos[1] * FT_PER_M);
+  const hdg = Math.round(((state.yaw % 360) + 360) % 360);
+  const vs = Math.round(state.vel[1] * FT_PER_M * 60);
+  const mach = (speed / 340).toFixed(3);
+
+  document.getElementById('ias').textContent = ias;
+  document.getElementById('alt').textContent = alt;
+  document.getElementById('hdg').textContent = String(hdg).padStart(3, '0');
+  document.getElementById('vs').textContent = (vs > 0 ? '+' : '') + vs;
+  document.getElementById('mach').textContent = mach;
+  document.getElementById('gforce').textContent = state.gForce.toFixed(2);
+
+  document.getElementById('throttleVal').textContent = state.throttle + '%';
+  document.getElementById('flapsVal').textContent = state.flaps + '°';
+
+  // Compass
+  document.getElementById('compassMarks').textContent = String(hdg).padStart(3, '0') + '°';
+
+  // Attitude indicator
+  const horizon = document.getElementById('attitudeHorizon');
+  horizon.style.transform = `translate(-50%, -50%) rotate(${-state.roll * 180/Math.PI}deg) translateY(${state.pitch * 30}px)`;
+
+  // Status
+  const cfg = AIRCRAFT[state.aircraft];
+  const statusDot = document.getElementById('statusDot');
+  const statusText = document.getElementById('statusText');
+  if (state.paused) {
+    statusDot.className = 'status-dot warn';
+    statusText.textContent = 'PAUSED';
+  } else if (state.onGround) {
+    statusDot.className = 'status-dot';
+    statusText.textContent = state.brakeOn ? 'PARKED' : 'READY';
+  } else {
+    statusDot.className = 'status-dot';
+    statusText.textContent = 'AIRBORNE';
+  }
+
+  // Stall warning
+  const warning = document.getElementById('warning');
+  if (!state.onGround && ias < cfg.vStall && state.aircraft !== 'ufo') {
+    warning.classList.add('show');
+  } else {
+    warning.classList.remove('show');
+  }
+
+  // Clock
+  const d = new Date();
+  document.getElementById('clock').textContent = 
+    String(d.getUTCHours()).padStart(2,'0') + ':' + 
+    String(d.getUTCMinutes()).padStart(2,'0') + ':' + 
+    String(d.getUTCSeconds()).padStart(2,'0') + 'Z';
+}
+
+// --- Minimap ---
+const minimapCanvas = document.getElementById('minimap');
+const mctx = minimapCanvas.getContext('2d');
+function drawMinimap() {
+  mctx.fillStyle = '#0a1520';
+  mctx.fillRect(0, 0, 180, 180);
+
+  const scale = 0.03;
+  const cx = 90, cy = 90;
+
+  // Runways
+  mctx.strokeStyle = '#00ff88';
+  mctx.lineWidth = 2;
+  Object.values(RUNWAYS).forEach(rwy => {
+    const rx = cx + (rwy.pos[0] - state.pos[0]) * scale;
+    const ry = cy + (rwy.pos[2] - state.pos[2]) * scale;
+    const len = rwy.length * scale;
+    const rad = rwy.heading * Math.PI / 180;
+    mctx.save();
+    mctx.translate(rx, ry);
+    mctx.rotate(-rad);
+    mctx.beginPath();
+    mctx.moveTo(0, -len/2);
+    mctx.lineTo(0, len/2);
+    mctx.stroke();
+    mctx.restore();
+  });
+
+  // Aircraft
+  mctx.save();
+  mctx.translate(cx, cy);
+  mctx.rotate(-state.yaw * Math.PI / 180);
+  mctx.fillStyle = '#ffb000';
+  mctx.beginPath();
+  mctx.moveTo(0, -8);
+  mctx.lineTo(-5, 5);
+  mctx.lineTo(5, 5);
+  mctx.closePath();
+  mctx.fill();
+  mctx.restore();
+
+  // Range ring
+  mctx.strokeStyle = 'rgba(0,255,136,0.3)';
+  mctx.lineWidth = 1;
+  mctx.beginPath();
+  mctx.arc(cx, cy, 60, 0, Math.PI*2);
+  mctx.stroke();
+}
+
+// --- ATC Log ---
+const atcMessages = [];
+function addATC(type, msg) {
+  const time = new Date().toISOString().substr(11, 8);
+  atcMessages.push({ type, msg, time });
+  if (atcMessages.length > 20) atcMessages.shift();
+  const log = document.getElementById('atcLog');
+  log.innerHTML = atcMessages.map(m => 
+    `<div class="atc-msg ${m.type}"><span class="atc-time">[${m.time}]</span>${m.msg}</div>`
+  ).join('');
+  log.scrollTop = log.scrollHeight;
+}
+
+// --- Input ---
+const keys = {};
+window.addEventListener('keydown', e => {
+  keys[e.code] = true;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  if (e.code === 'KeyG') toggleGear();
+  if (e.code === 'KeyB') toggleBrake();
+  if (e.code === 'KeyV') cycleView();
+  if (e.code === 'KeyF') { state.flaps = (state.flaps + 5) % 45; document.getElementById('flaps').value = state.flaps; }
+  if (e.code === 'ArrowUp') { state.throttle = Math.min(100, state.throttle + 5); document.getElementById('throttle').value = state.throttle; }
+  if (e.code === 'ArrowDown') { state.throttle = Math.max(0, state.throttle - 5); document.getElementById('throttle').value = state.throttle; }
+});
+window.addEventListener('keyup', e => { keys[e.code] = false; });
+
+// Touch controls
+document.querySelectorAll('.touch-btn').forEach(btn => {
+  const action = btn.dataset.action;
+  const start = () => {
+    if (action === 'pitchUp') keys['KeyW'] = true;
+    if (action === 'pitchDown') keys['KeyS'] = true;
+    if (action === 'rollLeft') keys['KeyA'] = true;
+    if (action === 'rollRight') keys['KeyD'] = true;
+    if (action === 'throttleUp') { state.throttle = Math.min(100, state.throttle + 10); document.getElementById('throttle').value = state.throttle; }
+    if (action === 'throttleDown') { state.throttle = Math.max(0, state.throttle - 10); document.getElementById('throttle').value = state.throttle; }
+  };
+  const end = () => {
+    if (action === 'pitchUp') keys['KeyW'] = false;
+    if (action === 'pitchDown') keys['KeyS'] = false;
+    if (action === 'rollLeft') keys['KeyA'] = false;
+    if (action === 'rollRight') keys['KeyD'] = false;
+  };
+  btn.addEventListener('touchstart', e => { e.preventDefault(); start(); });
+  btn.addEventListener('touchend', e => { e.preventDefault(); end(); });
+  btn.addEventListener('mousedown', start);
+  btn.addEventListener('mouseup', end);
+  btn.addEventListener('mouseleave', end);
+});
+
+// --- UI Handlers ---
+function togglePause() {
+  state.paused = !state.paused;
+  document.getElementById('pauseBtn').classList.toggle('active', state.paused);
+  document.getElementById('pauseBtn').textContent = state.paused ? 'RESUME' : 'PAUSE';
+  addATC('sys', state.paused ? 'Simulation paused' : 'Simulation resumed');
+}
+
+function toggleGear() {
+  state.gearDown = !state.gearDown;
+  updateGearBtn();
+  addATC('sys', 'Landing gear ' + (state.gearDown ? 'DOWN' : 'UP'));
+}
+function updateGearBtn() {
+  const btn = document.getElementById('gearBtn');
+  btn.classList.toggle('active', state.gearDown);
+  btn.textContent = state.gearDown ? 'GEAR DOWN' : 'GEAR UP';
+}
+
+function toggleBrake() {
+  state.brakeOn = !state.brakeOn;
+  updateBrakeBtn();
+}
+function updateBrakeBtn() {
+  const btn = document.getElementById('brakeBtn');
+  btn.classList.toggle('active', state.brakeOn);
+  btn.textContent = state.brakeOn ? 'BRK ON' : 'BRK OFF';
+}
+
+function cycleView() {
+  state.viewMode = (state.viewMode + 1) % 3;
+  const names = ['COCKPIT', 'CHASE', 'TOWER'];
+  document.getElementById('viewBtn').textContent = 'CAM: ' + names[state.viewMode];
+  addATC('sys', 'Camera: ' + names[state.viewMode]);
+}
+
+document.getElementById('gearBtn').addEventListener('click', toggleGear);
+document.getElementById('brakeBtn').addEventListener('click', toggleBrake);
+document.getElementById('pauseBtn').addEventListener('click', togglePause);
+document.getElementById('viewBtn').addEventListener('click', cycleView);
+document.getElementById('soundBtn').addEventListener('click', () => {
+  state.soundOn = !state.soundOn;
+  const btn = document.getElementById('soundBtn');
+  btn.classList.toggle('active', state.soundOn);
+  btn.textContent = state.soundOn ? 'SOUND ON' : 'SOUND OFF';
+});
+document.getElementById('resetBtn').addEventListener('click', () => {
+  initScene();
+  addATC('sys', 'Flight reset · Return to gate');
+});
+
+document.getElementById('throttle').addEventListener('input', e => {
+  state.throttle = parseInt(e.target.value);
+});
+document.getElementById('flaps').addEventListener('input', e => {
+  state.flaps = parseInt(e.target.value);
+});
+
+// --- Startup Selection ---
+document.querySelectorAll('#aircraftList .option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#aircraftList .option').forEach(o => {
+      o.classList.remove('selected');
+      o.querySelector('span').textContent = '○';
+    });
+    opt.classList.add('selected');
+    opt.querySelector('span').textContent = '◉';
+    state.aircraft = opt.dataset.ac;
+  });
+});
+document.querySelectorAll('#runwayList .option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#runwayList .option').forEach(o => {
+      o.classList.remove('selected');
+      o.querySelector('span').textContent = '○';
+    });
+    opt.classList.add('selected');
+    opt.querySelector('span').textContent = '◉';
+    state.runway = opt.dataset.rwy;
+  });
+});
+document.querySelectorAll('#envList .option').forEach(opt => {
+  opt.addEventListener('click', () => {
+    document.querySelectorAll('#envList .option').forEach(o => {
+      o.classList.remove('selected');
+      o.querySelector('span').textContent = '○';
+    });
+    opt.classList.add('selected');
+    opt.querySelector('span').textContent = '◉';
+    state.env = opt.dataset.env;
+  });
+});
+
+document.getElementById('launchBtn').addEventListener('click', () => {
+  document.getElementById('startup').classList.add('hidden');
+  initScene();
+  addATC('atc', 'Toronto Tower · Welcome · Wind 270° at 8kt · Altimeter 29.92 · Cleared for departure');
+  addATC('sys', `${AIRCRAFT[state.aircraft].name} · Runway ${state.runway} · Systems nominal`);
+  addATC('sys', 'Release parking brake · Advance throttle · Rotate at V₁');
+});
+
+// --- Main Loop ---
+let lastTime = performance.now();
+let frameCount = 0, fpsTime = 0;
+function animate() {
+  const now = performance.now();
+  const dt = Math.min((now - lastTime) / 1000, 0.05);
+  lastTime = now;
+
+  frameCount++;
+  fpsTime += dt;
+  if (fpsTime >= 1) {
+    document.getElementById('fps').textContent = frameCount + ' FPS';
+    frameCount = 0;
+    fpsTime = 0;
+  }
+
+  updatePhysics(dt);
+  updateCamera();
+  updateHUD();
+  drawMinimap();
+
+  renderer.render(scene, camera);
+  requestAnimationFrame(animate);
+}
+
+// --- Resize ---
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// --- Boot ---
+animate();
+</script>
+</body>
+</html>
