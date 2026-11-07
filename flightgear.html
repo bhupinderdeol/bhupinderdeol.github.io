@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FlightGear Hangar | UFO Encounter Simulator</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #151a3a;
+            --accent-cyan: #00d4ff;
+            --accent-purple: #a855f7;
+            --accent-pink: #ec4899;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --ufo-glow: #00ff88;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        /* --- Navigation --- */
+        nav {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 1000;
+            background: rgba(10, 14, 39, 0.85);
+            backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            padding: 1rem 2rem;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: 2px;
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s;
+            position: relative;
+        }
+
+        .nav-links a:hover { color: var(--accent-cyan); }
+
+        .nav-links a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px; left: 0;
+            width: 0; height: 2px;
+            background: var(--accent-cyan);
+            transition: width 0.3s;
+        }
+
+        .nav-links a:hover::after { width: 100%; }
+
+        .menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            color: var(--text-primary);
+            font-size: 1.5rem;
+            cursor: pointer;
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            padding-top: 80px;
+        }
+
+        /* Animated Starfield */
+        .stars {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: 
+                radial-gradient(2px 2px at 20% 30%, white, transparent),
+                radial-gradient(2px 2px at 60% 70%, white, transparent),
+                radial-gradient(1px 1px at 50% 50%, white, transparent),
+                radial-gradient(1px 1px at 80% 10%, white, transparent),
+                radial-gradient(2px 2px at 90% 60%, white, transparent),
+                radial-gradient(1px 1px at 33% 80%, white, transparent),
+                radial-gradient(1px 1px at 15% 90%, white, transparent);
+            background-size: 200% 200%;
+            animation: starShift 60s linear infinite;
+        }
+
+        @keyframes starShift {
+            from { background-position: 0 0; }
+            to { background-position: 200% 200%; }
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            padding: 2rem;
+            max-width: 900px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2.5rem, 6vw, 5rem);
+            font-weight: 900;
+            letter-spacing: 3px;
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple), var(--accent-pink));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: gradientShift 4s ease infinite;
+            background-size: 200% auto;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .hero p {
+            font-size: clamp(1rem, 2vw, 1.3rem);
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cta-btn {
+            display: inline-block;
+            padding: 1rem 2.5rem;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            color: white;
+            text-decoration: none;
+            border-radius: 50px;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+        }
+
+        .cta-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 40px rgba(0, 212, 255, 0.6);
+        }
+
+        /* --- Scene: Hangar & UFO --- */
+        .scene {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            margin-top: 3rem;
+        }
+
+        /* Ground */
+        .ground {
+            position: absolute;
+            bottom: 0; left: 0;
+            width: 100%; height: 30%;
+            background: linear-gradient(to bottom, #1a1f3a 0%, #0a0e27 100%);
+            border-top: 2px solid rgba(0, 212, 255, 0.3);
+        }
+
+        .ground::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-image: 
+                repeating-linear-gradient(90deg, 
+                    transparent 0, transparent 49px, 
+                    rgba(0, 212, 255, 0.1) 49px, rgba(0, 212, 255, 0.1) 50px);
+        }
+
+        /* Hangar */
+        .hangar {
+            position: absolute;
+            bottom: 30%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: min(500px, 80%);
+            height: 250px;
+        }
+
+        .hangar-roof {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 80px;
+            background: linear-gradient(135deg, #2d3561 0%, #1a1f3a 100%);
+            clip-path: polygon(0 100%, 50% 0, 100% 100%);
+            border-bottom: 3px solid var(--accent-cyan);
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+
+        .hangar-body {
+            position: absolute;
+            top: 75px; left: 0;
+            width: 100%; height: 175px;
+            background: linear-gradient(to bottom, #1a1f3a 0%, #0f1430 100%);
+            border: 2px solid rgba(0, 212, 255, 0.4);
+            border-top: none;
+        }
+
+        .hangar-door {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 140px;
+            background: linear-gradient(to bottom, #000 0%, #0a0e27 100%);
+            border: 2px solid rgba(0, 212, 255, 0.5);
+            overflow: hidden;
+        }
+
+        .hangar-door::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: 
+                repeating-linear-gradient(0deg, 
+                    transparent 0, transparent 19px, 
+                    rgba(0, 212, 255, 0.2) 19px, rgba(0, 212, 255, 0.2) 20px);
+        }
+
+        .hangar-light {
+            position: absolute;
+            top: -10px;
+            width: 20px; height: 20px;
+            background: var(--accent-cyan);
+            border-radius: 50%;
+            box-shadow: 0 0 20px var(--accent-cyan);
+            animation: blink 2s ease-in-out infinite;
+        }
+
+        .hangar-light:nth-child(1) { left: 10%; animation-delay: 0s; }
+        .hangar-light:nth-child(2) { right: 10%; animation-delay: 1s; }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* UFO */
+        .ufo {
+            position: absolute;
+            top: 15%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 180px;
+            height: 80px;
+            animation: ufoFloat 4s ease-in-out infinite;
+        }
+
+        @keyframes ufoFloat {
+            0%, 100% { transform: translateX(-50%) translateY(0) rotate(-2deg); }
+            50% { transform: translateX(-50%) translateY(-20px) rotate(2deg); }
+        }
+
+        .ufo-dome {
+            position: absolute;
+            top: 0; left: 50%;
+            transform: translateX(-50%);
+            width: 70px; height: 40px;
+            background: radial-gradient(circle at 30% 30%, #a0e8ff, #00d4ff);
+            border-radius: 50% 50% 0 0;
+            box-shadow: 
+                inset 0 0 20px rgba(255, 255, 255, 0.5),
+                0 0 30px rgba(0, 212, 255, 0.6);
+            z-index: 2;
+        }
+
+        .ufo-body {
+            position: absolute;
+            top: 30px; left: 0;
+            width: 100%; height: 30px;
+            background: linear-gradient(to bottom, #4a5578 0%, #2d3561 100%);
+            border-radius: 50%;
+            box-shadow: 
+                0 0 40px rgba(0, 212, 255, 0.4),
+                inset 0 -5px 10px rgba(0, 0, 0, 0.5);
+        }
+
+        .ufo-lights {
+            position: absolute;
+            top: 55px; left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            padding: 0 20px;
+        }
+
+        .ufo-light {
+            width: 12px; height: 12px;
+            background: var(--ufo-glow);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--ufo-glow);
+            animation: ufoLightPulse 1.5s ease-in-out infinite;
+        }
+
+        .ufo-light:nth-child(1) { animation-delay: 0s; }
+        .ufo-light:nth-child(2) { animation-delay: 0.3s; background: var(--accent-pink); box-shadow: 0 0 15px var(--accent-pink); }
+        .ufo-light:nth-child(3) { animation-delay: 0.6s; background: var(--accent-purple); box-shadow: 0 0 15px var(--accent-purple); }
+        .ufo-light:nth-child(4) { animation-delay: 0.9s; }
+        .ufo-light:nth-child(5) { animation-delay: 1.2s; background: var(--accent-pink); box-shadow: 0 0 15px var(--accent-pink); }
+
+        @keyframes ufoLightPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.7); }
+        }
+
+        /* Tractor beam */
+        .beam {
+            position: absolute;
+            top: 75px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 60px solid transparent;
+            border-right: 60px solid transparent;
+            border-top: 200px solid rgba(0, 255, 136, 0.15);
+            filter: blur(8px);
+            animation: beamPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes beamPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        /* --- Features Section --- */
+        .features {
+            padding: 6rem 2rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: clamp(2rem, 4vw, 3rem);
+            margin-bottom: 1rem;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .section-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            margin-bottom: 4rem;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, rgba(21, 26, 58, 0.5) 100%);
+            padding: 2.5rem 2rem;
+            border-radius: 16px;
+            border: 1px solid rgba(0, 212, 255, 0.2);
+            transition: transform 0.3s, border-color 0.3s, box-shadow 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%;
+            width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+            transition: left 0.5s;
+        }
+
+        .feature-card:hover::before { left: 100%; }
+
+        .feature-card:hover {
+            transform: translateY(-8px);
+            border-color: var(--accent-cyan);
+            box-shadow: 0 10px 40px rgba(0, 212, 255, 0.2);
+        }
+
+        .feature-icon {
+            width: 60px; height: 60px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.3rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-primary);
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+        }
+
+        /* --- Stats Section --- */
+        .stats {
+            padding: 4rem 2rem;
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+            border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        .stats-grid {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            text-align: center;
+        }
+
+        .stat-item h3 {
+            font-size: clamp(2rem, 4vw, 3rem);
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-item p {
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-size: 0.85rem;
+        }
+
+        /* --- Footer --- */
+        footer {
+            padding: 3rem 2rem 2rem;
+            text-align: center;
+            border-top: 1px solid rgba(0, 212, 255, 0.2);
+        }
+
+        footer p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .social-links {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-links a {
+            width: 40px; height: 40px;
+            border-radius: 50%;
+            background: var(--bg-secondary);
+            border: 1px solid rgba(0, 212, 255, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: all 0.3s;
+        }
+
+        .social-links a:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            transform: translateY(-3px);
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 768px) {
+            .nav-links {
+                position: fixed;
+                top: 70px; left: 0; right: 0;
+                background: rgba(10, 14, 39, 0.98);
+                flex-direction: column;
+                padding: 2rem;
+                gap: 1.5rem;
+                transform: translateY(-150%);
+                transition: transform 0.3s;
+                border-bottom: 1px solid rgba(0, 212, 255, 0.2);
+            }
+
+            .nav-links.active { transform: translateY(0); }
+            .menu-toggle { display: block; }
+
+            .scene { height: 400px; }
+            .hangar { width: 90%; }
+            .ufo { width: 140px; }
+            .ufo-dome { width: 55px; height: 32px; }
+            .ufo-body { top: 25px; }
+            .ufo-lights { top: 45px; padding: 0 15px; }
+            .ufo-light { width: 10px; height: 10px; }
+            .beam { top: 60px; border-left-width: 45px; border-right-width: 45px; border-top-width: 150px; }
+        }
+
+        @media (max-width: 480px) {
+            .scene { height: 350px; }
+            .hangar { height: 200px; }
+            .hangar-roof { height: 65px; }
+            .hangar-body { top: 60px; height: 140px; }
+            .hangar-door { height: 110px; }
+        }
+    </style>
+</head>
+<body>
+
+    <nav>
+        <div class="nav-container">
+            <div class="logo">✈ FLIGHTGEAR</div>
+            <button class="menu-toggle" id="menuToggle">☰</button>
+            <ul class="nav-links" id="navLinks">
+                <li><a href="#home">Home</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#stats">Stats</a></li>
+                <li><a href="#contact">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section class="hero" id="home">
+        <div class="stars"></div>
+        <div class="hero-content">
+            <h1>BEYOND THE HANGAR</h1>
+            <p>Experience the next-generation flight simulator where aviation meets the extraordinary. Explore skies, hangars, and encounters with the unknown.</p>
+            <a href="#features" class="cta-btn">Begin Journey</a>
+
+            <!-- Animated Scene -->
+            <div class="scene">
+                <!-- UFO -->
+                <div class="ufo">
+                    <div class="ufo-dome"></div>
+                    <div class="ufo-body"></div>
+                    <div class="ufo-lights">
+                        <div class="ufo-light"></div>
+                        <div class="ufo-light"></div>
+                        <div class="ufo-light"></div>
+                        <div class="ufo-light"></div>
+                        <div class="ufo-light"></div>
+                    </div>
+                    <div class="beam"></div>
+                </div>
+
+                <!-- Hangar -->
+                <div class="hangar">
+                    <div class="hangar-roof"></div>
+                    <div class="hangar-body">
+                        <div class="hangar-light"></div>
+                        <div class="hangar-light"></div>
+                        <div class="hangar-door"></div>
+                    </div>
+                </div>
+
+                <div class="ground"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="features" id="features">
+        <h2 class="section-title">Extraordinary Features</h2>
+        <p class="section-subtitle">A simulator built for dreamers, pilots, and explorers of the unknown.</p>
+        
+        <div class="feature-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🛸</div>
+                <h3>UFO Encounters</h3>
+                <p>Witness dynamic aerial phenomena and interact with unidentified flying objects in real-time scenarios.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🏗️</div>
+                <h3>Realistic Hangars</h3>
+                <p>Explore meticulously modeled hangars with authentic lighting, aircraft, and maintenance bays.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌌</div>
+                <h3>Immersive Skies</h3>
+                <p>Fly through dynamic weather systems, day-night cycles, and breathtaking atmospheric effects.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎮</div>
+                <h3>Advanced Physics</h3>
+                <p>Experience true-to-life aerodynamics and flight mechanics powered by cutting-edge simulation.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌍</div>
+                <h3>Global Terrain</h3>
+                <p>Navigate across the entire planet with satellite-accurate topography and landmarks.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">👥</div>
+                <h3>Multiplayer</h3>
+                <p>Join thousands of pilots online for shared adventures, air traffic control, and cooperative missions.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="stats" id="stats">
+        <div class="stats-grid">
+            <div class="stat-item">
+                <h3>40K+</h3>
+                <p>Airports</p>
+            </div>
+            <div class="stat-item">
+                <h3>700+</h3>
+                <p>Aircraft</p>
+            </div>
+            <div class="stat-item">
+                <h3>∞</h3>
+                <p>World Terrain</p>
+            </div>
+            <div class="stat-item">
+                <h3>25+</h3>
+                <p>Years Active</p>
+            </div>
+        </div>
+    </section>
+
+    <footer id="contact">
+        <div class="social-links">
+            <a href="#" title="GitHub">⚡</a>
+            <a href="#" title="Twitter">🐦</a>
+            <a href="#" title="Discord">💬</a>
+            <a href="#" title="YouTube">▶</a>
+        </div>
+        <p>&copy; 2026 FlightGear Hangar Project. Inspired by open-source flight simulation.</p>
+        <p style="margin-top: 0.5rem; font-size: 0.8rem;">The truth is out there... and so is the runway.</p>
+    </footer>
+
+    <script>
+        // Mobile menu toggle
+        const menuToggle = document.getElementById('menuToggle');
+        const navLinks = document.getElementById('navLinks');
+
+        menuToggle.addEventListener('click', () => {
+            navLinks.classList.toggle('active');
+        });
+
+        // Close menu on link click
+        document.querySelectorAll('.nav-links a').forEach(link => {
+            link.addEventListener('click', () => {
+                navLinks.classList.remove('active');
+            });
+        });
+
+        // Parallax effect on UFO based on mouse movement
+        const ufo = document.querySelector('.ufo');
+        const hero = document.querySelector('.hero');
+
+        hero.addEventListener('mousemove', (e) => {
+            const rect = hero.getBoundingClientRect();
+            const x = (e.clientX - rect.left) / rect.width - 0.5;
+            const y = (e.clientY - rect.top) / rect.height - 0.5;
+            
+            ufo.style.marginLeft = `${x * 30}px`;
+            ufo.style.marginTop = `${y * 20}px`;
+        });
+
+        // Intersection Observer for fade-in animations
+        const observerOptions = { threshold: 0.1 };
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateY(0)';
+                }
+            });
+        }, observerOptions);
+
+        document.querySelectorAll('.feature-card, .stat-item').forEach(el => {
+            el.style.opacity = '0';
+            el.style.transform = 'translateY(30px)';
+            el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+            observer.observe(el);
+        });
+    </script>
+</body>
+</html>
