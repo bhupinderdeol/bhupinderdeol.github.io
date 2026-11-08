@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wolfenstein 3D – Browser Clone</title>
+  <style>
+    /* ---------- Retro theme ---------- */
+    :root {
+      --bg-dark: #0a0a0a;
+      --bg-panel: #1a1a1a;
+      --border-light: #3a3a3a;
+      --accent-red: #c62828;
+      --accent-yellow: #f9a825;
+      --text-main: #e0e0e0;
+      --text-dim: #9e9e9e;
+      --font-pixel: 'Courier New', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg-dark);
+      color: var(--text-main);
+      font-family: var(--font-pixel);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+      background-image: repeating-linear-gradient(
+        0deg,
+        rgba(255, 255, 255, 0.02) 0px,
+        rgba(255, 255, 255, 0.02) 1px,
+        transparent 1px,
+        transparent 3px
+      );
+    }
+
+    /* ---------- Main container ---------- */
+    .game-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      max-width: 960px;
+      width: 100%;
+    }
+
+    /* ---------- Header ---------- */
+    .header {
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .header h1 {
+      font-size: 2.2rem;
+      font-weight: bold;
+      color: var(--accent-red);
+      text-shadow: 2px 2px 0 #000, 0 0 10px rgba(198, 40, 40, 0.6);
+      margin-bottom: 4px;
+    }
+
+    .header .subtitle {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      letter-spacing: 1px;
+    }
+
+    /* ---------- Canvas frame ---------- */
+    .canvas-frame {
+      position: relative;
+      border: 4px solid var(--border-light);
+      border-radius: 4px;
+      box-shadow: 0 0 0 2px #000, 0 8px 24px rgba(0, 0, 0, 0.8);
+      background: #000;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      overflow: hidden;
+    }
+
+    .canvas-frame canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* ---------- Loading overlay ---------- */
+    .loading-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.92);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      z-index: 10;
+      color: var(--accent-yellow);
+      font-size: 1.1rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .loading-overlay.hidden {
+      display: none;
+    }
+
+    .spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--border-light);
+      border-top-color: var(--accent-red);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* ---------- Error message ---------- */
+    .error-msg {
+      color: var(--accent-red);
+      font-size: 0.9rem;
+      text-align: center;
+      max-width: 80%;
+      line-height: 1.5;
+    }
+
+    /* ---------- Control overlay ---------- */
+    .controls-overlay {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px 16px;
+      padding: 10px 18px;
+      background: var(--bg-panel);
+      border: 2px solid var(--border-light);
+      border-radius: 4px;
+      box-shadow: 0 0 0 1px #000;
+      width: 100%;
+    }
+
+    .control-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.8rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .control-item .key {
+      display: inline-block;
+      background: #2a2a2a;
+      border: 1px solid #555;
+      border-bottom-width: 3px;
+      border-radius: 3px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+      color: var(--text-main);
+      font-weight: bold;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    /* ---------- Footer note ---------- */
+    .footer-note {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      text-align: center;
+      line-height: 1.6;
+      max-width: 800px;
+      padding: 6px 0;
+    }
+
+    .footer-note a {
+      color: var(--accent-yellow);
+      text-decoration: none;
+      border-bottom: 1px dotted var(--accent-yellow);
+    }
+
+    .footer-note a:hover {
+      color: #fff;
+    }
+
+    /* ---------- Responsive tweaks ---------- */
+    @media (max-width: 640px) {
+      .header h1 { font-size: 1.4rem; }
+      .control-item { font-size: 0.7rem; }
+      .control-item .key { padding: 1px 5px; font-size: 0.65rem; }
+      .canvas-frame { aspect-ratio: 4 / 3; }
+    }
+  </style>
+</head>
+<body>
+  <div class="game-wrapper">
+    <!-- Retro header -->
+    <div class="header">
+      <h1>Wolfenstein 3D</h1>
+      <div class="subtitle">Browser Clone · Shareware Episode</div>
+    </div>
+
+    <!-- Game canvas -->
+    <div class="canvas-frame">
+      <canvas id="screen"></canvas>
+      <div id="loadingOverlay" class="loading-overlay">
+        <div class="spinner"></div>
+        <div id="loadingText">Fetching shareware assets…</div>
+        <div id="errorMsg" class="error-msg"></div>
+      </div>
+    </div>
+
+    <!-- Control reference -->
+    <div class="controls-overlay">
+      <div class="control-item"><span class="key">W</span> / <span class="key">↑</span> Forward</div>
+      <div class="control-item"><span class="key">S</span> / <span class="key">↓</span> Backward</div>
+      <div class="control-item"><span class="key">A</span> / <span class="key">←</span> Turn Left</div>
+      <div class="control-item"><span class="key">D</span> / <span class="key">→</span> Turn Right</div>
+      <div class="control-item"><span class="key">Space</span> / <span class="key">E</span> Open Door</div>
+      <div class="control-item"><span class="key">Ctrl</span> Shoot</div>
+      <div class="control-item"><span class="key">1</span>–<span class="key">4</span> Weapons</div>
+      <div class="control-item"><span class="key">M</span> Map</div>
+      <div class="control-item"><span class="key">Esc</span> Pause</div>
+    </div>
+
+    <!-- Attribution -->
+    <div class="footer-note">
+      Powered by <a href="https://github.com/dibdot/uWolf" target="_blank" rel="noopener">uWolf</a> —
+      a dependency‑free JavaScript raycaster.
+      Shareware data files are fetched from the
+      <a href="https://archive.org/details/wolf3dsw" target="_blank" rel="noopener">Internet Archive</a>.
+      Wolfenstein 3D is a trademark of id Software.
+    </div>
+  </div>
+
+  <!-- ============================================================
+       SCRIPTS
+       ============================================================ -->
+  <!-- JSZip for extracting the shareware zip -->
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+
+  <script>
+    (async function () {
+      'use strict';
+
+      // ----------------------------------------------------------------
+      // 1.  Configuration
+      // ----------------------------------------------------------------
+      const ZIP_URL = 'https://archive.org/download/wolf3dsw/wolf3dsw.zip';
+      const ENGINE_BASE = 'https://cdn.jsdelivr.net/gh/dibdot/uWolf@main/js/';
+
+      // Files we need from the zip (case‑insensitive).
+      const REQUIRED_FILES = [
+        'VSWAP.WL1',
+        'MAPHEAD.WL1',
+        'GAMEMAPS.WL1',
+        'VGAGRAPH.WL1',
+        'VGAHEAD.WL1',
+        'VGADICT.WL1',
+        'AUDIOHED.WL1',
+        'AUDIOT.WL1'
+      ];
+
+      // uWolf scripts – order matters.
+      const ENGINE_SCRIPTS = [
+        'palette.js',
+        'wl_formats.js',
+        'variants.js',
+        'raycaster.js',
+        'game.js',
+        'ai.js',
+        'enemies.js',
+        'sound.js',
+        'music.js',
+        'vgagraph.js',
+        'main.js'
+      ];
+
+      // ----------------------------------------------------------------
+      // 2.  DOM references
+      // ----------------------------------------------------------------
+      const loadingOverlay = document.getElementById('loadingOverlay');
+      const loadingText = document.getElementById('loadingText');
+      const errorMsg = document.getElementById('errorMsg');
+
+      // ----------------------------------------------------------------
+      // 3.  Helper: load a script dynamically
+      // ----------------------------------------------------------------
+      function loadScript(src) {
+        return new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = src;
+          s.async = false;
+          s.onload = () => resolve();
+          s.onerror = () => reject(new Error('Failed to load ' + src));
+          document.head.appendChild(s);
+        });
+      }
+
+      // ----------------------------------------------------------------
+      // 4.  Helper: fetch & extract the shareware zip
+      // ----------------------------------------------------------------
+      async function prepareAssets() {
+        loadingText.textContent = 'Downloading shareware data…';
+        const resp = await fetch(ZIP_URL);
+        if (!resp.ok) throw new Error(`ZIP download failed: ${resp.status}`);
+
+        const arrayBuffer = await resp.arrayBuffer();
+        const zip = await JSZip.loadAsync(arrayBuffer);
+
+        // Build a map of UPPERCASE filename → Blob URL.
+        const assetMap = {};
+
+        // We'll process files in parallel.
+        const tasks = Object.keys(zip.files)
+          .filter(name => REQUIRED_FILES.includes(name.toUpperCase()))
+          .map(async (name) => {
+            const file = zip.files[name];
+            const blob = await file.async('blob');
+            const blobUrl = URL.createObjectURL(blob);
+            assetMap[name.toUpperCase()] = blobUrl;
+          });
+
+        await Promise.all(tasks);
+
+        // Verify we have the bare minimum.
+        const required = ['VSWAP.WL1', 'MAPHEAD.WL1', 'GAMEMAPS.WL1'];
+        for (const r of required) {
+          if (!assetMap[r]) {
+            throw new Error(`Missing required file in zip: ${r}`);
+          }
+        }
+
+        return assetMap;
+      }
+
+      // ----------------------------------------------------------------
+      // 5.  Intercept fetch() so uWolf reads our Blob URLs
+      // ----------------------------------------------------------------
+      function installFetchInterceptor(assetMap) {
+        const originalFetch = window.fetch;
+
+        window.fetch = function (input, init) {
+          // input can be a string or a Request object.
+          const url = typeof input === 'string' ? input : input.url;
+
+          // Extract the last path segment (filename).
+          const filename = url.split('/').pop().toUpperCase();
+
+          // Try exact match first.
+          if (assetMap[filename]) {
+            return originalFetch(assetMap[filename], init);
+          }
+
+          // Try stem match (e.g. "VSWAP.WL6" → "VSWAP.WL1").
+          const stem = filename.split('.')[0];
+          for (const key of Object.keys(assetMap)) {
+            if (key.startsWith(stem)) {
+              return originalFetch(assetMap[key], init);
+            }
+          }
+
+          // Fallback – let the browser handle it.
+          return originalFetch(input, init);
+        };
+      }
+
+      // ----------------------------------------------------------------
+      // 6.  Load the uWolf engine scripts sequentially
+      // ----------------------------------------------------------------
+      async function loadEngine() {
+        for (const file of ENGINE_SCRIPTS) {
+          loadingText.textContent = `Loading engine… (${file})`;
+          await loadScript(ENGINE_BASE + file);
+        }
+      }
+
+      // ----------------------------------------------------------------
+      // 7.  Boot sequence
+      // ----------------------------------------------------------------
+      try {
+        // 7a. Fetch and unzip the shareware assets.
+        const assetMap = await prepareAssets();
+
+        // 7b. Make uWolf see them as local files.
+        installFetchInterceptor(assetMap);
+
+        // 7c. Load the engine.
+        await loadEngine();
+
+        // 7d. Hide the loading overlay – uWolf's main.js will
+        //     automatically detect the data and show its menu.
+        loadingOverlay.classList.add('hidden');
+      } catch (err) {
+        console.error(err);
+        errorMsg.textContent = err.message;
+        loadingText.textContent = 'Failed to load.';
+        // Leave the overlay visible so the user sees the error.
+      }
+    })();
+  </script>
+
+  <!-- ============================================================
+       uWolf UI elements (hidden – only the canvas is visible)
+       ============================================================ -->
+  <!--
+    uWolf's main.js expects a set of DOM elements with specific IDs.
+    We create them here so the engine can attach its logic.
+    The elements are hidden with CSS; only the `#screen` canvas is shown.
+  -->
+  <div id="uwolf-ui" style="display:none;">
+    <!-- The engine will draw on these canvases. -->
+    <canvas id="minimap"></canvas>
+
+    <!-- Status / level selector / variant selector -->
+    <div id="status"></div>
+    <select id="variantSel" style="display:none;"></select>
+    <div id="levelBox" style="display:none;">
+      <select id="levelSel"></select>
+    </div>
+
+    <!-- Buttons that uWolf may expect (we don't use them directly) -->
+    <button id="retryBtn" style="display:none;">Retry</button>
+    <button id="resumeBtn" style="display:none;">Resume game</button>
+    <button id="newGameBtn" style="display:none;">Start a new game</button>
+  </div>
+</body>
+</html>
