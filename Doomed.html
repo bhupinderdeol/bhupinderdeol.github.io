@@ -1,0 +1,2213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+  />
+  <meta name="theme-color" content="#06070a" />
+  <title>DOOMSCROLL — For You</title>
+
+  <!-- js-dos 8: DOSBox compiled to WebAssembly -->
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/js-dos@8.5.3/dist/js-dos.css"
+  />
+  <script src="https://cdn.jsdelivr.net/npm/js-dos@8.5.3/dist/js-dos.js"></script>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=Press+Start+2P&family=VT323&display=swap"
+    rel="stylesheet"
+  />
+
+  <style>
+    /* ============================================================
+       RETRO DESIGN TOKENS
+       ============================================================ */
+    :root {
+      --bg: #06070a;
+      --panel: #0b0f14;
+      --panel-2: #0e141a;
+      --line: #24313c;
+      --line-hot: #3b5668;
+      --green: #39ff88;
+      --green-dim: #1c7a47;
+      --pink: #ff3ea5;
+      --amber: #ffc857;
+      --red: #ff4b4b;
+      --text: #e8f0f7;
+      --muted: #7f91a1;
+      --font-pixel: "Press Start 2P", monospace;
+      --font-term: "VT323", monospace;
+      --font-mono: "IBM Plex Mono", monospace;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+    }
+
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(57, 255, 136, 0.08), transparent 28%),
+        radial-gradient(circle at 82% 84%, rgba(255, 62, 165, 0.06), transparent 30%),
+        var(--bg);
+      color: var(--text);
+      font-family: var(--font-mono);
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    button,
+    a {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    /* ============================================================
+       GLOBAL CRT FILTER
+       ============================================================ */
+    .crt-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0) 0 2px,
+          rgba(0, 0, 0, 0.11) 2px 4px
+        ),
+        radial-gradient(ellipse at center, transparent 58%, rgba(0, 0, 0, 0.28) 100%);
+      opacity: 0.5;
+      mix-blend-mode: multiply;
+    }
+
+    /* ============================================================
+       APP SHELL / PHONE FRAME
+       ============================================================ */
+    .app {
+      position: relative;
+      width: min(100vw, 480px);
+      height: 100vh;
+      height: 100dvh;
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--bg);
+      border-left: 1px solid rgba(57, 255, 136, 0.12);
+      border-right: 1px solid rgba(57, 255, 136, 0.12);
+      box-shadow:
+        0 0 80px rgba(57, 255, 136, 0.08),
+        0 0 160px rgba(255, 62, 165, 0.04);
+      isolation: isolate;
+    }
+
+    .side-marquee {
+      display: none;
+    }
+
+    /* ============================================================
+       TOP BAR
+       ============================================================ */
+    .topbar {
+      position: absolute;
+      inset: 0 0 auto 0;
+      z-index: 40;
+      height: calc(72px + var(--safe-top));
+      padding: var(--safe-top) 14px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      background: linear-gradient(
+        to bottom,
+        rgba(6, 7, 10, 0.98) 0%,
+        rgba(6, 7, 10, 0.86) 58%,
+        rgba(6, 7, 10, 0) 100%
+      );
+      pointer-events: none;
+    }
+
+    .topbar > * {
+      pointer-events: auto;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .brand__name {
+      font-family: var(--font-pixel);
+      font-size: 10px;
+      line-height: 1.25;
+      letter-spacing: -0.6px;
+      color: var(--green);
+      text-shadow:
+        1px 0 var(--pink),
+        -1px 0 #00d9ff;
+      animation: brandGlitch 5s steps(1) infinite;
+      white-space: nowrap;
+    }
+
+    .brand__name span {
+      color: var(--text);
+    }
+
+    .brand__sub {
+      font-family: var(--font-term);
+      font-size: 14px;
+      line-height: 1;
+      color: var(--muted);
+      letter-spacing: 0.4px;
+      white-space: nowrap;
+    }
+
+    .tabs {
+      position: absolute;
+      left: 50%;
+      bottom: 12px;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      white-space: nowrap;
+    }
+
+    .tab {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      padding: 3px 0;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+    }
+
+    .tab.active {
+      color: #fff;
+      border-bottom: 2px solid var(--green);
+      text-shadow: 0 0 12px rgba(57, 255, 136, 0.8);
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .icon-btn {
+      appearance: none;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 2px;
+      background: rgba(11, 15, 20, 0.8);
+      color: var(--text);
+      cursor: pointer;
+    }
+
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    .avatar--sm {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      color: #04140b;
+      background: var(--green);
+      border: 1px solid #fff;
+      box-shadow: 0 0 12px rgba(57, 255, 136, 0.5);
+    }
+
+    /* ============================================================
+       VERTICAL FEED
+       ============================================================ */
+    .feed {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow-y: scroll;
+      overflow-x: hidden;
+      scroll-snap-type: y mandatory;
+      overscroll-behavior: contain;
+      scrollbar-width: none;
+    }
+
+    .feed::-webkit-scrollbar {
+      display: none;
+    }
+
+    .clip {
+      position: relative;
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      overflow: hidden;
+      scroll-snap-align: start;
+      scroll-snap-stop: always;
+    }
+
+    .clip__inner {
+      position: absolute;
+      inset: calc(78px + var(--safe-top)) 0 calc(112px + var(--safe-bottom)) 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 10px;
+    }
+
+    /* ============================================================
+       LIVE PLAYER / BEZEL
+       ============================================================ */
+    .player-shell {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      max-width: 680px;
+      filter: drop-shadow(0 0 26px rgba(57, 255, 136, 0.16));
+    }
+
+    .player-bezel {
+      position: absolute;
+      inset: 0;
+      padding: 10px;
+      border: 1px solid #2c3a46;
+      border-radius: 10px;
+      background:
+        linear-gradient(145deg, #1a2028 0%, #090c10 38%, #05070a 100%);
+      box-shadow:
+        inset 0 0 0 2px #000,
+        inset 0 0 0 3px #1f2a33,
+        0 18px 40px rgba(0, 0, 0, 0.72);
+    }
+
+    .player-bezel::before,
+    .player-bezel::after {
+      content: "";
+      position: absolute;
+      top: 5px;
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: #070a0e;
+      box-shadow: inset 0 1px 1px #3c4e5b;
+      z-index: 2;
+    }
+
+    .player-bezel::before {
+      left: 5px;
+    }
+
+    .player-bezel::after {
+      right: 5px;
+    }
+
+    .player-screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid #000;
+      box-shadow:
+        inset 0 0 44px rgba(0, 0, 0, 0.95),
+        0 0 0 1px rgba(57, 255, 136, 0.12);
+      touch-action: none;
+    }
+
+    .dos-host {
+      position: absolute;
+      inset: 0;
+      background: #000;
+    }
+
+    .dos-host > div,
+    .dos-host > canvas,
+    .dos-host iframe {
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .dos-host canvas {
+      display: block;
+      image-rendering: pixelated;
+      outline: none;
+    }
+
+    .screen-fx {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .scanlines {
+      background: repeating-linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0) 0 2px,
+        rgba(0, 0, 0, 0.26) 2px 4px
+      );
+      mix-blend-mode: multiply;
+      opacity: 0.55;
+    }
+
+    .vignette {
+      background: radial-gradient(
+        ellipse at center,
+        transparent 42%,
+        rgba(0, 0, 0, 0.64) 100%
+      );
+    }
+
+    /* Boot overlay ------------------------------------------------ */
+    .boot-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 18px;
+      padding: 24px;
+      background: rgba(2, 6, 4, 0.95);
+      color: var(--green);
+      font-family: var(--font-term);
+      font-size: clamp(15px, 2.6vw, 22px);
+      line-height: 1.35;
+      pointer-events: none;
+      transition: opacity 0.35s ease;
+    }
+
+    .boot-overlay.hidden {
+      opacity: 0;
+    }
+
+    .boot-overlay.error {
+      pointer-events: auto;
+      color: var(--red);
+    }
+
+    .boot-lines div {
+      white-space: pre-wrap;
+    }
+
+    .boot-lines .ok {
+      color: var(--amber);
+    }
+
+    .boot-hint {
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .cursor {
+      animation: blink 0.9s steps(2) infinite;
+    }
+
+    .boot-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    /* Click to insert coin --------------------------------------- */
+    .click-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 7;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 20px;
+      text-align: center;
+      background: radial-gradient(
+        circle,
+        rgba(0, 0, 0, 0.15),
+        rgba(0, 0, 0, 0.58)
+      );
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .click-overlay.hidden {
+      opacity: 0;
+    }
+
+    .coin {
+      font-family: var(--font-pixel);
+      font-size: clamp(9px, 1.7vw, 13px);
+      line-height: 1.5;
+      color: #04140b;
+      background: var(--green);
+      padding: 13px 16px;
+      border: 1px solid #b6ffd4;
+      box-shadow:
+        0 0 30px rgba(57, 255, 136, 0.72),
+        6px 6px 0 #0d3b24;
+      animation: coinPulse 1.5s steps(2) infinite;
+    }
+
+    .click-overlay small {
+      font-family: var(--font-term);
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.78);
+      letter-spacing: 0.3px;
+    }
+
+    /* Player HUD chips ------------------------------------------- */
+    .screen-badge,
+    .status-chip,
+    .rec {
+      position: absolute;
+      z-index: 9;
+      padding: 4px 7px;
+      background: rgba(0, 0, 0, 0.58);
+      backdrop-filter: blur(3px);
+    }
+
+    .screen-badge {
+      top: 8px;
+      left: 8px;
+      font-family: var(--font-pixel);
+      font-size: 6px;
+      line-height: 1.4;
+      letter-spacing: 0.4px;
+      color: var(--amber);
+      border: 1px solid rgba(255, 200, 87, 0.36);
+    }
+
+    .status-chip {
+      bottom: 8px;
+      left: 8px;
+      font-family: var(--font-term);
+      font-size: 14px;
+      line-height: 1;
+      color: var(--green);
+      border-left: 2px solid var(--green);
+    }
+
+    .rec {
+      top: 8px;
+      right: 8px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-term);
+      font-size: 14px;
+      line-height: 1;
+      color: #ff7b7b;
+    }
+
+    .rec i {
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--red);
+      animation: blink 1s steps(2) infinite;
+    }
+
+    /* ============================================================
+       TIKTOK-STYLE SIDE RAIL
+       ============================================================ */
+    .rail {
+      position: absolute;
+      right: 10px;
+      bottom: calc(148px + var(--safe-bottom));
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+    }
+
+    .rail__avatar {
+      width: 46px;
+      height: 46px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      color: #04140b;
+      background: var(--green);
+      border: 2px solid #fff;
+      box-shadow:
+        0 0 0 2px var(--green),
+        0 0 22px rgba(57, 255, 136, 0.5);
+    }
+
+    .rail__btn {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: #fff;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+      cursor: pointer;
+    }
+
+    .rail__btn svg {
+      width: 29px;
+      height: 29px;
+      fill: rgba(0, 0, 0, 0.18);
+      stroke: #fff;
+      stroke-width: 1.7;
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.7));
+      transition:
+        transform 0.15s ease,
+        fill 0.15s ease,
+        stroke 0.15s ease;
+    }
+
+    .rail__btn:hover svg {
+      transform: scale(1.1);
+    }
+
+    .rail__btn.liked svg {
+      fill: var(--pink);
+      stroke: var(--pink);
+      filter: drop-shadow(0 0 8px rgba(255, 62, 165, 0.8));
+    }
+
+    .rail__count {
+      font-family: var(--font-term);
+      font-size: 15px;
+      line-height: 1;
+      color: #fff;
+      text-shadow: 0 1px 3px #000;
+    }
+
+    /* ============================================================
+       CAPTION / MUSIC / PROGRESS
+       ============================================================ */
+    .meta {
+      position: absolute;
+      left: 13px;
+      right: 68px;
+      bottom: calc(26px + var(--safe-bottom));
+      z-index: 20;
+    }
+
+    .meta__user {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin-bottom: 8px;
+      font-family: var(--font-pixel);
+      font-size: 9px;
+      line-height: 1.5;
+      color: #fff;
+      text-shadow: 0 2px 6px #000;
+    }
+
+    .verified {
+      display: grid;
+      place-items: center;
+      width: 14px;
+      height: 14px;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      color: #04140b;
+      background: var(--green);
+      border-radius: 50%;
+    }
+
+    .meta__caption {
+      margin: 0 0 10px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      line-height: 1.55;
+      color: #d6e1ea;
+      text-shadow: 0 1px 4px #000;
+    }
+
+    .meta__caption .tag {
+      color: var(--green);
+    }
+
+    .music {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+      font-family: var(--font-term);
+      font-size: 16px;
+      line-height: 1;
+      color: #fff;
+    }
+
+    .music__disc {
+      flex: 0 0 auto;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 2px solid #26323d;
+      background:
+        radial-gradient(circle at 50% 50%, #0b0f14 0 18%, transparent 19%),
+        conic-gradient(
+          from 0deg,
+          #39ff88,
+          #0b0f14 20%,
+          #ff3ea5 40%,
+          #0b0f14 60%,
+          #39ff88 80%,
+          #0b0f14
+        );
+      animation: spin 3.8s linear infinite;
+    }
+
+    .music__track {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      mask-image: linear-gradient(90deg, #000 82%, transparent 100%);
+    }
+
+    .music__track span {
+      display: inline-block;
+      padding-right: 20px;
+      animation: marquee 9s linear infinite;
+    }
+
+    .progress {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 21;
+      height: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      height: 100%;
+      width: 38%;
+      background: linear-gradient(90deg, var(--green), var(--pink));
+      box-shadow: 0 0 10px var(--green);
+      animation: fakeProgress 18s linear infinite;
+    }
+
+    /* ============================================================
+       INTERSTITIAL / ARCHIVE CLIPS
+       ============================================================ */
+    .clip--pause {
+      background:
+        radial-gradient(circle at 50% 38%, #101a14 0%, #06070a 70%);
+    }
+
+    .clip--pause::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(57, 255, 136, 0.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(57, 255, 136, 0.06) 1px, transparent 1px);
+      background-size: 32px 32px;
+      mask-image: radial-gradient(circle at 50% 45%, #000 0%, transparent 76%);
+      pointer-events: none;
+    }
+
+    .interstitial {
+      position: relative;
+      z-index: 2;
+      width: min(86%, 420px);
+    }
+
+    .eyebrow {
+      display: inline-block;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      line-height: 1.8;
+      letter-spacing: 1px;
+      color: var(--pink);
+    }
+
+    .interstitial h2 {
+      margin: 18px 0;
+      font-family: var(--font-pixel);
+      font-size: clamp(24px, 7vw, 38px);
+      line-height: 1.4;
+      color: #fff;
+      text-shadow:
+        3px 3px 0 #0c2a19,
+        6px 6px 0 rgba(57, 255, 136, 0.16);
+    }
+
+    .interstitial h2 em {
+      font-style: normal;
+      color: var(--green);
+    }
+
+    .interstitial p {
+      margin: 0 0 22px;
+      font-family: var(--font-mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .interstitial kbd {
+      display: inline-block;
+      padding: 2px 5px;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      color: var(--green);
+      background: #111820;
+      border: 1px solid #2b3a48;
+      border-bottom-width: 3px;
+    }
+
+    .clip--archive {
+      background:
+        radial-gradient(circle at 50% 30%, rgba(255, 200, 87, 0.08), transparent 42%),
+        #06070a;
+    }
+
+    .archive-card {
+      position: relative;
+      z-index: 2;
+      width: min(90%, 440px);
+      background: #0b0f14;
+      border: 1px solid var(--line);
+      border-top: 3px solid var(--amber);
+      box-shadow: 0 0 48px rgba(255, 200, 87, 0.08);
+    }
+
+    .archive-card__bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 9px 12px;
+      background: #111820;
+      border-bottom: 1px solid var(--line);
+      font-family: var(--font-pixel);
+      font-size: 6px;
+      line-height: 1.6;
+      color: var(--amber);
+      letter-spacing: 0.4px;
+    }
+
+    .archive-card pre {
+      margin: 0;
+      padding: 18px 16px;
+      overflow-x: auto;
+      font-family: var(--font-term);
+      font-size: 16px;
+      line-height: 1.45;
+      color: #b8c8d6;
+      white-space: pre-wrap;
+    }
+
+    .archive-card pre strong {
+      color: var(--green);
+      font-weight: 400;
+    }
+
+    .archive-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      padding: 0 16px 18px;
+    }
+
+    .archive-links a {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--green);
+      text-decoration: none;
+      border-bottom: 1px dashed rgba(57, 255, 136, 0.45);
+    }
+
+    .archive-links a:hover {
+      color: #fff;
+    }
+
+    /* ============================================================
+       RETRO BUTTON
+       ============================================================ */
+    .retro-btn {
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 12px 16px;
+      border: 0;
+      background: var(--green);
+      color: #04140b;
+      font-family: var(--font-pixel);
+      font-size: 8px;
+      line-height: 1.5;
+      text-decoration: none;
+      cursor: pointer;
+      box-shadow: 4px 4px 0 #0d3b24;
+      transition:
+        transform 0.1s ease,
+        box-shadow 0.1s ease;
+    }
+
+    .retro-btn:hover {
+      transform: translate(1px, 1px);
+      box-shadow: 3px 3px 0 #0d3b24;
+    }
+
+    .retro-btn:active {
+      transform: translate(4px, 4px);
+      box-shadow: 0 0 0 #0d3b24;
+    }
+
+    .retro-btn--ghost {
+      background: transparent;
+      color: var(--green);
+      border: 1px solid #2c5a40;
+      box-shadow: none;
+    }
+
+    .retro-btn--ghost:hover {
+      background: rgba(57, 255, 136, 0.08);
+      box-shadow: none;
+    }
+
+    /* ============================================================
+       KEYBOARD HUD
+       ============================================================ */
+    .keyboard-hud {
+      position: absolute;
+      top: calc(84px + var(--safe-top));
+      left: 10px;
+      z-index: 30;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 10px 11px;
+      background: rgba(6, 7, 10, 0.7);
+      border: 1px solid var(--line);
+      border-left: 2px solid var(--green);
+      backdrop-filter: blur(7px);
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+    }
+
+    .is-gaming .keyboard-hud {
+      opacity: 0.38;
+    }
+
+    .hud-title {
+      margin-bottom: 2px;
+      font-family: var(--font-pixel);
+      font-size: 5px;
+      line-height: 1.7;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+    }
+
+    .key-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-family: var(--font-mono);
+      font-size: 8px;
+      line-height: 1;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      color: #8fa1b3;
+    }
+
+    .key-row kbd {
+      min-width: 20px;
+      padding: 4px 5px;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      line-height: 1;
+      text-align: center;
+      color: var(--green);
+      background: #151b22;
+      border: 1px solid #2b3a48;
+      border-bottom-width: 3px;
+      border-radius: 2px;
+    }
+
+    /* ============================================================
+       PAGE DOTS
+       ============================================================ */
+    .page-dots {
+      position: absolute;
+      left: 6px;
+      top: 50%;
+      z-index: 35;
+      transform: translateY(-50%);
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .page-dot {
+      appearance: none;
+      width: 4px;
+      height: 18px;
+      padding: 0;
+      border: 0;
+      background: #26323d;
+      cursor: pointer;
+      transition:
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .page-dot.active {
+      background: var(--green);
+      box-shadow: 0 0 8px var(--green);
+    }
+
+    /* ============================================================
+       BROWSE OVERLAY
+       ============================================================ */
+    .browse-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 100;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      padding: 14px;
+      background: rgba(3, 5, 8, 0.84);
+      backdrop-filter: blur(10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+
+    .browse-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .is-browsing .feed {
+      overflow: hidden;
+    }
+
+    .browse-window {
+      width: 100%;
+      max-height: 84%;
+      overflow-y: auto;
+      background: var(--panel);
+      border: 1px solid #2c3a46;
+      border-top: 3px solid var(--green);
+      box-shadow:
+        0 0 50px rgba(57, 255, 136, 0.18),
+        0 24px 60px rgba(0, 0, 0, 0.7);
+      transform: translateY(24px);
+      transition: transform 0.25s ease;
+      scrollbar-width: thin;
+      scrollbar-color: #2c3a46 transparent;
+    }
+
+    .browse-overlay.open .browse-window {
+      transform: translateY(0);
+    }
+
+    .window-bar {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      background: #111820;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .window-dots i {
+      display: block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #2c3a46;
+    }
+
+    .window-dots i:first-child {
+      background: var(--pink);
+    }
+
+    .window-dots i:nth-child(2) {
+      background: var(--amber);
+    }
+
+    .window-dots i:nth-child(3) {
+      background: var(--green);
+    }
+
+    .window-title {
+      flex: 1;
+      font-family: var(--font-pixel);
+      font-size: 7px;
+      line-height: 1.7;
+      color: var(--green);
+      letter-spacing: 0.4px;
+    }
+
+    .window-close {
+      appearance: none;
+      width: 26px;
+      height: 26px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background: #0b0f14;
+      color: var(--muted);
+      font-size: 18px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .window-close:hover {
+      color: #fff;
+      border-color: var(--line-hot);
+    }
+
+    .window-body {
+      padding: 14px;
+    }
+
+    .window-note {
+      margin: 0 0 14px;
+      font-family: var(--font-term);
+      font-size: 16px;
+      line-height: 1.4;
+      color: var(--muted);
+    }
+
+    .game-list {
+      display: flex;
+      flex-direction: column;
+      gap: 9px;
+      margin-bottom: 16px;
+    }
+
+    .game-card {
+      appearance: none;
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      width: 100%;
+      padding: 10px;
+      text-align: left;
+      background: var(--panel-2);
+      border: 1px solid #1e2a34;
+      color: var(--text);
+      cursor: pointer;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .game-card:hover {
+      border-color: var(--green);
+      background: #101820;
+    }
+
+    .game-card__thumb {
+      flex: 0 0 auto;
+      width: 62px;
+      height: 48px;
+      display: grid;
+      place-items: center;
+      font-family: var(--font-pixel);
+      font-size: 6px;
+      line-height: 1.6;
+      text-align: center;
+      color: #04140b;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.18) 0 2px,
+          transparent 2px 4px
+        ),
+        var(--green);
+    }
+
+    .game-card__thumb--digger {
+      color: #1a1200;
+      background:
+        repeating-linear-gradient(
+          to bottom,
+          rgba(0, 0, 0, 0.16) 0 2px,
+          transparent 2px 4px
+        ),
+        var(--amber);
+    }
+
+    .game-card__meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .game-card__meta strong {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    .game-card__meta small {
+      font-family: var(--font-term);
+      font-size: 14px;
+      line-height: 1;
+      color: var(--muted);
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      padding: 3px 5px;
+      font-family: var(--font-pixel);
+      font-size: 5px;
+      line-height: 1.8;
+      letter-spacing: 0.5px;
+    }
+
+    .badge--live {
+      color: #04140b;
+      background: var(--green);
+    }
+
+    .badge--demo {
+      color: #1a1200;
+      background: var(--amber);
+    }
+
+    .window-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 9px;
+      margin-bottom: 14px;
+    }
+
+    .window-foot {
+      margin: 0;
+      font-family: var(--font-mono);
+      font-size: 9px;
+      line-height: 1.6;
+      color: #5e7181;
+    }
+
+    /* ============================================================
+       TOAST
+       ============================================================ */
+    .toast {
+      position: absolute;
+      left: 50%;
+      bottom: calc(22px + var(--safe-bottom));
+      z-index: 120;
+      max-width: calc(100% - 40px);
+      padding: 9px 12px;
+      transform: translate(-50%, 18px);
+      background: #0b0f14;
+      border: 1px solid var(--line-hot);
+      border-left: 2px solid var(--green);
+      color: var(--green);
+      font-family: var(--font-term);
+      font-size: 15px;
+      line-height: 1;
+      text-align: center;
+      opacity: 0;
+      pointer-events: none;
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    /* ============================================================
+       ANIMATIONS
+       ============================================================ */
+    @keyframes blink {
+      0%,
+      49% {
+        opacity: 1;
+      }
+      50%,
+      100% {
+        opacity: 0;
+      }
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes marquee {
+      0% {
+        transform: translateX(0);
+      }
+      100% {
+        transform: translateX(-50%);
+      }
+    }
+
+    @keyframes fakeProgress {
+      0% {
+        width: 18%;
+      }
+      50% {
+        width: 48%;
+      }
+      100% {
+        width: 82%;
+      }
+    }
+
+    @keyframes coinPulse {
+      0%,
+      100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-3px);
+      }
+    }
+
+    @keyframes brandGlitch {
+      0%,
+      94%,
+      100% {
+        transform: translate(0);
+      }
+      95% {
+        transform: translate(1px, -1px);
+      }
+      96% {
+        transform: translate(-1px, 1px);
+      }
+      97% {
+        transform: translate(1px, 0);
+      }
+    }
+
+    /* ============================================================
+       RESPONSIVE
+       ============================================================ */
+    @media (max-width: 420px) {
+      .brand__sub {
+        display: none;
+      }
+
+      .brand__name {
+        font-size: 8px;
+      }
+
+      .tabs {
+        gap: 10px;
+      }
+
+      .tab {
+        font-size: 9px;
+      }
+
+      .top-actions .icon-btn {
+        display: none;
+      }
+
+      .keyboard-hud {
+        transform: scale(0.86);
+        transform-origin: top left;
+      }
+
+      .rail {
+        right: 6px;
+        gap: 14px;
+      }
+
+      .rail__avatar {
+        width: 42px;
+        height: 42px;
+      }
+
+      .meta {
+        right: 60px;
+      }
+    }
+
+    @media (max-height: 660px) {
+      .keyboard-hud {
+        display: none;
+      }
+
+      .clip__inner {
+        inset-top: 72px;
+      }
+    }
+
+    @media (min-width: 1000px) {
+      .side-marquee {
+        display: block;
+        position: fixed;
+        left: max(22px, calc(50vw - 360px));
+        top: 50%;
+        transform: translateY(-50%) rotate(180deg);
+        writing-mode: vertical-rl;
+        font-family: var(--font-pixel);
+        font-size: 7px;
+        letter-spacing: 2px;
+        color: rgba(127, 145, 161, 0.42);
+        pointer-events: none;
+        user-select: none;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="side-marquee" aria-hidden="true">
+    DOOMSCROLL // SHAREWARE FEED // 1993 // RIP AND TEAR // NO BACKEND //
+  </div>
+
+  <div class="app" id="app">
+    <!-- ========================================================
+         TOP BAR
+         ======================================================== -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand__name">DOOM<span>SCROLL</span></span>
+        <span class="brand__sub">SHAREWARE FEED v1.0</span>
+      </div>
+
+      <nav class="tabs" aria-label="Feed tabs">
+        <button class="tab" type="button">Following</button>
+        <button class="tab active" type="button" aria-current="page">For You</button>
+      </nav>
+
+      <div class="top-actions">
+        <button class="icon-btn" type="button" aria-label="Search">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="7"></circle>
+            <path d="M20 20l-4-4"></path>
+          </svg>
+        </button>
+        <div class="avatar avatar--sm" aria-label="Profile">ID</div>
+      </div>
+    </header>
+
+    <!-- ========================================================
+         PAGE DOTS
+         ======================================================== -->
+    <div class="page-dots" aria-label="Feed position">
+      <button class="page-dot active" type="button" aria-label="Clip 1"></button>
+      <button class="page-dot" type="button" aria-label="Clip 2"></button>
+      <button class="page-dot" type="button" aria-label="Clip 3"></button>
+    </div>
+
+    <!-- ========================================================
+         VERTICAL FEED
+         ======================================================== -->
+    <main class="feed" id="feed">
+      <!-- CLIP 1: LIVE DOOM ---------------------------------- -->
+      <section class="clip clip--live" data-clip="0">
+        <div class="clip__inner">
+          <div class="player-shell">
+            <div class="player-bezel">
+              <div class="player-screen" id="playerScreen">
+                <!-- js-dos mounts here -->
+                <div id="dos" class="dos-host"></div>
+
+                <div class="screen-fx scanlines" aria-hidden="true"></div>
+                <div class="screen-fx vignette" aria-hidden="true"></div>
+
+                <div class="boot-overlay" id="bootOverlay"></div>
+
+                <div class="click-overlay" id="clickOverlay">
+                  <span class="coin">INSERT COIN</span>
+                  <small>CLICK TO ENABLE KEYBOARD + AUDIO</small>
+                </div>
+
+                <div class="screen-badge" id="screenBadge">SHAREWARE // 1993</div>
+                <div class="status-chip" id="statusChip">MOUNTING CORE</div>
+                <div class="rec"><i></i> REC 00:13:37</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TikTok-style rail -->
+        <aside class="rail" aria-label="Post actions">
+          <div class="rail__avatar" aria-label="id Software">ID</div>
+
+          <button class="rail__btn" type="button" data-like aria-label="Like post">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 21s-7.5-4.7-9.3-9.2C1.4 8.2 3.6 4.5 7.4 4.5c2 0 3.6 1.1 4.6 2.7 1-1.6 2.6-2.7 4.6-2.7 3.8 0 6 3.7 4.7 7.3C19.5 16.3 12 21 12 21z"></path>
+            </svg>
+            <span class="rail__count" id="likeCount">128K</span>
+          </button>
+
+          <button class="rail__btn" type="button" aria-label="Comments">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M21 12a8.5 8.5 0 0 1-12.4 7.5L4 21l1.5-4.6A8.5 8.5 0 1 1 21 12z"></path>
+            </svg>
+            <span class="rail__count">4.2K</span>
+          </button>
+
+          <button class="rail__btn" type="button" data-bookmark aria-label="Bookmark">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M6 3h12v18l-6-4-6 4V3z"></path>
+            </svg>
+            <span class="rail__count">9.1K</span>
+          </button>
+
+          <button class="rail__btn" type="button" aria-label="Share">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M4 12v7a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-7"></path>
+              <path d="M16 6l-4-4-4 4"></path>
+              <path d="M12 2v13"></path>
+            </svg>
+            <span class="rail__count">SHARE</span>
+          </button>
+        </aside>
+
+        <!-- Caption -->
+        <div class="meta">
+          <div class="meta__user">
+            <span id="captionUser">@idsoftware</span>
+            <span class="verified" aria-label="Verified">✓</span>
+          </div>
+          <p class="meta__caption" id="captionText">
+            Rip and tear in the browser. DOOM Shareware Episode 1 —
+            Knee-Deep in the Dead.
+            <span class="tag">#doom</span>
+            <span class="tag">#wasm</span>
+            <span class="tag">#retrogaming</span>
+          </p>
+          <div class="music">
+            <div class="music__disc" aria-hidden="true"></div>
+            <div class="music__track">
+              <span id="musicText">At Doom’s Gate — Bobby Prince</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="progress" aria-hidden="true"><span></span></div>
+      </section>
+
+      <!-- CLIP 2: INTERSTITIAL ------------------------------- -->
+      <section class="clip clip--pause" data-clip="1">
+        <div class="interstitial">
+          <span class="eyebrow">SIGNAL LOST // BUFFERING</span>
+          <h2>TAKE A<br /><em>BREATHER</em></h2>
+          <p>
+            The feed is vertical. Swipe or use the scrollbar. Press
+            <kbd>SPACE</kbd> anywhere to open Browse.
+          </p>
+          <button class="retro-btn" type="button" data-action="resume">
+            ◀ BACK TO THE FEED
+          </button>
+        </div>
+      </section>
+
+      <!-- CLIP 3: ARCHIVE ------------------------------------ -->
+      <section class="clip clip--archive" data-clip="2">
+        <div class="archive-card">
+          <div class="archive-card__bar">
+            <span>README.TXT — DOOMSCROLL</span>
+            <span>[ OK ]</span>
+          </div>
+          <pre><strong>DOOMSCROLL v1.0</strong>
+A TikTok-style vertical feed built
+on top of a real DOS emulator.
+
+<strong>ENGINE</strong>   js-dos 8 / DOSBox WASM
+<strong>GAME</strong>     DOOM Shareware Episode 1
+<strong>LICENSE</strong>  Shareware, freely redistributable
+<strong>ASSETS</strong>   cdn.dos.zone + js-dos CDN
+<strong>BACKEND</strong>  none. static files only.
+
+NO TRACKING. NO ALGORITHM.
+JUST RIP AND TEAR.</pre>
+          <div class="archive-links">
+            <a href="https://github.com/caiiiycuk/js-dos" target="_blank" rel="noopener">js-dos GitHub ↗</a>
+            <a href="https://archive.org/details/DoomsharewareEpisode" target="_blank" rel="noopener">Internet Archive ↗</a>
+            <a href="https://freedoom.github.io/" target="_blank" rel="noopener">Freedoom ↗</a>
+          </div>
+          <div class="window-actions" style="padding: 0 16px 18px; margin: 0">
+            <button class="retro-btn" type="button" data-action="resume">
+              RETURN TO FEED
+            </button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- ========================================================
+         KEYBOARD HUD
+         ======================================================== -->
+    <div class="keyboard-hud" aria-label="Keyboard controls">
+      <div class="hud-title">KEYBOARD // DOS ROUTING</div>
+      <div class="key-row">
+        <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>MOVE</span>
+      </div>
+      <div class="key-row">
+        <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd><span>TURN</span>
+      </div>
+      <div class="key-row">
+        <kbd>SPACE</kbd><span>BROWSE / USE</span>
+      </div>
+      <div class="key-row">
+        <kbd>CTRL</kbd><span>FIRE</span>
+      </div>
+      <div class="key-row">
+        <kbd>SHIFT</kbd><span>RUN</span>
+      </div>
+      <div class="key-row">
+        <kbd>ESC</kbd><span>RELEASE</span>
+      </div>
+    </div>
+
+    <!-- ========================================================
+         BROWSE OVERLAY
+         ======================================================== -->
+    <div
+      class="browse-overlay"
+      id="browseOverlay"
+      aria-hidden="true"
+    >
+      <div
+        class="browse-window"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Browse feed"
+      >
+        <div class="window-bar">
+          <span class="window-dots" aria-hidden="true">
+            <i></i><i></i><i></i>
+          </span>
+          <span class="window-title">BROWSE // FEED CONTROL</span>
+          <button class="window-close" type="button" data-close aria-label="Close browse">
+            ×
+          </button>
+        </div>
+
+        <div class="window-body">
+          <p class="window-note">
+            Choose a bundle. The live clip reloads in place. All assets are
+            fetched from public CDNs.
+          </p>
+
+          <div class="game-list">
+            <button class="game-card" type="button" data-game="doom">
+              <span class="game-card__thumb">DOOM</span>
+              <span class="game-card__meta">
+                <strong>DOOM Shareware</strong>
+                <small>Episode 1 · 1993 · WASM</small>
+              </span>
+              <span class="badge badge--live">LIVE</span>
+            </button>
+
+            <button class="game-card" type="button" data-game="digger">
+              <span class="game-card__thumb game-card__thumb--digger">DIGGER</span>
+              <span class="game-card__meta">
+                <strong>Digger</strong>
+                <small>js-dos demo bundle · 1983</small>
+              </span>
+              <span class="badge badge--demo">DEMO</span>
+            </button>
+          </div>
+
+          <div class="window-actions">
+            <button class="retro-btn" type="button" data-close>
+              RESUME FEED
+            </button>
+            <a
+              class="retro-btn retro-btn--ghost"
+              href="https://archive.org/details/DoomsharewareEpisode"
+              target="_blank"
+              rel="noopener"
+            >
+              ARCHIVE SOURCE ↗
+            </a>
+          </div>
+
+          <p class="window-foot">
+            js-dos 8 · GPL-2.0 · DOOM © id Software · Shareware episode freely
+            redistributable · No backend required.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </div>
+
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      /* ==========================================================
+         DOM REFERENCES
+         ========================================================== */
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => Array.from(root.querySelectorAll(selector));
+
+      const app = $("#app");
+      const feed = $("#feed");
+      const liveClip = $(".clip--live");
+      const dosHost = $("#dos");
+      const playerScreen = $("#playerScreen");
+      const bootOverlay = $("#bootOverlay");
+      const clickOverlay = $("#clickOverlay");
+      const statusChip = $("#statusChip");
+      const screenBadge = $("#screenBadge");
+      const toast = $("#toast");
+      const browseOverlay = $("#browseOverlay");
+      const captionUser = $("#captionUser");
+      const captionText = $("#captionText");
+      const musicText = $("#musicText");
+      const likeBtn = $("[data-like]");
+      const likeCount = $("#likeCount");
+      const bookmarkBtn = $("[data-bookmark]");
+
+      /* ==========================================================
+         GAME CATALOG
+         ========================================================== */
+      const GAMES = {
+        doom: {
+          id: "doom",
+          title: "DOOM",
+          user: "@idsoftware",
+          caption:
+            "Rip and tear in the browser. DOOM Shareware Episode 1 — Knee-Deep in the Dead. #doom #wasm #retrogaming",
+          music: "At Doom’s Gate — Bobby Prince",
+          status: "SHAREWARE // 1993",
+          url: "https://cdn.dos.zone/custom/dos/doom.jsdos",
+        },
+        digger: {
+          id: "digger",
+          title: "DIGGER",
+          user: "@jsdos",
+          caption:
+            "Digger. The classic 1983 maze game running on DOSBox compiled to WebAssembly. #jsdos #wasm #retro",
+          music: "Digger Theme — Rob Hubbard",
+          status: "DEMO // 1983",
+          url: "https://v8.js-dos.com/bundles/digger.jsdos",
+        },
+      };
+
+      /* ==========================================================
+         STATE
+         ========================================================== */
+      let currentDos = null;
+      let currentGame = null;
+      let gameReady = false;
+      let gameFocused = false;
+      let browseOpen = false;
+      let loadToken = 0;
+      let bootTimer = null;
+      let toastTimer = null;
+      let resizeRaf = 0;
+      let scrollTick = false;
+      let liveVisible = true;
+      let liked = false;
+      let bookmarked = false;
+
+      /* ==========================================================
+         UTILITIES
+         ========================================================== */
+      function showToast(message) {
+        toast.textContent = message;
+        toast.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove("show"), 2200);
+      }
+
+      function updateGameMeta(game) {
+        captionUser.textContent = game.user;
+        captionText.textContent = game.caption;
+        musicText.textContent = game.music;
+        screenBadge.textContent = game.status;
+      }
+
+      /* ==========================================================
+         BOOT SCREEN
+         ========================================================== */
+      function renderBoot(game) {
+        bootOverlay.className = "boot-overlay";
+        bootOverlay.innerHTML = `
+          <div class="boot-lines">
+            <div>&gt; MOUNT C: /BUNDLES/${game.id.toUpperCase()}</div>
+            <div>&gt; LOADHIGH ${game.id.toUpperCase()}.EXE</div>
+            <div class="ok">&gt; ${game.status} LICENSE OK</div>
+            <div>&gt; AWAITING SIGNAL<span class="cursor">_</span></div>
+          </div>
+          <div class="boot-hint">BOOTING DOSBOX/WASM ...</div>
+        `;
+      }
+
+      function showBootError(message) {
+        bootOverlay.className = "boot-overlay error";
+        bootOverlay.innerHTML = `
+          <div class="boot-lines">
+            <div>&gt; ERROR: ${message}</div>
+            <div>&gt; CHECK NETWORK / CDN AVAILABILITY</div>
+          </div>
+          <div class="boot-actions">
+            <button class="retro-btn" type="button" data-retry>RETRY</button>
+            <button class="retro-btn retro-btn--ghost" type="button" data-game="digger">
+              TRY DIGGER
+            </button>
+          </div>
+        `;
+      }
+
+      /* ==========================================================
+         GAME FOCUS / KEY ROUTING
+         ========================================================== */
+      function setGameFocus(value) {
+        if (gameFocused === value) return;
+
+        gameFocused = value;
+        app.classList.toggle("is-gaming", value);
+
+        if (value) {
+          clickOverlay.classList.add("hidden");
+
+          const target = dosHost.querySelector(
+            "canvas, iframe, input, textarea, [tabindex]"
+          );
+
+          if (target) {
+            if (!target.hasAttribute("tabindex")) {
+              target.setAttribute("tabindex", "0");
+            }
+            try {
+              target.focus({ preventScroll: true });
+            } catch (err) {
+              target.focus();
+            }
+          }
+
+          showToast("GAME FOCUS // CTRL = FIRE");
+        } else {
+          const active = document.activeElement;
+          if (active && dosHost.contains(active)) {
+            active.blur();
+          }
+        }
+      }
+
+      /* ==========================================================
+         LOAD / RELOAD GAME
+         ========================================================== */
+      function startGame(gameId) {
+        const game = GAMES[gameId];
+        if (!game) return;
+
+        const token = ++loadToken;
+        gameReady = false;
+        currentGame = game;
+
+        updateGameMeta(game);
+        renderBoot(game);
+        clickOverlay.classList.remove("hidden");
+        statusChip.textContent = "MOUNTING CORE";
+        setGameFocus(false);
+
+        if (currentDos) {
+          try {
+            currentDos.stop();
+          } catch (err) {
+            console.warn("js-dos stop failed:", err);
+          }
+          currentDos = null;
+        }
+
+        dosHost.replaceChildren();
+        clearTimeout(bootTimer);
+
+        setTimeout(() => {
+          if (token !== loadToken) return;
+
+          if (typeof Dos !== "function") {
+            showBootError("JS-DOS CDN FAILED TO LOAD.");
+            statusChip.textContent = "NO CORE";
+            return;
+          }
+
+          try {
+            currentDos = Dos(dosHost, {
+              url: game.url,
+              pathPrefix:
+                "https://cdn.jsdelivr.net/npm/js-dos@8.5.3/dist/emulators/",
+              theme: "retro",
+              backend: "dosbox",
+              autoStart: true,
+              kiosk: true,
+              mouseCapture: false,
+              volume: 0.65,
+              renderAspect: "4/3",
+              imageRendering: "pixelated",
+              onEvent: (event) => {
+                if (token !== loadToken) return;
+
+                if (event === "emu-ready") {
+                  statusChip.textContent = "CORE READY";
+                }
+
+                if (event === "ci-ready") {
+                  gameReady = true;
+                  clearTimeout(bootTimer);
+                  statusChip.textContent = "SIGNAL LOCKED";
+                  setTimeout(() => bootOverlay.classList.add("hidden"), 700);
+                }
+              },
+            });
+
+            if (currentDos && typeof currentDos.setNoCloud === "function") {
+              currentDos.setNoCloud(true);
+            }
+            if (currentDos && typeof currentDos.setKiosk === "function") {
+              currentDos.setKiosk(true);
+            }
+
+            bootTimer = setTimeout(() => {
+              if (token !== loadToken || gameReady) return;
+              statusChip.textContent = "NO SIGNAL";
+              showBootError("BUNDLE TIMEOUT. THE CDN MAY BE BUSY.");
+            }, 20000);
+          } catch (err) {
+            console.error(err);
+            statusChip.textContent = "CORE ERROR";
+            showBootError("WASM CORE FAILED TO INITIALIZE.");
+          }
+        }, 80);
+      }
+
+      /* ==========================================================
+         BROWSE DRAWER
+         ========================================================== */
+      function toggleBrowse(force) {
+        const shouldOpen = typeof force === "boolean" ? force : !browseOpen;
+        if (shouldOpen === browseOpen) return;
+
+        browseOpen = shouldOpen;
+        browseOverlay.classList.toggle("open", shouldOpen);
+        browseOverlay.setAttribute("aria-hidden", String(!shouldOpen));
+        app.classList.toggle("is-browsing", shouldOpen);
+
+        if (shouldOpen) {
+          setGameFocus(false);
+          showToast("BROWSE OPEN // SPACE TO CLOSE");
+        } else {
+          showToast("FEED RESUMED");
+        }
+      }
+
+      function closeBrowse() {
+        toggleBrowse(false);
+      }
+
+      /* ==========================================================
+         POINTER / FOCUS EVENTS
+         ========================================================== */
+      playerScreen.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (event.target.closest(".boot-overlay.error")) return;
+          setGameFocus(true);
+        },
+        { passive: true }
+      );
+
+      document.addEventListener(
+        "pointerdown",
+        (event) => {
+          if (!event.target.closest("#playerScreen")) {
+            setGameFocus(false);
+          }
+        },
+        { passive: true }
+      );
+
+      dosHost.addEventListener("focusin", () => {
+        setGameFocus(true);
+      });
+
+      /* ==========================================================
+         GLOBAL KEYBOARD
+         ========================================================== */
+      window.addEventListener(
+        "keydown",
+        (event) => {
+          const tag = event.target.tagName;
+          const typing =
+            tag === "INPUT" ||
+            tag === "TEXTAREA" ||
+            event.target.isContentEditable;
+
+          /* Space opens / closes the browse drawer when the feed
+             has keyboard focus. When the DOS canvas is focused,
+             Space is passed through to the game (open doors). */
+          if (event.code === "Space" && !gameFocused && !typing) {
+            event.preventDefault();
+            toggleBrowse();
+            return;
+          }
+
+          if (event.key === "Escape") {
+            if (browseOpen) {
+              event.preventDefault();
+              closeBrowse();
+              return;
+            }
+
+            if (gameFocused) {
+              event.preventDefault();
+              setGameFocus(false);
+              showToast("GAME RELEASED // FEED KEYS ACTIVE");
+              return;
+            }
+          }
+
+          /* Prevent the vertical feed from scrolling while the
+             game owns the keyboard. The event still propagates
+             to the DOS canvas. */
+          if (gameFocused) {
+            if (
+              event.code === "ArrowUp" ||
+              event.code === "ArrowDown" ||
+              event.code === "ArrowLeft" ||
+              event.code === "ArrowRight" ||
+              event.code === "Space"
+            ) {
+              event.preventDefault();
+            }
+
+            /* Some browsers reserve Ctrl+W/T/N. Try to keep
+               them inside the emulator while it is focused. */
+            if (
+              event.ctrlKey &&
+              (event.code === "KeyW" ||
+                event.code === "KeyT" ||
+                event.code === "KeyN")
+            ) {
+              event.preventDefault();
+            }
+          }
+        },
+        { capture: true }
+      );
+
+      /* ==========================================================
+         BROWSE / BOOT CLICK HANDLERS
+         ========================================================== */
+      browseOverlay.addEventListener("click", (event) => {
+        const gameCard = event.target.closest("[data-game]");
+        if (gameCard) {
+          event.preventDefault();
+          startGame(gameCard.dataset.game);
+          closeBrowse();
+          feed.scrollTo({ top: 0, behavior: "smooth" });
+          return;
+        }
+
+        if (event.target.closest("[data-close]")) {
+          event.preventDefault();
+          closeBrowse();
+        }
+      });
+
+      bootOverlay.addEventListener("click", (event) => {
+        const gameButton = event.target.closest("[data-game]");
+        if (gameButton) {
+          event.preventDefault();
+          startGame(gameButton.dataset.game);
+          return;
+        }
+
+        const retryButton = event.target.closest("[data-retry]");
+        if (retryButton) {
+          event.preventDefault();
+          startGame(currentGame?.id || "doom");
+        }
+      });
+
+      /* ==========================================================
+         SIDE RAIL INTERACTIONS
+         ========================================================== */
+      likeBtn.addEventListener("click", () => {
+        liked = !liked;
+        likeBtn.classList.toggle("liked", liked);
+        likeCount.textContent = liked ? "129K" : "128K";
+      });
+
+      bookmarkBtn.addEventListener("click", () => {
+        bookmarked = !bookmarked;
+        bookmarkBtn.classList.toggle("liked", bookmarked);
+        showToast(bookmarked ? "SAVED TO ARCHIVE" : "REMOVED FROM ARCHIVE");
+      });
+
+      /* ==========================================================
+         FEED NAVIGATION
+         ========================================================== */
+      $$("[data-action='resume']").forEach((button) => {
+        button.addEventListener("click", () => {
+          feed.scrollTo({ top: 0, behavior: "smooth" });
+        });
+      });
+
+      $$(".page-dot").forEach((dot, index) => {
+        dot.addEventListener("click", () => {
+          feed.scrollTo({
+            top: feed.clientHeight * index,
+            behavior: "smooth",
+          });
+        });
+      });
+
+      feed.addEventListener(
+        "scroll",
+        () => {
+          if (scrollTick) return;
+          scrollTick = true;
+
+          requestAnimationFrame(() => {
+            const index = Math.round(
+              feed.scrollTop / Math.max(1, feed.clientHeight)
+            );
+
+            $$(".page-dot").forEach((dot, dotIndex) => {
+              dot.classList.toggle("active", dotIndex === index);
+            });
+
+            scrollTick = false;
+          });
+        },
+        { passive: true }
+      );
+
+      /* ==========================================================
+         PAUSE WHEN LIVE CLIP IS OFF-SCREEN
+         ========================================================== */
+      const visibilityObserver = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.target !== liveClip) return;
+
+            const visible =
+              entry.isIntersecting && entry.intersectionRatio >= 0.55;
+
+            if (visible === liveVisible) return;
+            liveVisible = visible;
+
+            if (currentDos && gameReady) {
+              try {
+                currentDos.setPaused(!visible);
+              } catch (err) {
+                console.warn("setPaused failed:", err);
+              }
+            }
+
+            if (!visible) {
+              setGameFocus(false);
+            }
+          });
+        },
+        { threshold: [0, 0.55, 1] }
+      );
+
+      visibilityObserver.observe(liveClip);
+
+      /* ==========================================================
+         RESIZE HANDLING
+         ========================================================== */
+      const resizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(resizeRaf);
+        resizeRaf = requestAnimationFrame(() => {
+          window.dispatchEvent(new Event("resize"));
+        });
+      });
+
+      resizeObserver.observe(playerScreen);
+
+      window.addEventListener("orientationchange", () => {
+        setTimeout(() => {
+          window.dispatchEvent(new Event("resize"));
+        }, 220);
+      });
+
+      /* ==========================================================
+         BOOT
+         ========================================================== */
+      if (typeof Dos !== "function") {
+        statusChip.textContent = "NO CORE";
+        showBootError("JS-DOS CDN FAILED TO LOAD. CHECK YOUR NETWORK.");
+      } else {
+        startGame("doom");
+      }
+    })();
+  </script>
+</body>
+  </html>
