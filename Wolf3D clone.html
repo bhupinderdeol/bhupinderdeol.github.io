@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Wolf3D clone</title>
+<style>
+:root{--bg:#4a0a12;--st:#34343f;--hi:#5d5d6b;--lo:#17171d;--gold:#f0c84b;--bone:#e6e1d3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:inherit}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--bg)}
+body{position:relative;display:flex;flex-direction:column;color:var(--bone);font:14px/1.4 "Courier New",monospace;user-select:none;-webkit-user-select:none;touch-action:none}
+header,footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:6px 14px;background:var(--st);border:4px solid;border-color:var(--hi) var(--lo) var(--lo) var(--hi)}
+footer{font-size:12px}
+h1{margin:0;font:400 clamp(20px,5vw,28px)/1 Impact,"Arial Narrow Bold",sans-serif;letter-spacing:.06em;color:var(--gold);text-shadow:2px 2px 0 #000}
+button{font:inherit;color:var(--bone);background:var(--st);border:3px outset var(--hi);padding:3px 12px;cursor:pointer}
+button:active{border-style:inset}
+button:focus-visible{outline:2px solid var(--gold)}
+#stage{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#000;border:6px ridge var(--hi);margin:8px}
+canvas{display:block;image-rendering:pixelated}
+kbd{display:inline-block;min-width:22px;padding:0 5px;margin:0 2px;text-align:center;color:#111;background:var(--bone);border:2px solid;border-color:#fff #8c887c #8c887c #fff;font-weight:700}
+#touch{display:none;justify-content:space-between;align-items:center;padding:6px 18px 10px}
+#pad{position:relative;width:128px;height:128px;border-radius:50%;border:4px solid var(--hi);background:rgba(0,0,0,.35)}
+#knob{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:var(--gold);opacity:.8}
+.btns{display:flex;gap:14px;align-items:center}
+.b{width:74px;height:74px;border-radius:50%;padding:0;background:#5a1620;font-weight:700}
+.b.big{width:96px;height:96px;background:#8b1a26}
+@media(pointer:coarse){#touch{display:flex}footer{display:none}}
+@media(pointer:coarse) and (orientation:landscape){#touch{position:absolute;left:0;right:0;bottom:0;pointer-events:none;opacity:.7}#touch>*{pointer-events:auto}}
+</style>
+</head>
+<body>
+<header><h1>Wolf3D clone</h1><div><button id="snd" type="button">Sound: on</button> <button id="fs" type="button">Fullscreen</button></div></header>
+<div id="stage"><canvas id="c" width="320" height="200"></canvas></div>
+<div id="touch"><div id="pad"><i id="knob"></i></div><div class="btns"><button id="use" class="b" type="button">Use</button><button id="fire" class="b big" type="button">Fire</button></div></div>
+<footer><span><kbd>W</kbd><kbd>S</kbd> or <kbd>↑</kbd><kbd>↓</kbd> move · <kbd>A</kbd><kbd>D</kbd> strafe · <kbd>←</kbd><kbd>→</kbd> turn</span><span><kbd>Space</kbd> open doors · <kbd>Ctrl</kbd> fire · <kbd>Shift</kbd> run · <kbd>M</kbd> mute</span></footer>
+<script>
+(()=>{
+const $=i=>document.getElementById(i),W=320,H=200,VH=168,N=25,R=Math.random;
+const cv=$("c"),g=cv.getContext("2d");
+let AC,mute=0,S="title",lv=1,score=0,hp=100,ammo=12,t=0,flash=0,fl=0,pk=0,msgT=0,cool=0,bob=0;
+let map,doors,ents,px,py,pa,zb=new Float32Array(W),tmv=0,ttn=0,mF=0,tF=0;const keys={};
+// ---------- procedural art ----------
+const mk=fn=>{const c=document.createElement("canvas");c.width=c.height=64;fn(c.getContext("2d"));return c};
+const rc=(x,c,a,b,w,h)=>{x.fillStyle=c;x.fillRect(a,b,w,h)};
+const grain=(x,n)=>{for(let i=0;i<n;i++){rc(x,R()<.5?"rgba(0,0,0,.14)":"rgba(255,255,255,.09)",R()*64|0,R()*64|0,1+(R()*2|0),1)}};
+const bricks=(h,s,l)=>mk(x=>{rc(x,"#15151c",0,0,64,64);for(let r=0;r<4;r++)for(let c=-1;c<2;c++){x.fillStyle=`hsl(${h},${s}%,${l+R()*8-4}%)`;x.fillRect(c*32+(r%2?16:0)+1,r*16+1,30,14)}grain(x,500)});
+const TEX=[0,bricks(225,28,38),mk(x=>{for(let i=0;i<8;i++){rc(x,`hsl(28,45%,${30+R()*8}%)`,i*8,0,7,64);rc(x,"#241408",i*8+7,0,1,64)}for(let i=0;i<50;i++)rc(x,"rgba(0,0,0,.15)",(R()*8|0)*8+R()*6,R()*64,1,6);grain(x,200)}),bricks(5,50,32),
+mk(x=>{rc(x,"#8a8f98",0,0,64,64);for(let i=0;i<8;i++)rc(x,"#6d727b",i*8,0,1,64);rc(x,"#444",0,0,4,64);rc(x,"#444",60,0,4,64);rc(x,"#222",31,0,2,64);for(let i=0;i<8;i++)rc(x,i%2?"#f0c84b":"#222",8+i*6,30,6,5);grain(x,300)}),
+mk(x=>{rc(x,"#6f7480",0,0,64,64);rc(x,"#222",31,0,2,64);rc(x,"#38d96a",8,8,48,5);rc(x,"#f0c84b",12,18,40,16);x.fillStyle="#222";x.font="bold 12px monospace";x.fillText("EXIT",18,31);grain(x,300)})];
+const guard=m=>mk(x=>{if(m==2){rc(x,"#2a1a10",6,58,52,4);rc(x,"#7a5230",10,50,40,9);rc(x,"#e0b090",4,50,9,8);rc(x,"#555b66",2,48,10,4);rc(x,"#4a3a28",50,52,12,6);rc(x,"#8b0000",18,58,22,3);return}
+rc(x,"#4a3a28",22,44,8,18);rc(x,"#4a3a28",34,44,8,18);rc(x,"#111",21,60,10,4);rc(x,"#111",33,60,10,4);rc(x,"#7a5230",19,22,26,23);rc(x,"#222",19,41,26,3);rc(x,"#6a4526",13,24,6,18);rc(x,"#6a4526",45,24,6,18);rc(x,"#e0b090",26,12,12,10);rc(x,"#555b66",23,4,18,9);rc(x,"#111",29,16,2,2);rc(x,"#111",34,16,2,2);rc(x,"#222",45,34,14,5);if(m==1){rc(x,"#ffd24a",58,31,5,10);rc(x,"#fff",59,34,3,4)}});
+const SP={g0:guard(0),ga:guard(1),gd:guard(2),
+a:mk(x=>{rc(x,"#2d4a2a",20,40,24,14);rc(x,"#c9a227",24,44,16,2);rc(x,"#111",20,40,24,2)}),
+h:mk(x=>{rc(x,"#eee",18,38,28,20);rc(x,"#c00",30,41,4,14);rc(x,"#c00",24,46,16,4)}),
+t:mk(x=>{rc(x,"#f0c84b",24,30,16,4);rc(x,"#f0c84b",26,34,12,8);rc(x,"#d9a91b",30,42,4,10);rc(x,"#f0c84b",22,52,20,4)})};
+// ---------- audio ----------
+const osc=(f,d,v,ty,f2)=>{const T=AC.currentTime,c=AC.createOscillator(),a=AC.createGain();c.type=ty||"square";c.frequency.setValueAtTime(f,T);if(f2)c.frequency.exponentialRampToValueAtTime(f2,T+d);a.gain.setValueAtTime(v,T);a.gain.exponentialRampToValueAtTime(.001,T+d);c.connect(a);a.connect(AC.destination);c.start();c.stop(T+d)};
+const nz=(d,v,f)=>{const n=AC.sampleRate*d|0,b=AC.createBuffer(1,n,AC.sampleRate),a=b.getChannelData(0);for(let i=0;i<n;i++)a[i]=(R()*2-1)*(1-i/n);const s=AC.createBufferSource(),G=AC.createGain(),l=AC.createBiquadFilter();l.frequency.value=f;G.gain.value=v;s.buffer=b;s.connect(l);l.connect(G);G.connect(AC.destination);s.start()};
+const SND={shot:()=>{nz(.18,.5,2200);osc(140,.12,.3,"sawtooth",50)},eshot:()=>nz(.14,.3,1400),hit:()=>osc(300,.08,.2,"square",120),die:()=>osc(220,.4,.3,"sawtooth",40),hurt:()=>osc(120,.2,.4,"sawtooth",60),pick:()=>{osc(660,.08,.2);setTimeout(()=>osc(990,.1,.2),70)},door:()=>osc(150,.4,.2,"sawtooth",70),empty:()=>osc(90,.05,.2),win:()=>{osc(523,.15,.25);setTimeout(()=>osc(784,.3,.25),150)}};
+const snd=k=>{if(AC&&!mute)try{SND[k]()}catch(e){}};
+// ---------- level generation ----------
+const at=(x,y)=>y*N+x;
+function gen(){
+map=new Uint8Array(N*N).fill(1);doors={};ents=[];
+const st=[[1,1]];map[at(1,1)]=0;
+while(st.length){const[x,y]=st[st.length-1],o=[[2,0],[-2,0],[0,2],[0,-2]].filter(([a,b])=>x+a>0&&y+b>0&&x+a<N-1&&y+b<N-1&&map[at(x+a,y+b)]);
+if(!o.length){st.pop();continue}const[a,b]=o[R()*o.length|0];map[at(x+a/2,y+b/2)]=0;map[at(x+a,y+b)]=0;st.push([x+a,y+b])}
+for(let i=0;i<6;i++){const w=3+2*(R()*2|0),h=3+2*(R()*2|0),rx=1+2*(R()*((N-1-w)/2)|0),ry=1+2*(R()*((N-1-h)/2)|0);for(let y=ry;y<ry+h;y++)for(let x=rx;x<rx+w;x++)map[at(x,y)]=0}
+for(let i=0;i<12;i++){const x=1+(R()*(N-2)|0),y=1+(R()*(N-2)|0);if((x+y)%2)map[at(x,y)]=0}
+for(let y=1;y<N-1;y++)for(let x=1;x<N-1;x++){const c=at(x,y);if(map[c]==1)map[c]=1+((x>>3)+(y>>3))%3;
+else if(!map[c]&&(x+y)%2&&R()<.35&&(x&1?map[at(x-1,y)]&&map[at(x+1,y)]:map[at(x,y-1)]&&map[at(x,y+1)])){map[c]=4;doors[c]={o:0,s:0,t:0}}}
+const d=new Int16Array(N*N).fill(-1),q=[at(1,1)];d[q[0]]=0;
+for(let i=0;i<q.length;i++){const c=q[i];for(const n of[c+1,c-1,c+N,c-N])if(d[n]<0&&(map[n]==0||map[n]==4)){d[n]=d[c]+1;q.push(n)}}
+for(const c of q.slice().reverse()){const x=c%N,y=c/N|0,w=[[1,0],[-1,0],[0,1],[0,-1]].find(([a,b])=>{const nx=x+a,ny=y+b,m=map[at(nx,ny)];return nx>0&&ny>0&&nx<N-1&&ny<N-1&&m>0&&m<4});if(w){map[at(x+w[0],y+w[1])]=5;break}}
+const fl=q.filter(c=>map[c]==0).sort(()=>R()-.5);let G=Math.min(4+lv*2,22),A=6,Hh=3,T=8;
+for(const c of fl){const e={x:c%N+.5,y:(c/N|0)+.5};
+if(G>0&&d[c]>7){e.k="g";e.hp=4;e.st=0;e.cd=1;e.at=0;G--}else if(d[c]>2){if(A>0){e.k="a";A--}else if(Hh>0){e.k="h";Hh--}else if(T>0){e.k="t";T--}else continue}else continue;ents.push(e)}
+px=py=1.5;pa=map[at(2,1)]&&map[at(2,1)]!=4?Math.PI/2:0}
+// ---------- world helpers ----------
+const blk=(x,y)=>{const i=(y|0)*N+(x|0),c=map[i];return c==4?doors[i].o<.7:c>0};
+const free=(x,y,r)=>!(blk(x-r,y-r)||blk(x+r,y-r)||blk(x-r,y+r)||blk(x+r,y+r));
+const los=(x0,y0,x1,y1)=>{const dx=x1-x0,dy=y1-y0,n=Math.hypot(dx,dy)*8|0;for(let i=1;i<n;i++){const j=(y0+dy*i/n|0)*N+(x0+dx*i/n|0),c=map[j];if(c&&(c!=4||doors[j].o<.5))return 0}return 1};
+function cast(rx,ry){let mx=px|0,my=py|0;const ddx=Math.abs(1/rx),ddy=Math.abs(1/ry),sx=rx<0?-1:1,sy=ry<0?-1:1;let sdx=(rx<0?px-mx:mx+1-px)*ddx,sdy=(ry<0?py-my:my+1-py)*ddy,side;
+for(let i=0;i<60;i++){if(sdx<sdy){sdx+=ddx;mx+=sx;side=0}else{sdy+=ddy;my+=sy;side=1}
+const j=my*N+mx,c=map[j];if(c){const d=side?sdy-ddy:sdx-ddx;let wx=side?px+d*rx:py+d*ry;wx-=Math.floor(wx);
+if(c==4){const o=doors[j].o;if(wx<o)continue;wx-=o}else if(side?ry<0:rx>0)wx=1-wx;return[d,side,c,wx,j]}}return null}
+const opn=j=>{const d=doors[j];if(d.s==0||d.s==3){d.s=1;snd("door")}};
+function use(){const h=cast(Math.cos(pa),Math.sin(pa));if(h&&h[0]<1.6){if(h[2]==4)opn(h[4]);else if(h[2]==5){S="next";msgT=2;snd("win")}}}
+function shoot(){if(ammo<=0){cool=.3;snd("empty");return}ammo--;cool=.32;flash=.08;snd("shot");
+const dx=Math.cos(pa),dy=Math.sin(pa);let best=0,bd=99;
+for(const e of ents){if(e.k!="g"||e.st==2)continue;const sx=e.x-px,sy=e.y-py,f=sx*dx+sy*dy,l=-sx*dy+sy*dx;if(f>.2&&Math.abs(l)<.38&&f<bd&&los(px,py,e.x,e.y)){best=e;bd=f}}
+if(best){best.hp-=1+(R()*2|0)+(bd<3?1:0);best.st=1;if(best.hp<=0){best.st=2;score+=100;snd("die");ents.push({k:"a",x:best.x,y:best.y})}else snd("hit")}
+for(const e of ents)if(e.k=="g"&&e.st==0&&Math.hypot(e.x-px,e.y-py)<11)e.st=1}
+// ---------- update ----------
+const clamp=v=>Math.max(-1,Math.min(1,v));
+function upd(dt){t+=dt;cool-=dt;flash-=dt;fl-=dt;pk-=dt;
+const f=clamp((keys.KeyW||keys.ArrowUp?1:0)-(keys.KeyS||keys.ArrowDown?1:0)+tmv),tn=clamp((keys.ArrowRight||keys.KeyE?1:0)-(keys.ArrowLeft||keys.KeyQ?1:0)+ttn),sd=(keys.KeyD?1:0)-(keys.KeyA?1:0);
+pa+=tn*2.4*dt;const dx=Math.cos(pa),dy=Math.sin(pa),v=3.2*(keys.ShiftLeft||keys.ShiftRight?1.7:1)*dt,mx=(dx*f-dy*sd)*v,my=(dy*f+dx*sd)*v;
+if(free(px+mx,py,.25))px+=mx;if(free(px,py+my,.25))py+=my;bob+=(Math.abs(f)+Math.abs(sd))*dt*9;
+if((keys.ControlLeft||keys.ControlRight||keys.KeyF||mF||tF)&&cool<=0)shoot();
+for(const j in doors){const d=doors[j];if(d.s==1){d.o+=dt*1.6;if(d.o>=1){d.o=1;d.s=2;d.t=4}}else if(d.s==2){d.t-=dt;if(d.t<=0&&(py|0)*N+(px|0)!=j)d.s=3}else if(d.s==3){d.o-=dt*1.6;if(d.o<=0){d.o=0;d.s=0}}}
+for(const e of ents){if(e.gone)continue;const sx=px-e.x,sy=py-e.y,d=Math.hypot(sx,sy);
+if(e.k!="g"){if(d<.7){if(e.k=="a"&&ammo<99){ammo=Math.min(99,ammo+6)}else if(e.k=="h"&&hp<100){hp=Math.min(100,hp+25)}else if(e.k=="t"){score+=500}else continue;e.gone=1;pk=.2;snd("pick")}continue}
+if(e.st==2)continue;const see=d<14&&los(e.x,e.y,px,py);
+if(e.st==0){if(see&&d<9)e.st=1;continue}
+e.cd-=dt;
+if(e.at>0){e.at-=dt;if(e.at<=0&&R()<Math.max(.15,.85-d*.09)){hp-=3+(R()*7|0);fl=.25;snd("hurt");if(hp<=0){hp=0;S="dead";snd("die")}}}
+else if(see&&d<8&&e.cd<=0){e.at=.35;e.cd=.9+R();snd("eshot")}
+else if(d>1.2){const m=1.5*dt*(1+lv*.03),ux=sx/d*m,uy=sy/d*m,j=((e.y+uy*8)|0)*N+((e.x+ux*8)|0);if(map[j]==4&&doors[j].s==0)opn(j);if(free(e.x+ux,e.y,.3))e.x+=ux;if(free(e.x,e.y+uy,.3))e.y+=uy}}}
+// ---------- render ----------
+function render(){
+g.fillStyle="#383838";g.fillRect(0,0,W,VH/2);g.fillStyle="#707070";g.fillRect(0,VH/2,W,VH/2);
+const dx=Math.cos(pa),dy=Math.sin(pa),plx=-dy*.66,ply=dx*.66;
+for(let x=0;x<W;x++){const cx=2*x/W-1,h=cast(dx+plx*cx,dy+ply*cx);zb[x]=h?h[0]:99;if(!h)continue;
+const lh=VH*1.2/h[0]|0,top=(VH-lh)/2;g.drawImage(TEX[h[2]],Math.min(63,h[3]*64|0),0,1,64,x,top,1,lh);
+g.fillStyle=`rgba(0,0,0,${Math.min(.75,h[0]/14+(h[1]?.2:0))})`;g.fillRect(x,top,1,lh)}
+const inv=1/(plx*dy-dx*ply);
+const sp=ents.filter(e=>!e.gone).map(e=>{const sx=e.x-px,sy=e.y-py;return{e,tx:inv*(dy*sx-dx*sy),ty:inv*(-ply*sx+plx*sy)}}).filter(s=>s.ty>.15).sort((a,b)=>b.ty-a.ty);
+for(const s of sp){const sz=VH*1.2/s.ty|0,cx=(W/2)*(1+s.tx/s.ty),top=(VH-sz)/2,e=s.e,img=e.k=="g"?SP[e.st==2?"gd":e.at>0?"ga":"g0"]:SP[e.k];
+for(let x=Math.max(0,cx-sz/2|0);x<Math.min(W,cx+sz/2);x++){if(s.ty>=zb[x])continue;g.drawImage(img,Math.max(0,Math.min(63,(x-(cx-sz/2))/sz*64|0)),0,1,64,x,top,1,sz)}}
+if(fl>0){g.fillStyle=`rgba(200,0,0,${Math.min(.6,fl*1.5)})`;g.fillRect(0,0,W,VH)}
+if(pk>0){g.fillStyle=`rgba(255,220,80,${pk*1.2})`;g.fillRect(0,0,W,VH)}
+const b=Math.sin(bob)*3,y=VH-8+Math.abs(b)+(flash>0?5:0),gx=W/2+b;
+g.fillStyle="#2b2b30";g.fillRect(gx-5,y-44,10,34);g.fillStyle="#4a4a52";g.fillRect(gx-3,y-44,3,34);g.fillStyle="#3a3a40";g.fillRect(gx-9,y-14,18,16);g.fillStyle="#d9a77c";g.fillRect(gx-12,y-2,24,14);
+if(flash>0){g.fillStyle="#ffd24a";g.fillRect(gx-7,y-58,14,14);g.fillStyle="#fff";g.fillRect(gx-3,y-54,6,8)}
+g.fillStyle="#0a1a6a";g.fillRect(0,VH,W,H-VH);g.fillStyle="#7a8cff";g.fillRect(0,VH,W,2);g.textAlign="left";
+const lab=(l,v,x)=>{g.fillStyle="#f0c84b";g.font="bold 8px monospace";g.fillText(l,x,VH+11);g.fillStyle="#fff";g.font="bold 13px monospace";g.fillText(v,x,VH+26)};
+lab("Level",lv,10);lab("Score",score,52);lab("Health",hp+"%",196);lab("Ammo",ammo,256);
+g.fillStyle="#e0b090";g.fillRect(148,VH+4,26,26);g.fillStyle="#d9b84a";g.fillRect(148,VH+4,26,6);g.fillStyle="#111";g.fillRect(153,VH+14,3,3);g.fillRect(166,VH+14,3,3);g.fillRect(155,VH+23,12,2);
+if(hp<60){g.fillStyle="#b00";g.fillRect(150,VH+10,3,9)}if(hp<30){g.fillRect(168,VH+12,3,12)}
+g.textAlign="center";
+const ov=(a,b)=>{g.fillStyle="rgba(0,0,0,.7)";g.fillRect(0,0,W,VH);g.fillStyle="#f0c84b";g.font="bold 22px Impact,sans-serif";g.fillText(a,W/2,70);g.fillStyle="#e6e1d3";g.font="10px monospace";g.fillText(b,W/2,92)};
+if(S=="title")ov("Wolf3D clone","Tap or press Enter to start");
+else if(S=="dead")ov("You died","Tap or press Enter to retry");
+else if(S=="next")ov("Level "+lv+" complete","Generating floor "+(lv+1)+"…")}
+// ---------- input / loop ----------
+function start(){try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();AC.resume()}catch(e){}
+if(S=="dead"){lv=1;score=0;hp=100;ammo=12;gen()}if(S=="title"||S=="dead")S="play"}
+addEventListener("keydown",e=>{keys[e.code]=1;if(/^(Space|Arrow|Control)/.test(e.code))e.preventDefault();
+if(e.code=="Enter"&&S!="play")start();else if(e.code=="Space"&&!e.repeat)S=="play"?use():start();
+if(e.code=="KeyM"&&!e.repeat)$("snd").click()});
+addEventListener("keyup",e=>keys[e.code]=0);addEventListener("blur",()=>{for(const k in keys)keys[k]=0;mF=0});
+cv.addEventListener("pointerdown",e=>{if(S!="play")start();else if(e.pointerType=="mouse")mF=1});
+addEventListener("pointerup",()=>mF=0);
+const pad=$("pad"),knob=$("knob");
+const pm=e=>{const r=pad.getBoundingClientRect(),R2=r.width/2;let x=(e.clientX-r.left-R2)/R2,y=(e.clientY-r.top-R2)/R2;const l=Math.hypot(x,y);if(l>1){x/=l;y/=l}ttn=Math.abs(x)<.15?0:x;tmv=Math.abs(y)<.15?0:-y;knob.style.transform=`translate(${x*R2*.6}px,${y*R2*.6}px)`};
+pad.addEventListener("pointerdown",e=>{pad.setPointerCapture(e.pointerId);start();pm(e)});
+pad.addEventListener("pointermove",e=>{if(pad.hasPointerCapture(e.pointerId))pm(e)});
+const rel=()=>{tmv=ttn=0;knob.style.transform=""};pad.addEventListener("pointerup",rel);pad.addEventListener("pointercancel",rel);
+$("fire").addEventListener("pointerdown",()=>{start();tF=1});$("fire").addEventListener("pointerup",()=>tF=0);$("fire").addEventListener("pointercancel",()=>tF=0);
+$("use").addEventListener("pointerdown",()=>{if(S=="play")use();else start()});
+$("snd").onclick=()=>{mute^=1;$("snd").textContent="Sound: "+(mute?"off":"on")};
+$("fs").onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen&&document.documentElement.requestFullscreen();
+document.addEventListener("contextmenu",e=>e.preventDefault());
+const stage=$("stage"),fit=()=>{const s=Math.max(.3,Math.min(stage.clientWidth/W,stage.clientHeight/H));cv.style.width=W*s+"px";cv.style.height=H*s+"px"};
+new ResizeObserver(fit).observe(stage);fit();
+gen();let last=0;
+(function loop(ts){const dt=Math.min(.05,(ts-last)/1000||0);last=ts;
+if(S=="play")upd(dt);else if(S=="next"){msgT-=dt;if(msgT<=0){lv++;gen();S="play"}}
+render();requestAnimationFrame(loop)})(0);
+})();
+</script>
+</body>
+</html>
