@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebDOOM - Browser Retro FPS</title>
+    
+    <!-- js-dos CSS -->
+    <link rel="stylesheet" href="https://v8.js-dos.com/latest/js-dos.css">
+
+    <style>
+        /* --- CSS RESET & BASE --- */
+        :root {
+            --doom-red: #b91c1c;
+            --doom-dark-red: #7f1d1d;
+            --doom-bg: #0a0a0a;
+            --doom-text: #e5e5e5;
+            --terminal-green: #22c55e;
+            --border-color: #333;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: var(--doom-bg);
+            color: var(--doom-text);
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            user-select: none;
+        }
+
+        /* --- RETRO UI LAYOUT --- */
+        header {
+            width: 100%;
+            max-width: 1000px;
+            text-align: center;
+            padding: 20px;
+            border-bottom: 4px solid var(--doom-red);
+            margin-bottom: 20px;
+            background: linear-gradient(to bottom, #1a1a1a, #0a0a0a);
+        }
+
+        h1 {
+            font-size: 3rem;
+            color: var(--doom-red);
+            text-transform: uppercase;
+            letter-spacing: 8px;
+            text-shadow: 0 0 10px rgba(185, 28, 28, 0.5), 
+                         3px 3px 0px #000;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #888;
+            letter-spacing: 2px;
+        }
+
+        main {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            padding: 0 15px;
+        }
+
+        /* --- GAME CONTAINER --- */
+        .game-wrapper {
+            width: 100%;
+            aspect-ratio: 16 / 10; /* Classic Doom ratio approximation */
+            max-height: 70vh;
+            border: 6px solid #222;
+            border-top-color: #444;
+            border-left-color: #444;
+            box-shadow: 0 0 30px rgba(0,0,0,0.8), inset 0 0 20px rgba(0,0,0,0.5);
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Target for js-dos */
+        #dos {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Override js-dos default UI elements if needed */
+        .dosbox-container {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* --- LOADING SCREEN OVERLAY --- */
+        #loading-overlay {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            transition: opacity 0.5s ease;
+        }
+
+        #loading-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .loader-text {
+            color: var(--terminal-green);
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            animation: blink 1s infinite;
+        }
+
+        .progress-bar-container {
+            width: 60%;
+            height: 20px;
+            border: 2px solid var(--terminal-green);
+            padding: 2px;
+        }
+
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background-color: var(--terminal-green);
+            transition: width 0.3s;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* --- CONTROLS PANEL --- */
+        .controls-panel {
+            width: 100%;
+            background-color: #111;
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .control-group h3 {
+            color: var(--doom-red);
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+            text-transform: uppercase;
+        }
+
+        .key-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .key-cap {
+            background: linear-gradient(to bottom, #444, #222);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            border: 1px solid #555;
+            border-bottom: 3px solid #111;
+            font-weight: bold;
+            font-size: 0.8rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            min-width: 30px;
+            text-align: center;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding: 20px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #555;
+            border-top: 1px solid #222;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        footer a {
+            color: var(--doom-red);
+            text-decoration: none;
+        }
+
+        /* --- ERROR STATE --- */
+        #error-msg {
+            color: #ef4444;
+            display: none;
+            text-align: center;
+            padding: 20px;
+            border: 1px solid #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+            width: 100%;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>WEB DOOM</h1>
+        <div class="subtitle">HTML5 / WebAssembly Port | Shareware Edition</div>
+    </header>
+
+    <main>
+        <div id="error-msg"></div>
+
+        <div class="game-wrapper">
+            <!-- Loading Overlay -->
+            <div id="loading-overlay">
+                <div class="loader-text">INITIALIZING UAC MAINFRAME... DOWNLOADING WAD</div>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+            </div>
+            
+            <!-- js-dos mounts here -->
+            <div id="dos"></div>
+        </div>
+
+        <!-- Controls Reference -->
+        <div class="controls-panel">
+            <div class="control-group">
+                <h3>Movement</h3>
+                <div class="key-row">
+                    <span>Move Forward</span>
+                    <div><span class="key-cap">W</span> / <span class="key-cap">↑</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Move Backward</span>
+                    <div><span class="key-cap">S</span> / <span class="key-cap">↓</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Turn Left</span>
+                    <div><span class="key-cap">A</span> / <span class="key-cap">←</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Turn Right</span>
+                    <div><span class="key-cap">D</span> / <span class="key-cap">→</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Strafe (Hold)</span>
+                    <div><span class="key-cap">ALT</span></div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>Actions</h3>
+                <div class="key-row">
+                    <span>Fire Weapon</span>
+                    <div><span class="key-cap">CTRL</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Open Doors / Use</span>
+                    <div><span class="key-cap">SPACE</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Run (Hold)</span>
+                    <div><span class="key-cap">SHIFT</span></div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <h3>System</h3>
+                <div class="key-row">
+                    <span>Toggle Menu</span>
+                    <div><span class="key-cap">ESC</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Quick Save</span>
+                    <div><span class="key-cap">F6</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Quick Load</span>
+                    <div><span class="key-cap">F9</span></div>
+                </div>
+                <div class="key-row">
+                    <span>Automap</span>
+                    <div><span class="key-cap">TAB</span></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <p>Powered by <a href="https://js-dos.com/" target="_blank">js-dos</a> (WebAssembly DOSBox) &amp; Chocolate Doom.</p>
+        <p>DOOM &copy; 1993 id Software. Shareware WAD provided via the Internet Archive. This is a fan-made frontend wrapper.</p>
+    </footer>
+
+    <!-- js-dos Engine -->
+    <script src="https://v8.js-dos.com/latest/js-dos.js"></script>
+
+    <script>
+        /**
+         * WEB DOOM INITIALIZATION SCRIPT
+         * Uses js-dos v8 to emulate DOS and run the original Doom executable.
+         * Fetches the official shareware WAD dynamically.
+         */
+        
+        // Configuration
+        const CONFIG = {
+            // Reliable Internet Archive link for DOOM Shareware
+            wadUrl: "https://archive.org/download/doom19s/doom19s.zip",
+            // Alternative direct WAD if using a custom bundle:
+            // For js-dos, we usually point to a .jsdos bundle or raw files.
+            // We will use the built-in network drive feature to fetch the zip.
+            dosboxOptions: {
+                cycles: "max",
+                autolock: false
+            }
+        };
+
+        // DOM Elements
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const progressFill = document.getElementById('progress-fill');
+        const errorMsg = document.getElementById('error-msg');
+        const dosDiv = document.getElementById('dos');
+
+        // Initialize js-dos
+        async function startDoom() {
+            try {
+                // Show loading state
+                progressFill.style.width = '20%';
+
+                /* 
+                 * js-dos v8 API initialization.
+                 * We pass a configuration object that tells the emulator what to mount.
+                 * Using the url property allows js-dos to download and extract the archive automatically.
+                 */
+                
+                progressFill.style.width = '40%';
+
+                // The URL points to a zip containing DOOM.EXE and DOOM1.WAD
+                // Note: If the specific archive link changes, update CONFIG.wadUrl.
+                // A highly stable alternative is hosting a .jsdos bundle.
+                
+                const ci = await Dos(dosDiv, {
+                    url: CONFIG.wadUrl,
+                    autoStart: true,
+                    onProgress: (progress) => {
+                        // Update progress bar based on download status (0 to 1)
+                        const percent = Math.floor(40 + (progress * 50));
+                        progressFill.style.width = `${percent}%`;
+                    }
+                });
+
+                progressFill.style.width = '100%';
+
+                // Short delay for visual smoothness before hiding overlay
+                setTimeout(() => {
+                    loadingOverlay.classList.add('hidden');
+                    
+                    // Request pointer lock for proper mouse look (if supported by the build)
+                    dosDiv.addEventListener('click', () => {
+                        if(document.pointerLockElement !== dosDiv) {
+                            // dosDiv.requestPointerLock(); // Uncomment if mouse look is desired over keyboard turning
+                        }
+                    });
+                }, 500);
+
+                // Handle window resizing gracefully
+                window.addEventListener('resize', () => {
+                    // js-dos handles internal canvas scaling, but we ensure the container stays valid
+                    if(ci && ci.resize) {
+                        ci.resize();
+                    }
+                });
+
+            } catch (err) {
+                console.error("DOOM Initialization Failed:", err);
+                showError(`Failed to initialize DOOM engine. Error: ${err.message}. Please refresh or check your connection.`);
+            }
+        }
+
+        function showError(msg) {
+            loadingOverlay.classList.add('hidden');
+            errorMsg.style.display = 'block';
+            errorMsg.textContent = msg;
+        }
+
+        // Start when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', startDoom);
+        } else {
+            startDoom();
+        }
+
+        /* 
+         * FALLBACK / ADVANCED NOTE:
+         * If the Internet Archive ZIP structure changes, the most robust way 
+         * to run this in production is to create a `.jsdos` bundle locally 
+         * using the js-dos CLI: `dosbox doom.exe -c "exit" --save-bundle doom.jsdos`
+         * and host it on your own static server, changing `url` to `/doom.jsdos`.
+         */
+    </script>
+</body>
+</html>
