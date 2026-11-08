@@ -1,0 +1,1198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#08060a" />
+<title>HELLFEED — For You</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+
+<style>
+/* ============================================================
+   TOKENS
+   ============================================================ */
+:root{
+  --bg:#08060a;
+  --steel-hi:#7a726a;
+  --steel:#453f39;
+  --steel-lo:#1a1614;
+  --blood:#c8102e;
+  --fire:#ff6a00;
+  --amber:#ffb020;
+  --bone:#e6ddcd;
+  --toxic:#6fdc4a;
+  --text:#d9d2c5;
+  --muted:#8a8078;
+  --hud-h:66px;
+  --font-pixel:"Press Start 2P",monospace;
+  --font-term:"VT323",monospace;
+  --font-mono:"IBM Plex Mono",monospace;
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+
+*,*::before,*::after{box-sizing:border-box;}
+html,body{height:100%;margin:0;}
+body{
+  background:#050406;
+  background-image:
+    radial-gradient(circle at 20% 10%, rgba(200,16,46,.14), transparent 42%),
+    radial-gradient(circle at 80% 90%, rgba(255,106,0,.10), transparent 44%);
+  color:var(--text);
+  font-family:var(--font-mono);
+  overflow:hidden;
+  overscroll-behavior:none;
+  -webkit-font-smoothing:antialiased;
+}
+button{font:inherit;-webkit-tap-highlight-color:transparent;}
+svg{display:block;}
+
+/* ============================================================
+   DEVICE SHELL
+   ============================================================ */
+.app{
+  position:relative;
+  width:100%;
+  max-width:460px;
+  height:100vh;
+  height:100dvh;
+  margin:0 auto;
+  overflow:hidden;
+  background:#000;
+  border-left:1px solid rgba(200,16,46,.18);
+  border-right:1px solid rgba(200,16,46,.18);
+  box-shadow:0 0 90px rgba(200,16,46,.14), 0 0 200px rgba(255,106,0,.06);
+  user-select:none;
+  -webkit-user-select:none;
+  isolation:isolate;
+}
+
+/* CRT filter */
+.crt{
+  position:fixed;inset:0;z-index:9000;pointer-events:none;
+  background:
+    repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0 2px, rgba(0,0,0,.14) 2px 4px),
+    radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.4) 100%);
+  opacity:.55;
+  mix-blend-mode:multiply;
+}
+
+/* ============================================================
+   TOP BAR
+   ============================================================ */
+.topbar{
+  position:absolute;inset:0 0 auto 0;z-index:40;
+  height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 12px;
+  background:linear-gradient(rgba(5,4,6,.96) 0%, rgba(5,4,6,.72) 55%, rgba(5,4,6,0) 100%);
+  pointer-events:none;
+}
+.topbar > *{pointer-events:auto;}
+
+.logo{
+  display:flex;flex-direction:column;gap:3px;
+  font-family:var(--font-pixel);
+  font-size:11px;line-height:1.2;letter-spacing:-.5px;
+  color:var(--blood);
+  text-shadow:0 0 10px rgba(200,16,46,.9), 2px 0 #3a0008;
+  animation:glitch 6s steps(1) infinite;
+}
+.logo b{color:var(--bone);font-weight:400;}
+.logo small{
+  font-family:var(--font-term);font-size:13px;line-height:1;
+  color:var(--muted);letter-spacing:.5px;
+  text-shadow:none;
+}
+
+.tabs{
+  position:absolute;left:50%;bottom:8px;transform:translateX(-50%);
+  display:flex;gap:16px;
+}
+.tab{
+  appearance:none;border:0;background:none;padding:3px 0;cursor:pointer;
+  font-family:var(--font-mono);font-size:11px;font-weight:600;
+  letter-spacing:.6px;text-transform:uppercase;
+  color:var(--muted);
+  border-bottom:2px solid transparent;
+}
+.tab.active{color:#fff;border-bottom-color:var(--blood);text-shadow:0 0 12px rgba(200,16,46,.9);}
+
+.top-actions{display:flex;align-items:center;gap:8px;}
+.icon-btn{
+  appearance:none;width:32px;height:32px;display:grid;place-items:center;
+  background:linear-gradient(#3a3430,#17130f);
+  border:1px solid #000;
+  box-shadow:inset 1px 1px 0 #6b625a, inset -1px -1px 0 #0a0807;
+  color:var(--bone);cursor:pointer;
+}
+.icon-btn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;}
+
+/* ============================================================
+   FEED
+   ============================================================ */
+.feed{
+  position:absolute;inset:0;
+  overflow-y:scroll;overflow-x:hidden;
+  scroll-snap-type:y mandatory;
+  overscroll-behavior:contain;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.feed::-webkit-scrollbar{display:none;}
+
+.clip{
+  position:relative;
+  height:100%;
+  scroll-snap-align:start;
+  scroll-snap-stop:always;
+  overflow:hidden;
+  background:#000;
+}
+
+.clip__canvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  display:block;
+}
+
+.clip__scrim{
+  position:absolute;inset:0;pointer-events:none;
+  background:
+    linear-gradient(to bottom, rgba(0,0,0,.55) 0%, transparent 22%, transparent 48%, rgba(0,0,0,.86) 100%),
+    radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,.55) 100%);
+}
+
+/* ============================================================
+   RIGHT RAIL — DOOM PLATES
+   ============================================================ */
+.rail{
+  position:absolute;right:9px;bottom:calc(var(--hud-h) + 118px + var(--safe-b));
+  z-index:20;
+  display:flex;flex-direction:column;align-items:center;gap:14px;
+}
+
+.rail__avatar{
+  width:44px;height:44px;display:grid;place-items:center;
+  font-family:var(--font-pixel);font-size:7px;line-height:1.4;text-align:center;
+  color:#12060a;
+  background:linear-gradient(#ff4a3d,#a10c1a);
+  border:2px solid var(--bone);
+  box-shadow:0 0 0 2px #000, 0 0 18px rgba(200,16,46,.8);
+}
+
+.rail__btn{
+  appearance:none;border:0;background:none;padding:0;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+  color:var(--bone);
+}
+
+.rail__plate{
+  width:46px;height:46px;display:grid;place-items:center;
+  background:linear-gradient(160deg,#3a3430,#17130f 65%);
+  border:2px solid #000;
+  box-shadow:
+    inset 1px 1px 0 #6b625a,
+    inset -1px -1px 0 #0a0807,
+    0 0 14px rgba(200,16,46,.28);
+  transition:transform .12s ease, box-shadow .12s ease;
+}
+.rail__btn:hover .rail__plate{transform:translateY(-1px);box-shadow:inset 1px 1px 0 #8b8178, inset -1px -1px 0 #0a0807, 0 0 20px rgba(255,106,0,.5);}
+.rail__btn:active .rail__plate{transform:translateY(1px);}
+
+.rail__plate svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:square;stroke-linejoin:miter;}
+
+.rail__btn.liked .rail__plate{
+  background:linear-gradient(160deg,#7d0d1c,#2a0207 65%);
+  color:#ff6a6a;
+  box-shadow:inset 1px 1px 0 #ff9a9a, inset -1px -1px 0 #1a0004, 0 0 24px rgba(255,40,60,.85);
+}
+.rail__btn.liked .rail__plate svg{fill:#ff3b4a;stroke:#ffb4b4;}
+
+.rail__count{
+  font-family:var(--font-term);font-size:15px;line-height:1;
+  color:#fff;text-shadow:0 1px 3px #000, 0 0 8px rgba(0,0,0,.9);
+}
+
+/* ============================================================
+   META
+   ============================================================ */
+.meta{
+  position:absolute;left:12px;right:66px;
+  bottom:calc(var(--hud-h) + 16px + var(--safe-b));
+  z-index:20;
+}
+
+.meta__user{
+  display:flex;align-items:center;gap:7px;
+  margin-bottom:7px;
+  font-family:var(--font-pixel);font-size:9px;line-height:1.5;
+  color:#fff;text-shadow:0 2px 6px #000;
+}
+.verified{
+  display:grid;place-items:center;width:13px;height:13px;
+  font-family:var(--font-mono);font-size:9px;
+  color:#12060a;background:var(--blood);border-radius:50%;
+}
+
+.meta__caption{
+  margin:0 0 9px;
+  font-family:var(--font-mono);font-size:11.5px;line-height:1.55;
+  color:#d6cfc4;text-shadow:0 1px 4px #000;
+}
+.meta__caption .tag{color:var(--amber);}
+
+.music{
+  display:flex;align-items:center;gap:8px;min-width:0;
+  font-family:var(--font-term);font-size:16px;line-height:1;color:#fff;
+}
+.disc{
+  flex:0 0 auto;width:20px;height:20px;border-radius:50%;
+  border:2px solid #2a2320;
+  background:
+    radial-gradient(circle at 50% 50%, #0b0807 0 20%, transparent 21%),
+    conic-gradient(from 0deg, var(--blood), #17130f 22%, var(--fire) 44%, #17130f 66%, var(--blood) 88%, #17130f);
+  animation:spin 4s linear infinite;
+}
+.marquee{
+  min-width:0;overflow:hidden;white-space:nowrap;
+  mask-image:linear-gradient(90deg,#000 78%,transparent 100%);
+}
+.marquee span{display:inline-block;padding-right:24px;animation:marquee 10s linear infinite;}
+
+/* burst */
+.burst{
+  position:absolute;left:50%;bottom:calc(var(--hud-h) + 240px + var(--safe-b));
+  transform:translateX(-50%);
+  z-index:60;pointer-events:none;
+  font-family:var(--font-pixel);font-size:12px;
+  color:var(--fire);
+  text-shadow:0 0 12px var(--fire), 2px 2px 0 #000;
+  animation:burstUp .85s ease-out forwards;
+}
+
+/* ============================================================
+   DOOM STATUS BAR
+   ============================================================ */
+.hud{
+  position:absolute;left:0;right:0;bottom:0;z-index:50;
+  height:calc(var(--hud-h) + var(--safe-b));
+  padding:6px 6px calc(6px + var(--safe-b));
+  display:grid;
+  grid-template-columns:58px 1fr 1fr 1fr;
+  gap:3px;
+  background:linear-gradient(#57504a 0%, #332d29 18%, #1d1916 60%, #100d0b 100%);
+  border-top:2px solid #8d857c;
+  box-shadow:0 -8px 28px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,255,255,.18);
+}
+
+.hud__cell{
+  position:relative;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;
+  background:linear-gradient(#15110f,#080605);
+  border:1px solid #000;
+  box-shadow:inset 0 0 0 1px #3a332e, inset 0 3px 10px rgba(0,0,0,.95);
+  overflow:hidden;
+}
+.hud__cell::after{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(to bottom, rgba(255,255,255,.03) 0 1px, transparent 1px 3px);
+}
+
+.hud__label{
+  font-family:var(--font-pixel);font-size:5px;line-height:1;
+  letter-spacing:.5px;color:var(--muted);
+}
+.hud__val{
+  font-family:var(--font-pixel);font-size:11px;line-height:1;
+  color:#ff3b2f;
+  text-shadow:0 0 8px #ff3b2f, 0 0 18px rgba(255,59,47,.55);
+  transition:text-shadow .15s ease;
+}
+.hud__val.flash{color:#fff;text-shadow:0 0 14px #fff,0 0 26px #ff3b2f;}
+
+.hud__face{display:grid;place-items:center;}
+#faceCanvas{width:38px;height:38px;image-rendering:pixelated;display:block;}
+
+/* ============================================================
+   KEYBOARD HUD
+   ============================================================ */
+.keyhud{
+  position:absolute;top:74px;left:10px;z-index:35;
+  display:flex;flex-direction:column;gap:5px;
+  padding:9px 10px;
+  background:rgba(8,6,8,.66);
+  border:1px solid rgba(200,16,46,.35);
+  border-left:2px solid var(--blood);
+  backdrop-filter:blur(6px);
+  pointer-events:none;
+  transition:opacity .25s ease;
+}
+.keyhud.dim{opacity:.32;}
+
+.keyhud__title{
+  font-family:var(--font-pixel);font-size:5px;line-height:1.7;
+  letter-spacing:.6px;color:var(--muted);margin-bottom:2px;
+}
+.krow{
+  display:flex;align-items:center;gap:5px;
+  font-family:var(--font-mono);font-size:8px;line-height:1;
+  letter-spacing:.3px;text-transform:uppercase;color:#9c9186;
+}
+.krow kbd{
+  min-width:19px;padding:4px 5px;
+  font-family:var(--font-pixel);font-size:6px;line-height:1;text-align:center;
+  color:var(--amber);
+  background:#17130f;
+  border:1px solid #3a332e;border-bottom-width:3px;
+}
+
+/* ============================================================
+   PAUSE STAMP
+   ============================================================ */
+.pause-stamp{
+  position:absolute;inset:0;z-index:45;
+  display:grid;place-items:center;
+  background:rgba(3,2,4,.45);
+  opacity:0;pointer-events:none;transition:opacity .2s ease;
+}
+.app.paused .pause-stamp{opacity:1;}
+.pause-stamp span{
+  font-family:var(--font-pixel);font-size:16px;letter-spacing:2px;
+  color:var(--amber);
+  padding:14px 20px;
+  background:rgba(0,0,0,.75);
+  border:2px solid var(--amber);
+  box-shadow:0 0 40px rgba(255,176,32,.6), inset 0 0 24px rgba(255,176,32,.15);
+  transform:rotate(-6deg);
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast{
+  position:absolute;left:50%;bottom:calc(var(--hud-h) + 18px + var(--safe-b));
+  z-index:200;
+  max-width:calc(100% - 40px);
+  padding:8px 12px;
+  transform:translate(-50%,16px);
+  background:#0d0a09;
+  border:1px solid #4a423b;
+  border-left:2px solid var(--blood);
+  color:var(--amber);
+  font-family:var(--font-term);font-size:15px;line-height:1;
+  text-align:center;
+  opacity:0;pointer-events:none;
+  transition:opacity .18s ease, transform .18s ease;
+}
+.toast.show{opacity:1;transform:translate(-50%,0);}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes glitch{
+  0%,93%,100%{transform:translate(0);}
+  94%{transform:translate(1px,-1px);}
+  95%{transform:translate(-1px,1px);}
+  96%{transform:translate(1px,0);}
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+@keyframes marquee{0%{transform:translateX(0);}100%{transform:translateX(-50%);}}
+@keyframes burstUp{
+  0%{opacity:0;transform:translate(-50%,0) scale(.6);}
+  20%{opacity:1;transform:translate(-50%,-14px) scale(1.15);}
+  100%{opacity:0;transform:translate(-50%,-90px) scale(.9);}
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:390px){
+  .logo{font-size:9px;}
+  .logo small{display:none;}
+  .tabs{gap:11px;}
+  .tab{font-size:9.5px;}
+  .keyhud{transform:scale(.88);transform-origin:top left;}
+  .rail{right:6px;}
+  .rail__plate{width:42px;height:42px;}
+  .rail__plate svg{width:19px;height:19px;}
+  .meta{right:60px;}
+}
+@media (max-height:680px){
+  .keyhud{display:none;}
+  .rail{bottom:calc(var(--hud-h) + 96px + var(--safe-b));gap:10px;}
+}
+@media (prefers-reduced-motion:reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;}
+}
+</style>
+</head>
+
+<body>
+
+<div class="app" id="app">
+
+  <!-- ===================== TOP BAR ===================== -->
+  <header class="topbar">
+    <div class="logo">
+      <span>HELL<b>FEED</b></span>
+      <small>DOOM // v1.0</small>
+    </div>
+
+    <nav class="tabs" aria-label="Feed tabs">
+      <button class="tab" type="button" data-tab="following">Following</button>
+      <button class="tab active" type="button" data-tab="foryou" aria-current="page">For You</button>
+    </nav>
+
+    <div class="top-actions">
+      <button class="icon-btn" type="button" aria-label="Search">
+        <svg viewBox="0 0 24 24" stroke-linecap="square"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.5-4.5"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ===================== KEYBOARD HUD ===================== -->
+  <div class="keyhud" id="keyhud" aria-hidden="true">
+    <div class="keyhud__title">CONTROLS // KEYBOARD</div>
+    <div class="krow"><kbd>W</kbd><kbd>S</kbd><span>prev / next clip</span></div>
+    <div class="krow"><kbd>↑</kbd><kbd>↓</kbd><span>scroll feed</span></div>
+    <div class="krow"><kbd>A</kbd><kbd>D</kbd><span>switch tab</span></div>
+    <div class="krow"><kbd>SPC</kbd><span>play / pause</span></div>
+    <div class="krow"><kbd>CTRL</kbd><span>fire (like)</span></div>
+  </div>
+
+  <!-- ===================== FEED ===================== -->
+  <main class="feed" id="feed"></main>
+
+  <!-- ===================== PAUSE STAMP ===================== -->
+  <div class="pause-stamp"><span>PAUSED</span></div>
+
+  <!-- ===================== DOOM STATUS BAR ===================== -->
+  <div class="hud" id="hud">
+    <div class="hud__cell hud__face">
+      <canvas id="faceCanvas" width="16" height="16"></canvas>
+    </div>
+    <div class="hud__cell">
+      <span class="hud__label">CLIP</span>
+      <span class="hud__val" id="hudClip">01</span>
+    </div>
+    <div class="hud__cell">
+      <span class="hud__label">LIKES</span>
+      <span class="hud__val" id="hudLikes">128K</span>
+    </div>
+    <div class="hud__cell">
+      <span class="hud__label">SIGNAL</span>
+      <span class="hud__val" id="hudSignal">▮▮▮▯</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<div class="crt" aria-hidden="true"></div>
+
+<script>
+(() => {
+"use strict";
+
+/* ============================================================
+   HELPERS
+   ============================================================ */
+const $  = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+
+const rgb = (r, g, b) => (255 << 24) | (b << 16) | (g << 8) | r;
+
+const fmt = (n) =>
+  n >= 1e6 ? (n / 1e6).toFixed(1).replace(/\.0$/, "") + "M"
+  : n >= 1e3 ? (n / 1e3).toFixed(1).replace(/\.0$/, "") + "K"
+  : String(n);
+
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+
+/* ============================================================
+   PALETTE BUILDER
+   ============================================================ */
+function buildPalette(stops, n = 37) {
+  const out = new Uint32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = i / (n - 1);
+    let a = stops[0], b = stops[stops.length - 1];
+    for (let k = 0; k < stops.length - 1; k++) {
+      if (t >= stops[k][0] && t <= stops[k + 1][0]) {
+        a = stops[k]; b = stops[k + 1]; break;
+      }
+    }
+    const span = (b[0] - a[0]) || 1e-6;
+    const u = (t - a[0]) / span;
+    out[i] = rgb(
+      Math.round(a[1] + (b[1] - a[1]) * u),
+      Math.round(a[2] + (b[2] - a[2]) * u),
+      Math.round(a[3] + (b[3] - a[3]) * u)
+    );
+  }
+  return out;
+}
+
+const FIRE_PAL = buildPalette([
+  [0.00, 0, 0, 0],
+  [0.26, 150, 12, 0],
+  [0.52, 240, 70, 0],
+  [0.76, 255, 170, 30],
+  [1.00, 255, 252, 210],
+]);
+
+const PLASMA_PAL = buildPalette([
+  [0.00, 2, 0, 14],
+  [0.24, 0, 30, 120],
+  [0.50, 0, 120, 220],
+  [0.74, 60, 220, 245],
+  [1.00, 235, 255, 255],
+]);
+
+/* ============================================================
+   EFFECT 1 — DOOM FIRE
+   ============================================================ */
+function fireEffect(w, h) {
+  const fire = new Uint8Array(w * h);
+  return function frame(buf, ww, hh, t) {
+    const fw = ww, fh = hh;
+    // seed the bottom rows
+    for (let x = 0; x < fw; x++) {
+      fire[(fh - 1) * fw + x] = 36;
+      fire[(fh - 2) * fw + x] = 32 + ((Math.random() * 5) | 0);
+    }
+    // propagate upward
+    for (let y = 1; y < fh; y++) {
+      const off = y * fw;
+      for (let x = 0; x < fw; x++) {
+        const v = fire[off + x];
+        const rnd = (Math.random() * 3) | 0;
+        const nx = x + rnd - 1;
+        if (nx < 0 || nx >= fw) continue;
+        const dst = (y - 1) * fw + nx;
+        fire[dst] = v > 0 ? (Math.random() < 0.26 ? v - 1 : v) : 0;
+      }
+    }
+    for (let i = 0, n = fw * fh; i < n; i++) buf[i] = FIRE_PAL[fire[i]];
+  };
+}
+
+/* ============================================================
+   EFFECT 2 — STARFIELD
+   ============================================================ */
+function starEffect(w, h) {
+  const stars = [];
+  for (let i = 0; i < 260; i++) {
+    stars.push({
+      x: (Math.random() - 0.5) * 2,
+      y: (Math.random() - 0.5) * 2,
+      z: Math.random() * 0.98 + 0.02,
+    });
+  }
+  const bg = rgb(4, 3, 10);
+
+  return function frame(buf, ww, hh, t) {
+    buf.fill(bg);
+    const cx = ww / 2, cy = hh / 2, f = ww * 0.95;
+
+    for (let i = 0; i < stars.length; i++) {
+      const s = stars[i];
+      s.z -= 0.0075;
+      if (s.z <= 0.02) {
+        s.x = (Math.random() - 0.5) * 2;
+        s.y = (Math.random() - 0.5) * 2;
+        s.z = 1;
+      }
+      const sx = (cx + (s.x * f) / s.z) | 0;
+      const sy = (cy + (s.y * f) / s.z) | 0;
+      if (sx < 0 || sx >= ww || sy < 0 || sy >= hh) continue;
+
+      const b = clamp((1 - s.z) * 1.35, 0, 1);
+      const col = rgb(
+        150 + (105 * b) | 0,
+        170 + (85 * b) | 0,
+        235 + (20 * b) | 0
+      );
+      const size = s.z < 0.14 ? 2 : 1;
+      for (let dy = 0; dy < size; dy++) {
+        for (let dx = 0; dx < size; dx++) {
+          const px = sx + dx, py = sy + dy;
+          if (px < ww && py < hh) buf[py * ww + px] = col;
+        }
+      }
+    }
+  };
+}
+
+/* ============================================================
+   EFFECT 3 — PLASMA TUNNEL
+   ============================================================ */
+const SIN_LUT = new Float32Array(2048);
+for (let i = 0; i < 2048; i++) SIN_LUT[i] = Math.sin((i / 2048) * Math.PI * 2);
+const sinf = (x) => SIN_LUT[((x * 325.949) | 0) & 2047];
+
+function plasmaEffect(w, h) {
+  // precomputed radial distance for the centre vortex
+  const radial = new Float32Array(w * h);
+  const cx = w / 2, cy = h / 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - cx, dy = y - cy;
+      radial[y * w + x] = Math.sqrt(dx * dx + dy * dy);
+    }
+  }
+
+  return function frame(buf, ww, hh, t) {
+    const time = t * 1.7;
+    for (let y = 0; y < hh; y++) {
+      const fy = y * 0.075;
+      const row = y * ww;
+      for (let x = 0; x < ww; x++) {
+        const fx = x * 0.075;
+        const v =
+          sinf(fx + time) +
+          sinf(fy - time * 0.85) +
+          sinf((fx + fy) * 0.62 + time * 1.25) +
+          sinf(radial[row + x] * 0.115 - time * 1.6);
+        const idx = clamp(((v + 4) * 4.5) | 0, 0, 36);
+        buf[row + x] = PLASMA_PAL[idx];
+      }
+    }
+  };
+}
+
+/* ============================================================
+   EFFECT 4 — RAYCAST CORRIDOR
+   ============================================================ */
+const MAP = [
+  "1111111111111111",
+  "1..............1",
+  "1..2222...3333.1",
+  "1..2.........3.1",
+  "1..2.........3.1",
+  "1..............1",
+  "1..............1",
+  "1..............1",
+  "1..............1",
+  "1..............1",
+  "1..............1",
+  "1..3.........2.1",
+  "1..3.........2.1",
+  "1..3333...2222.1",
+  "1..............1",
+  "1111111111111111",
+];
+
+const WALL_COL = {
+  "1": [160, 78, 42],
+  "2": [178, 42, 40],
+  "3": [72, 150, 62],
+  "4": [86, 108, 158],
+};
+
+function rayEffect(w, h) {
+  const N = 24;
+  const CEIL = new Uint32Array(N);
+  const FLOOR = new Uint32Array(N);
+  for (let i = 0; i < N; i++) {
+    const u = i / (N - 1);
+    CEIL[i] = rgb(26 + 22 * u | 0, 16 + 12 * u | 0, 12 + 8 * u | 0);
+    FLOOR[i] = rgb(30 - 20 * u | 0, 14 - 9 * u | 0, 10 - 6 * u | 0);
+  }
+
+  return function frame(buf, ww, hh, t) {
+    const px = 8 + 2.6 * Math.sin(t * 0.31);
+    const py = 8 + 2.6 * Math.cos(t * 0.23);
+    const ang = t * 0.28;
+
+    const dirX = Math.cos(ang), dirY = Math.sin(ang);
+    const planeX = -dirY * 0.92, planeY = dirX * 0.92;
+
+    for (let x = 0; x < ww; x++) {
+      const camX = (2 * x) / ww - 1;
+      const rdx = dirX + planeX * camX;
+      const rdy = dirY + planeY * camX;
+
+      let mapX = px | 0, mapY = py | 0;
+      const ddx = Math.abs(1 / rdx) || 1e30;
+      const ddy = Math.abs(1 / rdy) || 1e30;
+
+      let stepX, stepY, sdx, sdy;
+      if (rdx < 0) { stepX = -1; sdx = (px - mapX) * ddx; }
+      else { stepX = 1; sdx = (mapX + 1 - px) * ddx; }
+      if (rdy < 0) { stepY = -1; sdy = (py - mapY) * ddy; }
+      else { stepY = 1; sdy = (mapY + 1 - py) * ddy; }
+
+      let cell = "1", side = 0, guard = 0;
+      while (guard++ < 64) {
+        if (sdx < sdy) { sdx += ddx; mapX += stepX; side = 0; }
+        else { sdy += ddy; mapY += stepY; side = 1; }
+        const c = (MAP[mapY] || "")[mapX];
+        if (c === undefined || c !== ".") { cell = c || "1"; break; }
+      }
+
+      const perp = side === 0 ? sdx - ddx : sdy - ddy;
+      const dist = Math.max(0.08, perp);
+      const lineH = hh / dist;
+      const startY = Math.max(0, Math.floor((hh - lineH) / 2));
+      const endY = Math.min(hh, Math.ceil((hh + lineH) / 2));
+
+      const shade = clamp(1.25 - dist * 0.085, 0.12, 1) * (side ? 0.7 : 1);
+      const base = WALL_COL[cell] || WALL_COL["1"];
+      const wcol = rgb(
+        (base[0] * shade) | 0,
+        (base[1] * shade) | 0,
+        (base[2] * shade) | 0
+      );
+
+      for (let y = 0; y < startY; y++) {
+        buf[y * ww + x] = CEIL[((y / startY) * (N - 1)) | 0];
+      }
+      for (let y = startY; y < endY; y++) {
+        buf[y * ww + x] = wcol;
+      }
+      const floorSpan = hh - endY;
+      for (let y = endY; y < hh; y++) {
+        const u = floorSpan > 0 ? (y - endY) / floorSpan : 0;
+        buf[y * ww + x] = FLOOR[(u * (N - 1)) | 0];
+      }
+    }
+  };
+}
+
+/* ============================================================
+   CLIP DATA
+   ============================================================ */
+const ICON = {
+  like: `<svg viewBox="0 0 24 24"><path d="M12 20.6S3.8 15.4 2.4 10.7C1.2 6.9 3.6 3.9 7.2 3.9c2 0 3.7 1.1 4.8 2.8 1.1-1.7 2.8-2.8 4.8-2.8 3.6 0 6 3 4.8 6.8C20.2 15.4 12 20.6 12 20.6z"/></svg>`,
+  comment: `<svg viewBox="0 0 24 24"><path d="M21 11.6a8.5 8.5 0 0 1-12.4 7.6L3.5 21l1.6-4.6A8.5 8.5 0 1 1 21 11.6z"/></svg>`,
+  save: `<svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4.2-6 4.2z"/></svg>`,
+  share: `<svg viewBox="0 0 24 24"><path d="M4 12.5V19a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-6.5"/><path d="M16 6.5L12 2.5 8 6.5"/><path d="M12 2.5v12"/></svg>`,
+};
+
+const CLIPS = [
+  {
+    user: "slayer",
+    avatar: "SLAYER",
+    caption: "RIP AND TEAR. Episode 1 — Knee-Deep in the Dead.",
+    tags: ["#doom", "#hellfire", "#retro"],
+    music: "At Doom’s Gate — Bobby Prince",
+    likes: 128400,
+    comments: 4210,
+    saves: 9120,
+    effect: "fire",
+  },
+  {
+    user: "cacodemon",
+    avatar: "CACO",
+    caption: "floating through the void like it’s 1993",
+    tags: ["#starfield", "#idclip", "#space"],
+    music: "Suspense — Bobby Prince",
+    likes: 89200,
+    comments: 1980,
+    saves: 4410,
+    effect: "stars",
+  },
+  {
+    user: "plasma_rifle",
+    avatar: "BFG",
+    caption: "BFG division but make it a screensaver",
+    tags: ["#plasma", "#neon", "#wasm"],
+    music: "Kitchen Ace — Bobby Prince",
+    likes: 231700,
+    comments: 8830,
+    saves: 21400,
+    effect: "plasma",
+  },
+  {
+    user: "e1m1_speedrun",
+    avatar: "E1M1",
+    caption: "POV: you are the raycaster. 30 seconds flat.",
+    tags: ["#raycast", "#gamedev", "#doom"],
+    music: "Sign of Evil — Bobby Prince",
+    likes: 41250,
+    comments: 760,
+    saves: 3020,
+    effect: "raycast",
+  },
+];
+
+/* ============================================================
+   BUILD FEED DOM
+   ============================================================ */
+const feed = $("#feed");
+const app = $("#app");
+const hudClip = $("#hudClip");
+const hudLikes = $("#hudLikes");
+const hudSignal = $("#hudSignal");
+const toastEl = $("#toast");
+
+feed.innerHTML = CLIPS.map((c, i) => `
+  <section class="clip" data-index="${i}">
+    <canvas class="clip__canvas" width="120" height="200"></canvas>
+    <div class="clip__scrim"></div>
+
+    <aside class="rail">
+      <div class="rail__avatar">${c.avatar}</div>
+      <button class="rail__btn" type="button" data-act="like" aria-label="Like">
+        <span class="rail__plate">${ICON.like}</span>
+        <span class="rail__count">${fmt(c.likes)}</span>
+      </button>
+      <button class="rail__btn" type="button" data-act="comment" aria-label="Comments">
+        <span class="rail__plate">${ICON.comment}</span>
+        <span class="rail__count">${fmt(c.comments)}</span>
+      </button>
+      <button class="rail__btn" type="button" data-act="save" aria-label="Save">
+        <span class="rail__plate">${ICON.save}</span>
+        <span class="rail__count">${fmt(c.saves)}</span>
+      </button>
+      <button class="rail__btn" type="button" data-act="share" aria-label="Share">
+        <span class="rail__plate">${ICON.share}</span>
+        <span class="rail__count">SHARE</span>
+      </button>
+    </aside>
+
+    <div class="meta">
+      <div class="meta__user">
+        <span>@${c.user}</span>
+        <span class="verified" aria-label="Verified">✓</span>
+      </div>
+      <p class="meta__caption">
+        ${c.caption}
+        <span class="tag">${c.tags.join(" ")}</span>
+      </p>
+      <div class="music">
+        <span class="disc" aria-hidden="true"></span>
+        <span class="marquee"><span>${c.music}</span></span>
+      </div>
+    </div>
+  </section>
+`).join("");
+
+/* ============================================================
+   BUILD RENDERERS
+   ============================================================ */
+const W = 120, H = 200;
+
+const EFFECT_FACTORY = {
+  fire: fireEffect,
+  stars: starEffect,
+  plasma: plasmaEffect,
+  raycast: rayEffect,
+};
+
+const states = $$(".clip").map((el, i) => {
+  const canvas = $(".clip__canvas", el);
+  const ctx = canvas.getContext("2d", { alpha: false });
+  const img = ctx.createImageData(W, H);
+  const buf = new Uint32Array(img.data.buffer);
+  const frame = EFFECT_FACTORY[CLIPS[i].effect](W, H);
+
+  return {
+    el,
+    canvas,
+    ctx,
+    img,
+    buf,
+    frame,
+    visible: i === 0,
+    liked: false,
+    likeBtn: $("[data-act='like']", el),
+    likeCount: $("[data-act='like'] .rail__count", el),
+  };
+});
+
+/* ============================================================
+   RENDER LOOP
+   ============================================================ */
+let paused = false;
+let lastT = 0;
+
+function loop(now) {
+  requestAnimationFrame(loop);
+  if (now - lastT < 15) return;
+  lastT = now;
+  if (paused) return;
+
+  const t = now / 1000;
+  for (let i = 0; i < states.length; i++) {
+    const s = states[i];
+    if (!s.visible) continue;
+    s.frame(s.buf, W, H, t);
+    s.ctx.putImageData(s.img, 0, 0);
+  }
+}
+requestAnimationFrame(loop);
+
+/* ============================================================
+   VISIBILITY
+   ============================================================ */
+const io = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      const idx = Number(entry.target.dataset.index);
+      states[idx].visible = entry.intersectionRatio >= 0.5;
+    });
+    updateHud();
+  },
+  { threshold: [0, 0.5, 1] }
+);
+states.forEach((s) => io.observe(s.el));
+
+/* ============================================================
+   HUD
+   ============================================================ */
+function currentIndex() {
+  return clamp(
+    Math.round(feed.scrollTop / Math.max(1, feed.clientHeight)),
+    0,
+    CLIPS.length - 1
+  );
+}
+
+let hudRaf = 0;
+function updateHud() {
+  const i = currentIndex();
+  hudClip.textContent = String(i + 1).padStart(2, "0");
+  hudLikes.textContent = fmt(CLIPS[i].likes);
+  hudSignal.textContent = "▮▮▮▯";
+}
+
+feed.addEventListener("scroll", () => {
+  if (hudRaf) return;
+  hudRaf = requestAnimationFrame(() => {
+    updateHud();
+    hudRaf = 0;
+  });
+}, { passive: true });
+
+/* ============================================================
+   FACE CANVAS
+   ============================================================ */
+const FACE_MAP = [
+  "................",
+  ".....HHHHHH.....",
+  "...HHHHHHHHHH...",
+  "..HHHHHHHHHHHH..",
+  "..HHSSSSSSSSHH..",
+  "..HSSSSSSSSSSH..",
+  "..HSSKKSSKKSSH..",
+  "..HSSKKSSKKSSH..",
+  "..HSSSSSSSSSSH..",
+  "..HSSSMMMMSSSH..",
+  "..HSSSSSSSSSSH..",
+  "...HSSSSSSSSH...",
+  "....HSSSSSSH....",
+  ".....SSSSSS.....",
+  "................",
+  "................",
+];
+
+const faceCanvas = $("#faceCanvas");
+const faceCtx = faceCanvas.getContext("2d");
+let faceAngry = false;
+let faceTimer = null;
+
+function drawFace() {
+  const P = {
+    ".": null,
+    H: [58, 104, 58],
+    S: [198, 148, 108],
+    K: faceAngry ? [255, 58, 58] : [12, 10, 10],
+    M: faceAngry ? [150, 20, 20] : [110, 40, 40],
+  };
+  faceCtx.clearRect(0, 0, 16, 16);
+  for (let y = 0; y < 16; y++) {
+    const row = FACE_MAP[y];
+    for (let x = 0; x < 16; x++) {
+      const c = P[row[x]];
+      if (!c) continue;
+      faceCtx.fillStyle = `rgb(${c[0]},${c[1]},${c[2]})`;
+      faceCtx.fillRect(x, y, 1, 1);
+    }
+  }
+}
+
+function setFaceAngry(on) {
+  faceAngry = on;
+  drawFace();
+  clearTimeout(faceTimer);
+  if (on) faceTimer = setTimeout(() => setFaceAngry(false), 700);
+}
+drawFace();
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+let toastTimer = null;
+function toast(msg) {
+  toastEl.textContent = msg;
+  toastEl.classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove("show"), 1900);
+}
+
+/* ============================================================
+   INTERACTIONS
+   ============================================================ */
+function burst(el) {
+  const b = document.createElement("div");
+  b.className = "burst";
+  b.textContent = "+1";
+  el.appendChild(b);
+  setTimeout(() => b.remove(), 900);
+}
+
+function flashHud() {
+  hudLikes.classList.add("flash");
+  setTimeout(() => hudLikes.classList.remove("flash"), 220);
+}
+
+function likeIndex(i) {
+  const s = states[i];
+  if (!s) return;
+  const clip = CLIPS[i];
+
+  if (!s.liked) {
+    s.liked = true;
+    clip.likes += 1;
+    s.likeBtn.classList.add("liked");
+    s.likeCount.textContent = fmt(clip.likes);
+    flashHud();
+  }
+  burst(s.el);
+  setFaceAngry(true);
+  updateHud();
+}
+
+feed.addEventListener("click", (e) => {
+  const btn = e.target.closest("[data-act]");
+  if (!btn) return;
+
+  const clipEl = btn.closest(".clip");
+  const idx = Number(clipEl.dataset.index);
+  const act = btn.dataset.act;
+
+  if (act === "like") {
+    likeIndex(idx);
+  } else if (act === "comment") {
+    toast("COMMENTS // 4,210 — LOCKED IN SHAREWARE BUILD");
+  } else if (act === "save") {
+    toast("SAVED TO ARCHIVE");
+  } else if (act === "share") {
+    toast("LINK COPIED // hellfeed://clip/" + (idx + 1));
+  }
+});
+
+/* ============================================================
+   TABS
+   ============================================================ */
+$$(".tab").forEach((tab) => {
+  tab.addEventListener("click", () => {
+    $$(".tab").forEach((t) => {
+      t.classList.remove("active");
+      t.removeAttribute("aria-current");
+    });
+    tab.classList.add("active");
+    tab.setAttribute("aria-current", "page");
+    toast(
+      tab.dataset.tab === "foryou"
+        ? "FOR YOU // ALGORITHM: RANDOM()"
+        : "FOLLOWING // 0 CREATORS ONLINE"
+    );
+  });
+});
+
+/* ============================================================
+   KEYBOARD
+   ============================================================ */
+function goToClip(i) {
+  i = clamp(i, 0, CLIPS.length - 1);
+  feed.scrollTo({ top: i * feed.clientHeight, behavior: "smooth" });
+}
+
+function setTab(name) {
+  const tab = $(`[data-tab="${name}"]`);
+  if (tab) tab.click();
+}
+
+function togglePause(force) {
+  paused = typeof force === "boolean" ? force : !paused;
+  app.classList.toggle("paused", paused);
+  toast(paused ? "PAUSED // SPC TO RESUME" : "RESUMED");
+}
+
+window.addEventListener("keydown", (e) => {
+  const tag = e.target.tagName;
+  if (tag === "INPUT" || tag === "TEXTAREA" || e.target.isContentEditable) return;
+
+  switch (e.code) {
+    case "ArrowDown":
+    case "KeyS":
+      e.preventDefault();
+      goToClip(currentIndex() + 1);
+      break;
+
+    case "ArrowUp":
+    case "KeyW":
+      e.preventDefault();
+      goToClip(currentIndex() - 1);
+      break;
+
+    case "ArrowRight":
+    case "KeyD":
+      e.preventDefault();
+      setTab("foryou");
+      break;
+
+    case "ArrowLeft":
+    case "KeyA":
+      e.preventDefault();
+      setTab("following");
+      break;
+
+    case "Space":
+      e.preventDefault();
+      togglePause();
+      break;
+
+    case "ControlLeft":
+    case "ControlRight":
+      e.preventDefault();
+      likeIndex(currentIndex());
+      break;
+
+    case "Escape":
+      if (paused) togglePause(false);
+      break;
+  }
+}, { capture: true });
+
+/* ============================================================
+   RESIZE
+   ============================================================ */
+let resizeRaf = 0;
+window.addEventListener("resize", () => {
+  cancelAnimationFrame(resizeRaf);
+  resizeRaf = requestAnimationFrame(() => {
+    updateHud();
+  });
+});
+
+/* ============================================================
+   BOOT
+   ============================================================ */
+updateHud();
+setTimeout(() => toast("SWIPE UP // OR PRESS S"), 900);
+
+})();
+</script>
+</body>
+</html>
