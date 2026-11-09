@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#090d12">
+<title>HELLGATE: Blacksite 09</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap');
+:root{--bg:#080b10;--panel:#101820;--line:#293744;--red:#ff3b32;--cyan:#55e6e1;--amber:#ffc15a;--muted:#82919d}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:#e7edf0;font-family:'Share Tech Mono',monospace}body{min-height:100dvh;background:radial-gradient(ellipse at 50% -15%,#26323b 0,#0b1016 46%,#05070a 100%)}
+button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
+.shell{width:min(1500px,100%);margin:auto;padding:12px;display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px;align-items:start}
+.topbar{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border:1px solid var(--line);background:linear-gradient(110deg,#111b24,#090d12);box-shadow:0 8px 30px #0008}
+.brand{font:900 clamp(17px,3vw,27px) Orbitron,sans-serif;letter-spacing:3px;color:#e9f0f3}.brand span{color:var(--red);text-shadow:0 0 15px #f33}
+.subtitle{font-size:11px;color:var(--muted);letter-spacing:2px;margin-top:4px}.mission-tag{color:var(--amber);font-size:11px;text-align:right;letter-spacing:1px}
+.main{min-width:0}.game-wrap{position:relative;width:100%;aspect-ratio:16/10;min-height:260px;max-height:calc(100dvh - 170px);background:#020304;border:1px solid #384651;box-shadow:0 0 0 3px #080d12,0 18px 55px #000b;overflow:hidden}
+#view{display:block;width:100%;height:100%;image-rendering:pixelated;touch-action:none}
+.vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 43%,#000b 100%),linear-gradient(0deg,#0007,transparent 22%,transparent 80%,#0006)}
+.scanlines{position:absolute;inset:0;pointer-events:none;opacity:.13;background:repeating-linear-gradient(0deg,transparent 0 2px,#000 3px 4px)}
+#crosshair{position:absolute;left:50%;top:46%;width:16px;height:16px;transform:translate(-50%,-50%);pointer-events:none;opacity:.8}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#d8f5ed;box-shadow:0 0 5px #6effdf}
+#crosshair:before{width:2px;height:14px;left:7px;top:1px}#crosshair:after{height:2px;width:14px;top:7px;left:1px}
+#hitmark{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);font:22px Orbitron;color:#ff5148;opacity:0;pointer-events:none}
+#damage{position:absolute;inset:0;pointer-events:none;opacity:0;background:radial-gradient(ellipse,transparent 35%,#e11b164d 100%);transition:opacity .08s}
+.hud{display:grid;grid-template-columns:repeat(5,1fr);gap:1px;background:#29343c;border:1px solid #29343c;border-top:0}
+.stat{background:linear-gradient(#151e26,#0c1218);padding:9px 10px;text-align:center;min-width:0}.stat small{display:block;color:#82919d;font-size:10px;letter-spacing:1.5px}.stat strong{display:block;font:700 clamp(15px,2.2vw,22px) Orbitron;color:#e6ecee;margin-top:4px}.stat.health strong{color:#ff5a50}.stat.ammo strong{color:#77e8c5}.stat.objective strong{font-size:12px;color:var(--amber)}
+.side{display:flex;flex-direction:column;gap:12px}.panel{border:1px solid var(--line);background:linear-gradient(145deg,#141e27,#0b1117);padding:13px;box-shadow:0 8px 24px #0005}.panel h2{font:700 12px Orbitron;letter-spacing:1.5px;color:var(--cyan);margin:0 0 11px}.story{font-size:12px;line-height:1.6;color:#bdc8ce;min-height:85px}.story b{color:#fff}.objective{font-size:12px;line-height:1.7;color:#d3dce0}.objective span{color:var(--amber)}.keygrid{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;max-width:170px;margin:8px auto}.key{border:1px solid #42515c;background:#202c35;border-radius:4px;text-align:center;padding:7px 2px;font-size:11px;color:#dce5e8}.key.blank{visibility:hidden}.help{font-size:11px;color:var(--muted);line-height:1.8}.help b{color:#e8eff2}.action{width:100%;border:1px solid #485965;background:linear-gradient(#273641,#15212a);padding:10px;margin-top:7px;font:700 11px Orbitron;letter-spacing:1px}.action:hover{border-color:var(--cyan);color:var(--cyan)}.action.primary{background:linear-gradient(#a92a27,#681714);border-color:#e64b42}.action.primary:hover{color:white;filter:brightness(1.15)}
+.mobile-controls{display:none;grid-column:1/-1;grid-template-columns:1fr 1fr;gap:12px;border:1px solid var(--line);background:#0d141b;padding:12px}
+.pad{display:grid;grid-template-columns:repeat(3, minmax(42px,58px));grid-template-rows:repeat(2,48px);gap:6px;justify-content:center;align-content:center}
+.pad button,.combat button{border:1px solid #41525f;border-radius:8px;background:linear-gradient(#26343e,#121c24);font-size:17px;touch-action:none;user-select:none}
+.pad button:active,.pad button.pressed,.combat button:active,.combat button.pressed{background:#8f2623;border-color:#ff5b51}
+.pad .up{grid-column:2}.pad .left{grid-column:1;grid-row:2}.pad .down{grid-column:2;grid-row:2}.pad .right{grid-column:3;grid-row:2}
+.combat{display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}.combat button{min-height:54px;font:700 11px Orbitron;letter-spacing:1px}.combat .fire{background:linear-gradient(#9e2825,#571715);border-color:#d84a42}.combat .use{color:var(--cyan)}
+.overlay{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;text-align:center;padding:20px;background:linear-gradient(#05090deF,#080c11f5);}.overlay.hidden{display:none}.modal{max-width:560px}.modal .eyebrow{font-size:10px;letter-spacing:4px;color:var(--cyan)}.modal h1{font:900 clamp(24px,6vw,48px) Orbitron;color:#f1f3f4;letter-spacing:4px;margin:12px 0;text-shadow:0 0 25px #f33a}.modal h1 em{font-style:normal;color:var(--red)}.modal p{font-size:12px;line-height:1.8;color:#b2bec5}.modal .action{max-width:230px;margin-top:14px}
+.footer{grid-column:1/-1;text-align:center;color:#61717d;font-size:10px;letter-spacing:1px;padding:3px}
+@media(max-width:900px){.shell{grid-template-columns:minmax(0,1fr) 220px}.side{gap:8px}.panel{padding:10px}}
+@media(max-width:700px),(pointer:coarse){.shell{display:flex;flex-direction:column;padding:7px;gap:8px}.topbar,.main,.side,.mobile-controls,.footer{width:100%}.topbar{padding:9px}.mission-tag{font-size:9px}.game-wrap{aspect-ratio:4/3;min-height:230px;max-height:52dvh}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}.mobile-controls{display:grid}.hud .stat{padding:7px 3px}.stat small{font-size:8px}.stat strong{font-size:15px}.stat.objective strong{font-size:10px}.story{min-height:0}.footer{font-size:9px}}
+@media(max-width:380px){.side{grid-template-columns:1fr}.side .panel:first-child{grid-column:auto}.game-wrap{min-height:210px}.mobile-controls{padding:8px}.pad{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px)}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header class="topbar"><div><div class="brand">HELLGATE <span>//</span> BLACKSITE 09</div><div class="subtitle">A FIRST-PERSON SURVIVAL INCIDENT</div></div><div class="mission-tag">UAC RESEARCH DIVISION<br>SECTOR 04 · NIGHT SHIFT</div></header>
+<main class="main">
+<div class="game-wrap" id="gameWrap">
+<canvas id="view" width="480" height="300" aria-label="First person game viewport"></canvas><div class="vignette"></div><div class="scanlines"></div><div id="crosshair"></div><div id="hitmark">×</div><div id="damage"></div>
+<div class="overlay" id="overlay"><div class="modal"><div class="eyebrow">UAC EMERGENCY TRANSMISSION // 03:17</div><h1>HELL<em>GATE</em></h1><p>BLACKSITE 09 HAS GONE DARK.<br>THE REACTOR IS BROADCASTING A SIGNAL THAT SHOULD NOT EXIST.<br><br>Find the three access seals. Reach the reactor. Do not trust the voice on the radio.</p><button class="action primary" id="startBtn">INITIALIZE MISSION</button><p>WASD / ARROWS MOVE · MOUSE OR SWIPE LOOK · CTRL CLICK FIRE · SPACE USE</p></div></div>
+</div>
+<div class="hud">
+<div class="stat health"><small>VITALS</small><strong id="health">100%</strong></div><div class="stat ammo"><small>ROUNDS</small><strong id="ammo">48</strong></div><div class="stat"><small>THREATS</small><strong id="kills">0/6</strong></div><div class="stat"><small>SEALS</small><strong id="seals">0/3</strong></div><div class="stat objective"><small>STATUS</small><strong id="status">LOCKDOWN</strong></div>
+</div>
+</main>
+<aside class="side">
+<section class="panel"><h2>▸ INCOMING TRANSMISSION</h2><div class="story" id="story">“Marine, if you can hear this, the lower levels are compromised. Three security seals are keeping the reactor chamber closed. Find them. And whatever you do, ignore the voice that sounds like me.”</div></section>
+<section class="panel"><h2>▸ MISSION DIRECTIVE</h2><div class="objective" id="objective">Collect <span>3 access seals</span>, eliminate hostiles and reach the reactor door.</div></section>
+<section class="panel"><h2>▸ KEYBOARD</h2><div class="keygrid"><div class="key blank">·</div><div class="key">W / ↑</div><div class="key blank">·</div><div class="key">A / ←</div><div class="key">S / ↓</div><div class="key">D / →</div></div><div class="help"><b>Mouse / swipe</b> Look around<br><b>CTRL / click</b> Fire weapon<br><b>SPACE / E</b> Open / interact<br><b>SHIFT</b> Sprint<br><b>ESC</b> Pause</div><button class="action" id="pauseBtn">PAUSE MISSION</button><button class="action" id="soundBtn">SOUND: ON</button></section>
+</aside>
+<section class="mobile-controls" aria-label="Touch controls">
+<div class="pad"><button class="up" data-key="KeyW">▲</button><button class="left" data-key="KeyA">◀</button><button class="down" data-key="KeyS">▼</button><button class="right" data-key="KeyD">▶</button></div>
+<div class="combat"><button class="fire" data-key="ControlLeft">FIRE</button><button class="use" id="touchUse">USE / OPEN</button><button data-key="ShiftLeft">SPRINT</button><button id="touchPause">PAUSE</button></div>
+</section>
+<div class="footer">NO EXTERNAL GAME ASSETS · PROCEDURAL PIXEL ART · BUILT FOR DESKTOP & TOUCH</div>
+</div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('view'),ctx=canvas.getContext('2d',{alpha:false});
+const CW=480,CH=300,FOV=Math.PI/3,MAX=18,TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+let running=false,paused=false,gameOver=false,last=0,elapsed=0,soundOn=true,audio=null,fireCooldown=0,flash=0,shake=0,storyTimer=0,doorUseCooldown=0;
+const keys=new Set(),zbuf=new Float32Array(CW);
+const map=[
+'111111111111111111111111',
+'100000000000000000000001',
+'100000000000000000000001',
+'100022200000000033300001',
+'100020200000000030300001',
+'100020200000000030300001',
+'100000000000000000000001',
+'100000044444400000000001',
+'100000040004400000000001',
+'100000040004400000550001',
+'100000040004400000500001',
+'100000044844400000500001',
+'100000000000000000500001',
+'100000000000000000550001',
+'100000000000000000008001',
+'100066600000000000000001',
+'100060600000000000000001',
+'100060600000000000000001',
+'100000000000000000000001',
+'100000000000000000000001',
+'100000000000000000000001',
+'100000000000000000000001',
+'100000000000000000000001',
+'111111111111111111111111'
+].map(r=>r.split('').map(Number));
+const MW=24,MH=24,doors=new Map([['10,11',0],['20,14',0]]);
+const player={x:2.5,y:2.5,a:0,health:100,ammo:48,kills:0,seals:0,bob:0,invuln:0};
+let enemies=[],pickups=[],particles=[];
+const wallColors={1:[75,91,100],2:[112,43,35],3:[25,105,104],4:[112,88,57],5:[117,35,40],6:[185,130,42],8:[56,133,148]};
+function reset(){
+ player.x=2.5;player.y=2.5;player.a=0;player.health=100;player.ammo=48;player.kills=0;player.seals=0;player.bob=0;player.invuln=1600;
+ enemies=[
+ {x:10.5,y:8.5,hp:50,alive:true,speed:.78},{x:16.5,y:11.5,hp:55,alive:true,speed:.7},
+ {x:19.5,y:6.5,hp:50,alive:true,speed:.75},{x:6.5,y:15.5,hp:45,alive:true,speed:.85},
+ {x:19.5,y:17.5,hp:60,alive:true,speed:.65},{x:12.5,y:19.5,hp:55,alive:true,speed:.8}];
+ pickups=[{x:5.5,y:4.5,type:'seal',got:false},{x:11.5,y:9.5,type:'seal',got:false},{x:20.5,y:12.5,type:'seal',got:false},{x:4.5,y:19.5,type:'ammo',got:false},{x:15.5,y:20.5,type:'health',got:false}];
+ doors.set('10,11',0);doors.set('20,14',0);
+ particles=[];fireCooldown=0;elapsed=0;gameOver=false;paused=false;
+ $('story').textContent='“Marine, if you can hear this, the lower levels are compromised. Three security seals are keeping the reactor chamber closed. Find them. And whatever you do, ignore the voice that sounds like me.”';
+ $('objective').innerHTML='Collect <span>3 access seals</span>, eliminate hostiles and reach the reactor door.';
+ updateHud();
+}
+function audioInit(){if(!soundOn)return;try{audio??=new(window.AudioContext||window.webkitAudioContext)();if(audio.state==='suspended')audio.resume()}catch(e){}}
+function tone(freq,end,duration,type='square',volume=.07){if(!soundOn)return;audioInit();if(!audio)return;const t=audio.currentTime,o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);o.frequency.exponentialRampToValueAtTime(Math.max(1,end),t+duration);g.gain.setValueAtTime(volume,t);g.gain.exponentialRampToValueAtTime(.001,t+duration);o.connect(g);g.connect(audio.destination);o.start(t);o.stop(t+duration+.01)}
+function solid(x,y){let mx=Math.floor(x),my=Math.floor(y);if(mx<0||my<0||mx>=MW||my>=MH)return true;let c=map[my][mx];if(c===0)return false;if(c===8)return (doors.get(mx+','+my)||0)<.88;return true}
+function canStand(x,y){const r=.19;return !solid(x-r,y-r)&&!solid(x+r,y-r)&&!solid(x-r,y+r)&&!solid(x+r,y+r)}
+function move(dx,dy){if(canStand(player.x+dx,player.y))player.x+=dx;if(canStand(player.x,player.y+dy))player.y+=dy}
+function norm(a){while(a>Math.PI)a-=TAU;while(a< -Math.PI)a+=TAU;return a}
+function lineOfSight(x1,y1,x2,y2){let d=Math.hypot(x2-x1,y2-y1),steps=Math.ceil(d*12);for(let i=1;i<steps;i++){let t=i/steps;if(solid(x1+(x2-x1)*t,y1+(y2-y1)*t))return false}return true}
+function use(){if(!running||paused||gameOver||doorUseCooldown>0)return;doorUseCooldown=.25;
+ let fx=player.x+Math.cos(player.a)*1.55,fy=player.y+Math.sin(player.a)*1.55,mx=Math.floor(fx),my=Math.floor(fy),key=mx+','+my;
+ if(doors.has(key)){if(key==='20,14'&&player.seals<3){message('ACCESS DENIED: THREE SEALS REQUIRED');tone(130,90,.16,'sawtooth');return}doors.set(key,Math.min(1,(doors.get(key)||0)+.08));tone(180,420,.22,'triangle');return}
+ // generous adjacent door interaction
+ for(const [k,v] of doors){let [x,y]=k.split(',').map(Number);if(Math.hypot(x+.5-player.x,y+.5-player.y)<2.0){if(k==='20,14'&&player.seals<3){message('REACTOR LOCKED — FIND ALL THREE SEALS');return}doors.set(k,Math.min(1,v+.08));tone(180,420,.22,'triangle');return}}
+}
+function message(t){$('story').textContent=t;storyTimer=4}
+function shoot(){if(!running||paused||gameOver||fireCooldown>0||player.ammo<=0)return;player.ammo--;fireCooldown=.28;flash=.09;shake=.06;tone(145,34,.13,'sawtooth',.11);let target=null,best=12;
+ for(const e of enemies){if(!e.alive)continue;let dx=e.x-player.x,dy=e.y-player.y,d=Math.hypot(dx,dy),angle=Math.abs(norm(Math.atan2(dy,dx)-player.a));if(d<best&&angle<.115&&lineOfSight(player.x,player.y,e.x,e.y)){target=e;best=d}}
+ if(target){target.hp-=26+Math.random()*9;target.hit=.13;particles.push(...Array.from({length:9},()=>({x:target.x,y:target.y,vx:(Math.random()-.5)*2,vy:(Math.random()-.5)*2,life:.3,color:'#ff453b'})));tone(520,180,.08,'square',.05);$('hitmark').style.opacity=1;setTimeout(()=>$('hitmark').style.opacity=0,90);if(target.hp<=0){target.alive=false;player.kills++;tone(90,35,.22,'triangle');if(player.kills===3)message('RADIO: “That is not what they look like when they die.”');if(player.kills===6)message('ALL HOSTILES NEUTRALISED. The reactor is still calling your name.')}}updateHud()}
+function collect(){for(const p of pickups){if(p.got||Math.hypot(player.x-p.x,player.y-p.y)>.52)continue;p.got=true;if(p.type==='seal'){player.seals++;message(player.seals===3?'RADIO: “You have all the seals. Open the reactor. I am already inside.”':'ACCESS SEAL RECOVERED. '+(3-player.seals)+' REMAINING.');tone(660,990,.18,'sine')}else if(p.type==='ammo'){player.ammo=Math.min(99,player.ammo+18);message('AMMUNITION RECOVERED.')}else{player.health=Math.min(100,player.health+30);message('MEDICAL PACK: VITALS RESTORED.')}updateHud()}}
+function updateHud(){$('health').textContent=Math.ceil(player.health)+'%';$('ammo').textContent=player.ammo;$('kills').textContent=player.kills+'/6';$('seals').textContent=player.seals+'/3';$('status').textContent=player.health<30?'CRITICAL':player.seals===3?'UNLOCKED':'LOCKDOWN';$('objective').innerHTML=player.seals<3?'Recover <span>'+(3-player.seals)+' access seal(s)</span>. The reactor door is in the east sector.':'<span>Enter the reactor chamber</span> and discover what answered the signal.'}
+function endGame(win){gameOver=true;running=false;$('overlay').classList.remove('hidden');$('overlay').querySelector('.eyebrow').textContent=win?'TRANSMISSION // SIGNAL CONTAINED':'VITAL SIGNS // ZERO';$('overlay').querySelector('h1').innerHTML=win?'SECTOR <em>SECURED?</em>':'YOU ARE <em>LOST</em>';$('overlay').querySelector('p').innerHTML=win?'The reactor falls silent. Your comms crackle one last time:<br><br><b>“Good work, Marine. Now look behind you.”</b><br><br>Mission complete — for now.':'Hostile contact overwhelmed your position.<br><br>Hostiles eliminated: '+player.kills+'<br>Access seals: '+player.seals+'/3';$('startBtn').textContent='REDEPLOY';}
+function start(){audioInit();reset();running=true;$('overlay').classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}
+function togglePause(){if(!running&&!paused)return;paused=!paused;if(paused){$('overlay').classList.remove('hidden');$('overlay').querySelector('.eyebrow').textContent='MISSION CONTROL';$('overlay').querySelector('h1').innerHTML='PAUSED';$('overlay').querySelector('p').innerHTML='Mission suspended. Resume when ready.';$('startBtn').textContent='RESUME'}else{$('overlay').classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}}
+function update(dt){if(!running||paused||gameOver)return;elapsed+=dt;fireCooldown=Math.max(0,fireCooldown-dt);doorUseCooldown=Math.max(0,doorUseCooldown-dt);player.invuln=Math.max(0,player.invuln-dt);flash=Math.max(0,flash-dt);shake=Math.max(0,shake-dt);if(storyTimer>0)storyTimer-=dt;
+ let turn=0;if(keys.has('ArrowLeft'))turn-=1;if(keys.has('ArrowRight'))turn+=1;player.a=norm(player.a+turn*2.25*dt+touchLook);
+ touchLook=0;let forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0),strafe=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0);let len=Math.hypot(forward,strafe);if(len){let speed=(keys.has('ShiftLeft')?3.9:2.65)*dt;forward/=len;strafe/=len;move((Math.cos(player.a)*forward-Math.sin(player.a)*strafe)*speed,(Math.sin(player.a)*forward+Math.cos(player.a)*strafe)*speed);player.bob+=dt*10}
+ if(keys.has('Space')||keys.has('KeyE')){use();keys.delete('Space');keys.delete('KeyE')}
+ if(keys.has('ControlLeft')||keys.has('ControlRight')||keys.has('Mouse0'))shoot();
+ for(const [k,v] of doors){if(v>0&&v<1)doors.set(k,Math.min(1,v+dt*1.8))}
+ collect();
+ for(const e of enemies){if(!e.alive)continue;e.hit=Math.max(0,(e.hit||0)-dt);let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy);if(d<9&&d>.7&&lineOfSight(e.x,e.y,player.x,player.y)){let sp=e.speed*dt, nx=e.x+dx/d*sp,ny=e.y+dy/d*sp;if(!solid(nx,e.y))e.x=nx;if(!solid(e.x,ny))e.y=ny}if(d<.9&&player.invuln<=0){player.health-=23*dt;shake=.12;$('damage').style.opacity='.85';if(player.health<=0){player.health=0;updateHud();endGame(false);return}}}
+ $('damage').style.opacity=player.health<100&&player.invuln<=0?'.22':'0';for(const p of particles){p.x+=p.vx*dt;p.y+=p.vy*dt;p.life-=dt}particles=particles.filter(p=>p.life>0);if(player.x>20.25&&player.x<22&&player.y>13.2&&player.y<15.8&&player.seals===3){message('The voice is coming from your helmet.');endGame(true)}updateHud()}
+let touchLook=0;
+function texturePixel(type,u,v){let c=wallColors[type]||wallColors[1],n=Math.sin(u*19+v*7)*7+Math.sin(v*37)*4;let mortar=(Math.floor(v*8)%2===0&&u%1<.035)||v%1<.025;if(type===2&&mortar)c=c.map(x=>x*.45);if(type===3){let glow=(Math.floor(u*8)%3===0&&v>.18&&v<.82)?1.8:1;c=[c[0]*glow,c[1]*glow,c[2]*glow]}if(type===6){let stripe=(Math.floor((u+v)*12)%2===0);c=stripe?[190,128,35]:[22,25,27]}return c.map(x=>Math.max(0,Math.min(255,x+n)))}
+function render(){let im=ctx.createImageData(CW,CH),b=im.data;let dirX=Math.cos(player.a),dirY=Math.sin(player.a),planeX=-dirY*Math.tan(FOV/2),planeY=dirX*Math.tan(FOV/2);
+ // atmospheric ceiling and floor
+ for(let y=0;y<CH;y++){let floor=y>CH/2;let t=floor?(y-CH/2)/(CH/2):(CH/2-y)/(CH/2);for(let x=0;x<CW;x++){let i=(y*CW+x)*4;let vign=1-Math.pow(Math.abs(x/CW-.5)*1.6,2)*.45;if(floor){let d=(CH*.5)/(y-CH*.5||.01),cam=2*x/CW-1,rx=dirX+planeX*cam,ry=dirY+planeY*cam,wx=player.x+rx*d,wy=player.y+ry*d;let tile=((Math.floor(wx*2)+Math.floor(wy*2))&1)?1:.72;let light=Math.max(.07,.38-d*.018)*(1-Math.min(.4,t*.2));b[i]=13*tile*light*5*vign;b[i+1]=19*tile*light*5*vign;b[i+2]=23*tile*light*5*vign}else{b[i]=Math.floor(5+8*(1-t));b[i+1]=Math.floor(8+10*(1-t));b[i+2]=Math.floor(12+13*(1-t))}b[i+3]=255}}
+ for(let x=0;x<CW;x++){let cam=2*x/CW-1,rx=dirX+planeX*cam,ry=dirY+planeY*cam,mx=Math.floor(player.x),my=Math.floor(player.y),ddx=Math.abs(1/(rx||1e-8)),ddy=Math.abs(1/(ry||1e-8)),sx,sy,sdx,sdy,stepX,stepY,side=0;if(rx<0){stepX=-1;sdx=(player.x-mx)*ddx}else{stepX=1;sdx=(mx+1-player.x)*ddx}if(ry<0){stepY=-1;sdy=(player.y-my)*ddy}else{stepY=1;sdy=(my+1-player.y)*ddy}
+ let hit=0,wall=1,doorKey='';while(!hit){if(sdx<sdy){sdx+=ddx;mx+=stepX;side=0}else{sdy+=ddy;my+=stepY;side=1}if(mx<0||my<0||mx>=MW||my>=MH){hit=1;wall=1;break}wall=map[my][mx];if(wall===8){doorKey=mx+','+my;if((doors.get(doorKey)||0)<.88)hit=1}else if(wall>0)hit=1}
+ let dist=side===0?(mx-player.x+(1-stepX)/2)/(rx||1e-8):(my-player.y+(1-stepY)/2)/(ry||1e-8);dist=Math.max(.04,dist);zbuf[x]=dist;let h=Math.min(CH*3,CH/dist),top=Math.max(0,(CH-h)/2),bottom=Math.min(CH,(CH+h)/2),wx=side===0?player.y+dist*ry:player.x+dist*rx;wx-=Math.floor(wx);if(wall===8)wx=(wx+(doors.get(doorKey)||0))%1;if((side===0&&rx>0)||(side===1&&ry<0))wx=1-wx;
+ for(let y=top|0;y<bottom;y++){let v=(y-top)/Math.max(1,h),c=texturePixel(wall,wx,v),light=Math.max(.12,1-dist/19)*(side===1?.76:1)*(.58+Math.max(0,1-Math.abs(cam)*1.25)*.62);let i=(y*CW+x)*4;b[i]=c[0]*light;b[i+1]=c[1]*light;b[i+2]=c[2]*light}
+ }
+ drawBillboards(b);ctx.putImageData(im,0,0);drawWeapon();if(flash>0){ctx.fillStyle='rgba(255,190,90,'+(flash*2.8)+')';ctx.fillRect(0,0,CW,CH)}}
+function drawBillboards(b){let list=[];for(const e of enemies)if(e.alive)list.push({...e,kind:'enemy',d:(e.x-player.x)**2+(e.y-player.y)**2});for(const p of pickups)if(!p.got)list.push({...p,kind:p.type,d:(p.x-player.x)**2+(p.y-player.y)**2});for(const p of particles)list.push({...p,kind:'particle',d:(p.x-player.x)**2+(p.y-player.y)**2});list.sort((a,b)=>b.d-a.d);let dx=Math.cos(player.a),dy=Math.sin(player.a),px=-dy*Math.tan(FOV/2),py=dx*Math.tan(FOV/2),inv=1/(px*dy-dx*py);
+ for(const s of list){let sxw=s.x-player.x,syw=s.y-player.y,tx=inv*(dy*sxw-dx*syw),ty=inv*(-py*sxw+px*syw);if(ty<=.2)continue;let screenX=(CW/2)*(1+tx/ty),size=Math.min(CH*1.5,Math.abs(CH/ty*(s.kind==='enemy'?.78:s.kind==='particle'?.06:.24))),left=Math.floor(screenX-size/2),right=Math.floor(screenX+size/2),top=Math.floor(CH/2-size/2);for(let x=Math.max(0,left);x<Math.min(CW,right);x++){if(ty>=zbuf[x])continue;let u=(x-left)/Math.max(1,size);for(let y=Math.max(0,top);y<Math.min(CH,top+size);y++){let v=(y-top)/size,i=(y*CW+x)*4;if(s.kind==='enemy'){let head=Math.hypot((u-.5)*1.3,(v-.24)*1.5),body=Math.hypot((u-.5)*.95,(v-.62)*1.1);if(head<.22||body<.43){let shade=s.hit>0?1.8:1,eye=(v>.2&&v<.34&&((u>.32&&u<.43)||(u>.57&&u<.68)));b[i]=eye?255:Math.min(255,(eye?30:125)*shade);b[i+1]=eye?45:Math.min(255,eye?20:35);b[i+2]=eye?18:Math.min(255,eye?10:31)}}else if(s.kind==='seal'||s.kind==='ammo'||s.kind==='health'){let r=Math.hypot(u-.5,v-.5);if(r<.43){let col=s.kind==='seal'?[70,235,225]:s.kind==='ammo'?[240,175,62]:[80,220,120];b[i]=col[0];b[i+1]=col[1];b[i+2]=col[2]}}else{let r=Math.hypot(u-.5,v-.5);if(r<.48){b[i]=255;b[i+1]=50;b[i+2]=35}}}}}}
+function drawWeapon(){let bob=Math.sin(player.bob)*2,kick=flash>0?9:0;ctx.save();ctx.translate(CW/2+bob,CH+12+kick);ctx.fillStyle='#101820';ctx.beginPath();ctx.moveTo(-43,0);ctx.lineTo(-34,-52);ctx.lineTo(-15,-67);ctx.lineTo(15,-67);ctx.lineTo(34,-52);ctx.lineTo(43,0);ctx.fill();ctx.fillStyle='#35434b';ctx.fillRect(-14,-76,28,36);ctx.fillStyle='#10151a';ctx.fillRect(-9,-86,18,30);ctx.fillStyle='#63747c';ctx.fillRect(-7,-84,14,12);ctx.fillStyle='#1a242a';ctx.fillRect(-28,-25,56,30);ctx.restore()}
+function loop(now){if(!running||paused)return;let dt=Math.min(.04,(now-last)/1000||0);last=now;update(dt);render();if(running&&!paused)requestAnimationFrame(loop)}
+// Keyboard + mouse controls
+window.addEventListener('keydown',e=>{if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code))e.preventDefault();if(e.code==='Escape'){togglePause();return}keys.add(e.code);if(e.code==='Space'||e.code==='KeyE')use()});
+window.addEventListener('keyup',e=>keys.delete(e.code));
+canvas.addEventListener('click',()=>{if(!running&&!gameOver&&!paused)start();else shoot()});
+canvas.addEventListener('contextmenu',e=>e.preventDefault());
+let mouseDown=false,lastX=0;
+canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){mouseDown=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId)}else{lastX=e.clientX}});
+canvas.addEventListener('pointermove',e=>{if((e.pointerType==='mouse'&&mouseDown)||e.pointerType==='touch'){player.a=norm(player.a+(e.clientX-lastX)*.0045);lastX=e.clientX}});
+canvas.addEventListener('pointerup',e=>{mouseDown=false});
+canvas.addEventListener('pointercancel',()=>mouseDown=false);
+canvas.addEventListener('wheel',e=>{player.a=norm(player.a+e.deltaX*.0015)},{passive:true});
+document.querySelectorAll('[data-key]').forEach(btn=>{let k=btn.dataset.key;const down=e=>{e.preventDefault();keys.add(k);btn.classList.add('pressed');if(k==='ControlLeft')shoot()};const up=e=>{e.preventDefault();keys.delete(k);btn.classList.remove('pressed')};btn.addEventListener('pointerdown',down);btn.addEventListener('pointerup',up);btn.addEventListener('pointerleave',up);btn.addEventListener('pointercancel',up)});
+$('touchUse').addEventListener('pointerdown',e=>{e.preventDefault();use()});$('touchPause').addEventListener('click',togglePause);
+$('startBtn').addEventListener('click',()=>{if(paused){paused=false;$('overlay').classList.add('hidden');last=performance.now();requestAnimationFrame(loop)}else start()});
+$('pauseBtn').addEventListener('click',togglePause);
+$('soundBtn').addEventListener('click',()=>{soundOn=!soundOn;$('soundBtn').textContent='SOUND: '+(soundOn?'ON':'OFF');if(soundOn)audioInit()});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running)togglePause()});
+// Responsive internal resolution: keep a fixed pixel-art render target and scale it cleanly.
+function resize(){const dpr=Math.min(2,window.devicePixelRatio||1);canvas.style.imageRendering='pixelated';}
+window.addEventListener('resize',resize);resize();render();
+})();
+</script>
+</body>
+</html>
