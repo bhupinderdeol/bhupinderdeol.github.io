@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>God Mode Retro Arcade Studio</title>
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js Interactive Audio Framework -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Scanline CRT FX Overlay */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.3) 50%
+            );
+            background-size: 100% 4px;
+        }
+
+        /* D-Pad active hitboxes */
+        .btn-active:active, .btn-active.pressed {
+            background-color: rgba(6, 182, 212, 0.6) !important;
+            transform: scale(0.95);
+        }
+
+        .action-active:active, .action-active.pressed {
+            background-color: rgba(244, 63, 94, 0.8) !important;
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-mono">
+
+    <!-- Header Navigation & Controls -->
+    <header class="bg-slate-900 border-b border-cyan-500/30 px-4 py-3 flex justify-between items-center z-30 shadow-lg">
+        <div class="flex items-center gap-3">
+            <h1 class="text-sm md:text-lg font-black tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-fuchsia-500 uppercase">
+                Arcade Studio
+            </h1>
+            <select id="gameSelect" class="bg-slate-950 text-cyan-400 border border-cyan-500/50 rounded px-2 py-1 text-xs md:text-sm font-bold outline-none cursor-pointer">
+                <option value="mario">1. Super Mario 2D</option>
+                <option value="doom">2. DOOM 3D Raycaster</option>
+                <option value="flight">3. Flight Simulator 3D</option>
+                <option value="asteroids">4. Asteroids Vector</option>
+                <option value="racer">5. Cyberpunk Racer</option>
+            </select>
+        </div>
+
+        <button id="godToggle" class="flex items-center gap-2 bg-amber-500/10 border border-amber-400/50 hover:bg-amber-400/20 text-amber-400 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm">
+            <span>⚡ GOD MODE:</span>
+            <span id="godStatus">OFF</span>
+        </button>
+    </header>
+
+    <!-- Main Viewport Canvas Container -->
+    <main id="viewport" class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+        <canvas id="gameCanvas" class="w-full h-full object-contain"></canvas>
+        <div class="scanlines absolute inset-0 pointer-events-none z-10 opacity-70"></div>
+        
+        <!-- Live Status HUD Overlay -->
+        <div class="absolute top-4 left-4 z-20 text-xs md:text-sm text-cyan-400 tracking-widest drop-shadow-[0_0_5px_rgba(6,182,212,0.8)] pointer-events-none">
+            SCORE: <span id="hudScore">000000</span> | MODE: <span id="hudGod" class="text-slate-400">NORMAL</span>
+        </div>
+
+        <!-- Touch Controls Layout for Mobile Navigation -->
+        <div id="touchControls" class="absolute bottom-0 left-0 w-full h-1/2 pointer-events-none z-20 flex justify-between p-4 box-border">
+            <!-- Left D-Pad Controls -->
+            <div class="relative w-36 h-36 pointer-events-auto">
+                <button id="btnUp" class="dpad-btn btn-active absolute top-0 left-12 w-12 h-12 bg-slate-800/60 border border-slate-600/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▲</button>
+                <button id="btnLeft" class="dpad-btn btn-active absolute top-12 left-0 w-12 h-12 bg-slate-800/60 border border-slate-600/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">◀</button>
+                <button id="btnRight" class="dpad-btn btn-active absolute top-12 right-0 w-12 h-12 bg-slate-800/60 border border-slate-600/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▶</button>
+                <button id="btnDown" class="dpad-btn btn-active absolute bottom-0 left-12 w-12 h-12 bg-slate-800/60 border border-slate-600/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▼</button>
+            </div>
+
+            <!-- Right Action Controls -->
+            <div class="relative w-36 h-36 pointer-events-auto">
+                <button id="btnB" class="action-active absolute bottom-16 right-16 w-14 h-14 bg-cyan-500/30 border-2 border-cyan-400 rounded-full text-white font-bold text-xs flex items-center justify-center backdrop-blur">FIRE</button>
+                <button id="btnA" class="action-active absolute bottom-2 right-2 w-14 h-14 bg-rose-500/30 border-2 border-rose-500 rounded-full text-white font-bold text-xs flex items-center justify-center backdrop-blur">JUMP</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // -------------------------------------------------------------
+        // TONE.JS AUDIO SYNTHESIZER ENGINE
+        // -------------------------------------------------------------
+        let synth, noiseSynth;
+        
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+                noiseSynth = new Tone.NoiseSynth({
+                    noise: { type: 'white' },
+                    envelope: { attack: 0.005, decay: 0.1, sustain: 0 }
+                }).toDestination();
+            }
+        }
+
+        function playSound(type) {
+            if (Tone.context.state !== 'running') Tone.start();
+            initAudio();
+
+            if (type === 'jump') {
+                synth.triggerAttackRelease('C5', '8n');
+            } else if (type === 'shoot') {
+                synth.triggerAttackRelease('G4', '16n');
+            } else if (type === 'hit') {
+                noiseSynth.triggerAttackRelease('16n');
+            }
+        }
+
+        // -------------------------------------------------------------
+        // GLOBAL ENGINE STATE & TOUCH MAPPING
+        // -------------------------------------------------------------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentGame = 'mario';
+        let godMode = false;
+        let score = 0;
+        let animationFrameId = null;
+
+        const keys = { up: false, down: false, left: false, right: false, a: false, b: false };
+
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth * window.devicePixelRatio;
+            canvas.height = canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Keyboard Event Handlers
+        window.addEventListener('keydown', e => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' || e.code === 'KeyK') keys.a = true;
+            if (e.code === 'KeyJ' || e.code === 'ControlLeft') keys.b = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+            if (e.code === 'Space' || e.code === 'KeyK') keys.a = false;
+            if (e.code === 'KeyJ' || e.code === 'ControlLeft') keys.b = false;
+        });
+
+        // Touch Control Bindings
+        function bindTouch(id, keyName) {
+            const btn = document.getElementById(id);
+            const setKey = (val) => { keys[keyName] = val; btn.classList.toggle('pressed', val); };
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); setKey(true); });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); setKey(false); });
+            btn.addEventListener('mousedown', () => setKey(true));
+            btn.addEventListener('mouseup', () => setKey(false));
+        }
+
+        bindTouch('btnUp', 'up');
+        bindTouch('btnDown', 'down');
+        bindTouch('btnLeft', 'left');
+        bindTouch('btnRight', 'right');
+        bindTouch('btnA', 'a');
+        bindTouch('btnB', 'b');
+
+        // God Mode Toggle
+        const godBtn = document.getElementById('godToggle');
+        godBtn.addEventListener('click', () => {
+            godMode = !godMode;
+            godBtn.classList.toggle('bg-amber-400', godMode);
+            godBtn.classList.toggle('text-black', godMode);
+            document.getElementById('godStatus').innerText = godMode ? 'ACTIVE' : 'OFF';
+            document.getElementById('hudGod').innerText = godMode ? 'ACTIVE' : 'NORMAL';
+            document.getElementById('hudGod').className = godMode ? 'text-amber-400 font-bold' : 'text-slate-400';
+        });
+
+        document.getElementById('gameSelect').addEventListener('change', (e) => {
+            currentGame = e.target.value;
+            initGame();
+        });
+
+        // -------------------------------------------------------------
+        // GAME 1: SUPER MARIO PLATFORMER ENGINE
+        // -------------------------------------------------------------
+        let mario = { x: 100, y: 300, vx: 0, vy: 0, grounded: false };
+        let enemies = [{ x: 500, y: 370, vx: -2, alive: true }];
+
+        function updateMario() {
+            if (keys.left) mario.vx = -6;
+            else if (keys.right) mario.vx = 6;
+            else mario.vx *= 0.8;
+
+            if (keys.a && (mario.grounded || godMode)) {
+                mario.vy = -12;
+                mario.grounded = false;
+                playSound('jump');
+            }
+
+            mario.vy += 0.6;
+            mario.x += mario.vx;
+            mario.y += mario.vy;
+
+            const floor = canvas.height - 100;
+            if (mario.y > floor) {
+                mario.y = floor;
+                mario.vy = 0;
+                mario.grounded = true;
+            }
+
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                e.x += e.vx;
+                if (e.x < 200 || e.x > 700) e.vx *= -1;
+
+                const dx = mario.x - e.x;
+                const dy = mario.y - e.y;
+                if (Math.abs(dx) < 25 && Math.abs(dy) < 25) {
+                    if (mario.vy > 0 || godMode) {
+                        e.alive = false;
+                        mario.vy = -8;
+                        score += 200;
+                        playSound('hit');
+                    }
+                }
+            });
+        }
+
+        function renderMario() {
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ea580c'; ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
+
+            ctx.fillStyle = godMode ? '#facc15' : '#ef4444';
+            ctx.fillRect(mario.x - 15, mario.y - 30, 30, 30);
+            ctx.fillStyle = '#1d4ed8'; ctx.fillRect(mario.x - 10, mario.y - 10, 20, 10);
+
+            enemies.forEach(e => {
+                if (e.alive) {
+                    ctx.fillStyle = '#78350f';
+                    ctx.fillRect(e.x - 15, e.y - 20, 30, 20);
+                }
+            });
+        }
+
+        // -------------------------------------------------------------
+        // GAME 2: DOOM 3D RAYCASTER ENGINE
+        // -------------------------------------------------------------
+        let player3D = { x: 3, y: 3, dir: 0 };
+        const map = [
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,0,1,0,0,1,0,1],
+            [1,0,1,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1]
+        ];
+
+        function updateDoom() {
+            if (keys.left) player3D.dir -= 0.05;
+            if (keys.right) player3D.dir += 0.05;
+            const speed = godMode ? 0.1 : 0.05;
+            if (keys.up) {
+                player3D.x += Math.cos(player3D.dir) * speed;
+                player3D.y += Math.sin(player3D.dir) * speed;
+            }
+            if (keys.b) { playSound('shoot'); score += 10; }
+        }
+
+        function renderDoom() {
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+            ctx.fillStyle = '#334155'; ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+
+            const fov = Math.PI / 3;
+            const numRays = 80;
+            const rayWidth = canvas.width / numRays;
+
+            for (let i = 0; i < numRays; i++) {
+                const rayAngle = (player3D.dir - fov / 2) + (i / numRays) * fov;
+                let distance = 0;
+                let hit = false;
+                while (!hit && distance < 10) {
+                    distance += 0.05;
+                    const checkX = Math.floor(player3D.x + Math.cos(rayAngle) * distance);
+                    const checkY = Math.floor(player3D.y + Math.sin(rayAngle) * distance);
+                    if (map[checkY] && map[checkY][checkX] === 1) hit = true;
+                }
+                const wallHeight = canvas.height / (distance * Math.cos(rayAngle - player3D.dir));
+                ctx.fillStyle = godMode ? `hsl(${i * 5}, 100%, 50%)` : `rgb(${Math.max(0, 220 - distance * 25)}, 20, 20)`;
+                ctx.fillRect(i * rayWidth, (canvas.height - wallHeight) / 2, rayWidth, wallHeight);
+            }
+        }
+
+        // -------------------------------------------------------------
+        // GAME 3: FLIGHT SIMULATOR 3D ENGINE
+        // -------------------------------------------------------------
+        let plane = { alt: 5000, speed: 250, heading: 0, pitch: 0, roll: 0 };
+
+        function updateFlight() {
+            if (keys.up) plane.pitch -= 0.5;
+            if (keys.down) plane.pitch += 0.5;
+            if (keys.left) plane.roll -= 1.0;
+            if (keys.right) plane.roll += 1.0;
+            if (godMode) plane.speed = 600;
+
+            plane.alt += plane.pitch * 2;
+            plane.heading += plane.roll * 0.1;
+        }
+
+        function renderFlight() {
+            ctx.fillStyle = '#0284c7'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate((plane.roll * Math.PI) / 180);
+            ctx.fillStyle = '#15803d';
+            ctx.fillRect(-canvas.width, plane.pitch * 5, canvas.width * 2, canvas.height);
+            ctx.restore();
+
+            ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2;
+            ctx.strokeRect(canvas.width / 2 - 50, canvas.height / 2 - 50, 100, 100);
+            ctx.fillStyle = '#22d3ee';
+            ctx.fillText(`ALT: ${Math.round(plane.alt)} FT`, canvas.width / 2 - 140, canvas.height / 2);
+            ctx.fillText(`SPD: ${Math.round(plane.speed)} KTS`, canvas.width / 2 + 60, canvas.height / 2);
+        }
+
+        // -------------------------------------------------------------
+        // GAME 4: ASTEROIDS VECTOR ENGINE
+        // -------------------------------------------------------------
+        let ship = { x: 300, y: 300, angle: 0, vx: 0, vy: 0 };
+        let bullets = [];
+
+        function updateAsteroids() {
+            if (keys.left) ship.angle -= 0.08;
+            if (keys.right) ship.angle += 0.08;
+            if (keys.up) {
+                ship.vx += Math.cos(ship.angle) * 0.2;
+                ship.vy += Math.sin(ship.angle) * 0.2;
+            }
+            if (keys.b) {
+                bullets.push({ x: ship.x, y: ship.y, vx: Math.cos(ship.angle) * 8, vy: Math.sin(ship.angle) * 8 });
+                playSound('shoot');
+                keys.b = false;
+            }
+
+            ship.x += ship.vx; ship.y += ship.vy;
+            bullets.forEach(b => { b.x += b.vx; b.y += b.vy; });
+        }
+
+        function renderAsteroids() {
+            ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.save();
+            ctx.translate(ship.x, ship.y);
+            ctx.rotate(ship.angle);
+            ctx.strokeStyle = godMode ? '#facc15' : '#38bdf8';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(15, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10);
+            ctx.closePath();
+            ctx.stroke();
+            ctx.restore();
+
+            ctx.fillStyle = '#f43f5e';
+            bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 4));
+        }
+
+        // -------------------------------------------------------------
+        // GAME 5: CYBERPUNK RACER ENGINE
+        // -------------------------------------------------------------
+        let car = { x: 0, speed: 0 };
+
+        function updateRacer() {
+            if (keys.left) car.x -= 0.05;
+            if (keys.right) car.x += 0.05;
+            car.speed = godMode ? 200 : 100;
+            score += Math.round(car.speed / 10);
+        }
+
+        function renderRacer() {
+            ctx.fillStyle = '#1e1b4b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#d946ef'; ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height / 2);
+            ctx.lineTo(0, canvas.height);
+            ctx.moveTo(canvas.width / 2, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height);
+            ctx.stroke();
+
+            ctx.fillStyle = godMode ? '#facc15' : '#06b6d4';
+            ctx.fillRect(canvas.width / 2 + (car.x * 200) - 25, canvas.height - 100, 50, 30);
+        }
+
+        // -------------------------------------------------------------
+        // MAIN ROUTER ENGINE LOOP
+        // -------------------------------------------------------------
+        function initGame() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function gameLoop() {
+            document.getElementById('hudScore').innerText = score.toString().padStart(6, '0');
+
+            switch (currentGame) {
+                case 'mario': updateMario(); renderMario(); break;
+                case 'doom': updateDoom(); renderDoom(); break;
+                case 'flight': updateFlight(); renderFlight(); break;
+                case 'asteroids': updateAsteroids(); renderAsteroids(); break;
+                case 'racer': updateRacer(); renderRacer(); break;
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        // Start Arcade Studio Engine
+        initGame();
+    </script>
+</body>
+</html>
