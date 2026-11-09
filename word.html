@@ -1,0 +1,1231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RetroWord Web - Open Source Browser Document Editor</title>
+
+  <!--
+    RetroWord Web
+
+    Open-source components:
+    - Quill:      https://github.com/slab/quill
+    - Mammoth.js: https://github.com/mwilliamson/mammoth.js
+    - DOMPurify:  https://github.com/cure53/DOMPurify
+
+    This is not Microsoft Word or Apache OpenOffice.
+    It is a Word-like browser editor built from open-source libraries.
+  -->
+
+  <link
+    rel="stylesheet"
+    href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+  />
+
+  <style>
+    :root {
+      --desktop: #008080;
+      --chrome: #c0c0c0;
+      --chrome-dark: #808080;
+      --chrome-light: #ffffff;
+      --title-blue-1: #000080;
+      --title-blue-2: #1084d0;
+      --accent: #000080;
+      --danger: #b00000;
+      --paper-shadow: rgba(0, 0, 0, 0.45);
+      --font-ui: Tahoma, "Segoe UI", Verdana, Arial, sans-serif;
+      --font-doc: Georgia, "Times New Roman", Times, serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      height: 100%;
+      margin: 0;
+    }
+
+    body {
+      font-family: var(--font-ui);
+      background:
+        radial-gradient(circle at top left, rgba(255, 255, 255, 0.12), transparent 30%),
+        var(--desktop);
+      color: #000;
+    }
+
+    button,
+    select,
+    input {
+      font-family: inherit;
+    }
+
+    .desktop {
+      height: 100vh;
+      padding: 14px;
+    }
+
+    .window {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      background: var(--chrome);
+      border: 2px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.25);
+    }
+
+    .title-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 5px 8px;
+      background: linear-gradient(90deg, var(--title-blue-1), var(--title-blue-2));
+      color: #fff;
+      user-select: none;
+    }
+
+    .title-left {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .title-icon {
+      width: 20px;
+      height: 20px;
+      display: grid;
+      place-items: center;
+      background: #fff;
+      color: var(--title-blue-1);
+      font-weight: 700;
+      font-size: 12px;
+      border: 1px solid rgba(0, 0, 0, 0.35);
+      box-shadow: inset -1px -1px 0 rgba(0, 0, 0, 0.2);
+    }
+
+    .title-text {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+    }
+
+    .title-buttons {
+      display: flex;
+      gap: 4px;
+    }
+
+    .title-buttons button {
+      width: 22px;
+      height: 20px;
+      border: 1px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      background: var(--chrome);
+      color: #000;
+      font-size: 11px;
+      line-height: 1;
+      cursor: default;
+    }
+
+    .title-buttons button:active {
+      border-color: var(--chrome-dark) var(--chrome-light) var(--chrome-light) var(--chrome-dark);
+    }
+
+    .toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      background: var(--chrome);
+      border-top: 1px solid var(--chrome-light);
+      border-bottom: 1px solid var(--chrome-dark);
+    }
+
+    .btn,
+    .toolbar select {
+      appearance: none;
+      border: 1px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      background: var(--chrome);
+      color: #000;
+      min-height: 28px;
+      padding: 4px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+    }
+
+    .btn:hover,
+    .toolbar select:hover {
+      background: #d8d8d8;
+    }
+
+    .btn:active,
+    .toolbar select:active {
+      border-color: var(--chrome-dark) var(--chrome-light) var(--chrome-light) var(--chrome-dark);
+      background: #b8b8b8;
+    }
+
+    .spacer {
+      flex: 1 1 auto;
+    }
+
+    .zoom-label {
+      font-size: 12px;
+      padding: 0 2px 0 8px;
+      user-select: none;
+    }
+
+    /* Quill toolbar retro skin */
+    #toolbar.ql-toolbar.ql-snow {
+      border: none;
+      background: var(--chrome);
+      padding: 6px;
+      border-top: 1px solid var(--chrome-light);
+      border-bottom: 1px solid var(--chrome-dark);
+    }
+
+    #toolbar .ql-formats {
+      margin-right: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+
+    #toolbar button,
+    #toolbar select {
+      min-height: 28px;
+      border: 1px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      background: var(--chrome);
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    #toolbar button:hover,
+    #toolbar select:hover {
+      background: #d8d8d8;
+    }
+
+    #toolbar button.ql-active,
+    #toolbar button:hover {
+      color: var(--accent);
+    }
+
+    #toolbar .ql-picker-label {
+      border-radius: 0;
+    }
+
+    #toolbar .ql-stroke {
+      stroke: #000;
+    }
+
+    #toolbar .ql-fill {
+      fill: #000;
+    }
+
+    #toolbar .ql-picker-options {
+      border-radius: 0;
+      border-color: var(--chrome-dark);
+      background: #fff;
+    }
+
+    .workspace {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: auto;
+      background:
+        linear-gradient(rgba(255, 255, 255, 0.04), rgba(0, 0, 0, 0.14)),
+        #3f3f3f;
+      padding: 24px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+    }
+
+    .paper {
+      width: min(8.5in, 100%);
+      min-height: 11in;
+      background: #fff;
+      border: 1px solid #999;
+      box-shadow: 0 0 20px var(--paper-shadow);
+    }
+
+    .ql-container.ql-snow {
+      border: 0;
+      height: auto;
+      font-family: var(--font-doc);
+      font-size: 16px;
+      color: #111;
+    }
+
+    .ql-editor {
+      min-height: 10.5in;
+      padding: 1in;
+      line-height: 1.55;
+      overflow-wrap: break-word;
+    }
+
+    .ql-editor:focus {
+      outline: none;
+    }
+
+    .ql-editor h1,
+    .ql-editor h2,
+    .ql-editor h3 {
+      margin: 0.75em 0 0.45em;
+      line-height: 1.25;
+    }
+
+    .ql-editor p {
+      margin: 0.65em 0;
+    }
+
+    .ql-editor img {
+      max-width: 100%;
+      height: auto;
+    }
+
+    .ql-editor blockquote {
+      border-left: 4px solid #888;
+      margin: 0.8em 0;
+      padding-left: 12px;
+      color: #333;
+    }
+
+    .ql-editor pre {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      padding: 10px;
+      overflow-x: auto;
+      font-family: Consolas, Menlo, Monaco, monospace;
+      font-size: 0.92em;
+    }
+
+    .status-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      align-items: center;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: var(--chrome);
+      border-top: 1px solid var(--chrome-light);
+      user-select: none;
+    }
+
+    .status-bar span {
+      white-space: nowrap;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2000;
+      padding: 18px;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .panel {
+      width: min(980px, 100%);
+      max-height: min(82vh, 860px);
+      overflow: auto;
+      background: var(--chrome);
+      border: 2px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      box-shadow: 10px 10px 0 rgba(0, 0, 0, 0.3);
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 6px 8px;
+      background: linear-gradient(90deg, var(--title-blue-1), var(--title-blue-2));
+      color: #fff;
+      font-weight: 700;
+      font-size: 13px;
+      position: sticky;
+      top: 0;
+      z-index: 1;
+    }
+
+    .panel-title button {
+      width: 26px;
+      height: 24px;
+      border: 1px solid;
+      border-color: var(--chrome-light) var(--chrome-dark) var(--chrome-dark) var(--chrome-light);
+      background: var(--chrome);
+      color: #000;
+      cursor: pointer;
+    }
+
+    .shortcut-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 14px;
+      padding: 14px;
+    }
+
+    .shortcut-group {
+      background: #fff;
+      border: 1px solid var(--chrome-dark);
+      padding: 12px;
+    }
+
+    .shortcut-group h3 {
+      margin: 0 0 10px;
+      font-size: 14px;
+      color: var(--accent);
+    }
+
+    .shortcut-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 7px 0;
+      font-size: 13px;
+    }
+
+    kbd {
+      display: inline-block;
+      min-width: 24px;
+      padding: 2px 6px;
+      text-align: center;
+      background: #fff;
+      border: 1px solid var(--chrome-dark);
+      border-bottom-width: 3px;
+      box-shadow: inset 0 -1px 0 var(--chrome-dark);
+      font: 11px Consolas, Menlo, Monaco, monospace;
+    }
+
+    .fatal {
+      max-width: 860px;
+      margin: 32px auto;
+      padding: 24px;
+      background: #fff;
+      border: 2px solid var(--danger);
+      color: var(--danger);
+      font-family: Consolas, Menlo, Monaco, monospace;
+    }
+
+    .fatal h2 {
+      margin-top: 0;
+    }
+
+    .file-input-hidden {
+      display: none;
+    }
+
+    @media (max-width: 760px) {
+      .desktop {
+        padding: 8px;
+      }
+
+      .workspace {
+        padding: 10px;
+      }
+
+      .ql-editor {
+        padding: 0.45in;
+      }
+
+      .toolbar {
+        gap: 4px;
+      }
+
+      .btn,
+      .toolbar select {
+        padding: 4px 8px;
+        font-size: 11px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app" class="desktop">
+    <section class="window" aria-label="RetroWord Web application window">
+      <header class="title-bar">
+        <div class="title-left">
+          <div class="title-icon">W</div>
+          <div class="title-text" id="documentTitle">Untitled - RetroWord Web</div>
+        </div>
+        <div class="title-buttons" aria-hidden="true">
+          <button type="button">_</button>
+          <button type="button">□</button>
+          <button type="button">X</button>
+        </div>
+      </header>
+
+      <div class="toolbar" role="toolbar" aria-label="File actions">
+        <button class="btn" id="newBtn" type="button" title="Create a new document">New</button>
+        <button class="btn" id="openBtn" type="button" title="Open .docx, .txt, .md, .html">Open</button>
+        <button class="btn" id="saveHtmlBtn" type="button" title="Save as standalone HTML">Save HTML</button>
+        <button class="btn" id="saveDocBtn" type="button" title="Export as Word-compatible .doc">Save .doc</button>
+        <button class="btn" id="printBtn" type="button" title="Print or save as PDF">Print / PDF</button>
+
+        <div class="spacer"></div>
+
+        <label class="zoom-label" for="zoomSelect">Zoom</label>
+        <select id="zoomSelect" title="Zoom level">
+          <option value="75">75%</option>
+          <option value="90">90%</option>
+          <option value="100" selected>100%</option>
+          <option value="110">110%</option>
+          <option value="125">125%</option>
+          <option value="150">150%</option>
+          <option value="175">175%</option>
+          <option value="200">200%</option>
+        </select>
+
+        <button class="btn" id="shortcutsBtn" type="button" title="Show keyboard shortcuts">Shortcuts</button>
+      </div>
+
+      <!--
+        Quill formatting toolbar.
+        Quill binds to buttons and selects using ql-* classes.
+      -->
+      <div id="toolbar" role="toolbar" aria-label="Formatting controls">
+        <span class="ql-formats">
+          <select class="ql-font" title="Font family">
+            <option value="" selected>Default</option>
+            <option value="serif">Serif</option>
+            <option value="monospace">Monospace</option>
+            <option value="cursive">Cursive</option>
+          </select>
+
+          <select class="ql-size" title="Font size">
+            <option value="small">Small</option>
+            <option selected>Normal</option>
+            <option value="large">Large</option>
+            <option value="huge">Huge</option>
+          </select>
+
+          <select class="ql-header" title="Paragraph style">
+            <option value="" selected>Paragraph</option>
+            <option value="1">Heading 1</option>
+            <option value="2">Heading 2</option>
+            <option value="3">Heading 3</option>
+          </select>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-bold" type="button" title="Bold"></button>
+          <button class="ql-italic" type="button" title="Italic"></button>
+          <button class="ql-underline" type="button" title="Underline"></button>
+          <button class="ql-strike" type="button" title="Strikethrough"></button>
+        </span>
+
+        <span class="ql-formats">
+          <select class="ql-color" title="Text color"></select>
+          <select class="ql-background" title="Highlight color"></select>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-list" value="ordered" type="button" title="Numbered list"></button>
+          <button class="ql-list" value="bullet" type="button" title="Bulleted list"></button>
+          <select class="ql-align" title="Alignment">
+            <option selected></option>
+            <option value="center"></option>
+            <option value="right"></option>
+            <option value="justify"></option>
+          </select>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-indent" value="-1" type="button" title="Decrease indent"></button>
+          <button class="ql-indent" value="+1" type="button" title="Increase indent"></button>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-blockquote" type="button" title="Quote"></button>
+          <button class="ql-code-block" type="button" title="Code block"></button>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-link" type="button" title="Insert link"></button>
+          <button class="ql-image" type="button" title="Insert image"></button>
+        </span>
+
+        <span class="ql-formats">
+          <button class="ql-clean" type="button" title="Clear formatting"></button>
+        </span>
+      </div>
+
+      <main class="workspace" id="workspace">
+        <div class="paper" id="paper">
+          <div id="editor">
+            <h1>Welcome to RetroWord Web</h1>
+            <p>
+              This is a backend-free, browser-based document editor built with open-source
+              JavaScript libraries. It supports rich text formatting, local autosave,
+              importing <strong>.docx</strong>, <strong>.txt</strong>, <strong>.md</strong>,
+              and <strong>.html</strong> files, plus exporting to HTML and Word-compatible
+              <strong>.doc</strong> files.
+            </p>
+            <h2>Features</h2>
+            <ul>
+              <li>Headings, lists, alignment, indentation, colors, links, and images</li>
+              <li>Keyboard shortcuts overlay with <kbd>F1</kbd></li>
+              <li>Responsive page layout and zoom controls</li>
+              <li>Local autosave using browser storage</li>
+            </ul>
+            <p>
+              Start typing, or open a document using the <strong>Open</strong> button.
+            </p>
+          </div>
+        </div>
+      </main>
+
+      <footer class="status-bar">
+        <span id="statusMessage">Ready</span>
+        <span id="wordCount">0 words</span>
+        <span id="charCount">0 characters</span>
+        <span id="autosaveStatus">Autosave: enabled</span>
+      </footer>
+    </section>
+  </div>
+
+  <!-- Keyboard shortcut overlay -->
+  <div id="shortcutOverlay" class="overlay hidden" aria-hidden="true">
+    <div class="panel" role="dialog" aria-modal="true" aria-label="Keyboard shortcuts">
+      <div class="panel-title">
+        <span>Keyboard Controls</span>
+        <button id="closeShortcutsBtn" type="button" title="Close">X</button>
+      </div>
+
+      <div class="shortcut-grid">
+        <div class="shortcut-group">
+          <h3>Text formatting</h3>
+          <div class="shortcut-row"><span>Bold</span><span><kbd>Ctrl</kbd> + <kbd>B</kbd></span></div>
+          <div class="shortcut-row"><span>Italic</span><span><kbd>Ctrl</kbd> + <kbd>I</kbd></span></div>
+          <div class="shortcut-row"><span>Underline</span><span><kbd>Ctrl</kbd> + <kbd>U</kbd></span></div>
+          <div class="shortcut-row"><span>Undo</span><span><kbd>Ctrl</kbd> + <kbd>Z</kbd></span></div>
+          <div class="shortcut-row"><span>Redo</span><span><kbd>Ctrl</kbd> + <kbd>Y</kbd></span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>File actions</h3>
+          <div class="shortcut-row"><span>New document</span><span><kbd>Ctrl</kbd> + <kbd>N</kbd></span></div>
+          <div class="shortcut-row"><span>Open document</span><span><kbd>Ctrl</kbd> + <kbd>O</kbd></span></div>
+          <div class="shortcut-row"><span>Save HTML</span><span><kbd>Ctrl</kbd> + <kbd>S</kbd></span></div>
+          <div class="shortcut-row"><span>Print / PDF</span><span><kbd>Ctrl</kbd> + <kbd>P</kbd></span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>Editor</h3>
+          <div class="shortcut-row"><span>Show shortcuts</span><span><kbd>F1</kbd></span></div>
+          <div class="shortcut-row"><span>Close overlay</span><span><kbd>Esc</kbd></span></div>
+          <div class="shortcut-row"><span>Bulleted list</span><span>Toolbar bullet button</span></div>
+          <div class="shortcut-row"><span>Numbered list</span><span>Toolbar numbered button</span></div>
+        </div>
+
+        <div class="shortcut-group">
+          <h3>Notes</h3>
+          <div class="shortcut-row">
+            <span>
+              Some browsers reserve <kbd>Ctrl</kbd> + <kbd>N</kbd> or <kbd>Ctrl</kbd> + <kbd>P</kbd>.
+              If a shortcut is blocked, use the toolbar button instead.
+            </span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input id="fileInput" class="file-input-hidden" type="file" accept=".docx,.txt,.md,.html,.htm" />
+  <input id="imageInput" class="file-input-hidden" type="file" accept="image/*" />
+
+  <!-- Open-source libraries -->
+  <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mammoth@1.8.0/mammoth.browser.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const $ = (id) => document.getElementById(id);
+
+      const els = {
+        app: $("app"),
+        documentTitle: $("documentTitle"),
+        workspace: $("workspace"),
+        paper: $("paper"),
+        statusMessage: $("statusMessage"),
+        wordCount: $("wordCount"),
+        charCount: $("charCount"),
+        autosaveStatus: $("autosaveStatus"),
+        newBtn: $("newBtn"),
+        openBtn: $("openBtn"),
+        saveHtmlBtn: $("saveHtmlBtn"),
+        saveDocBtn: $("saveDocBtn"),
+        printBtn: $("printBtn"),
+        shortcutsBtn: $("shortcutsBtn"),
+        shortcutOverlay: $("shortcutOverlay"),
+        closeShortcutsBtn: $("closeShortcutsBtn"),
+        zoomSelect: $("zoomSelect"),
+        fileInput: $("fileInput"),
+        imageInput: $("imageInput"),
+      };
+
+      const STORAGE_KEY = "retroword.document.v1";
+      let currentFileName = "Untitled";
+      let autosaveTimer = 0;
+
+      function fatal(message) {
+        document.body.innerHTML = `
+          <div class="fatal">
+            <h2>RetroWord Web could not start</h2>
+            <p>${message}</p>
+          </div>
+        `;
+      }
+
+      function setStatus(message) {
+        els.statusMessage.textContent = message;
+      }
+
+      function setAutosaveStatus(message) {
+        els.autosaveStatus.textContent = `Autosave: ${message}`;
+      }
+
+      function escapeHtml(value) {
+        return String(value).replace(/[&<>"']/g, (ch) => ({
+          "&": "&amp;",
+          "<": "&lt;",
+          ">": "&gt;",
+          '"': "&quot;",
+          "'": "&#39;",
+        }[ch]));
+      }
+
+      function safeFileName(name) {
+        const base = String(name || "")
+          .replace(/\.[^.]+$/, "")
+          .replace(/[^\w\-]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 64);
+
+        return base || "retroword-document";
+      }
+
+      function setDocumentTitle(name) {
+        currentFileName = name || "Untitled";
+        els.documentTitle.textContent = `${currentFileName} - RetroWord Web`;
+        document.title = `${currentFileName} - RetroWord Web`;
+      }
+
+      if (!window.Quill) {
+        fatal("Quill failed to load from jsDelivr. Check your internet connection and reload.");
+        return;
+      }
+
+      const quill = new window.Quill("#editor", {
+        theme: "snow",
+        placeholder: "Start typing your document...",
+        modules: {
+          toolbar: "#toolbar",
+          history: {
+            delay: 800,
+            maxStack: 500,
+            userOnly: true,
+          },
+        },
+      });
+
+      function updateCounts() {
+        const text = quill.getText().replace(/\uFEFF/g, "").trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        const chars = quill.getLength();
+
+        els.wordCount.textContent = `${words} word${words === 1 ? "" : "s"}`;
+        els.charCount.textContent = `${chars} character${chars === 1 ? "" : "s"}`;
+      }
+
+      function updateLayout() {
+        const narrow = els.workspace.clientWidth < 760;
+        els.paper.style.width = narrow ? "100%" : "min(8.5in, 100%)";
+      }
+
+      function sanitizeHtml(html) {
+        if (!html || !html.trim()) {
+          return "";
+        }
+
+        if (window.DOMPurify) {
+          return window.DOMPurify.sanitize(html, {
+            USE_PROFILES: {
+              html: true,
+            },
+            ADD_ATTR: ["target", "rel"],
+          });
+        }
+
+        // Basic fallback sanitizer if DOMPurify fails to load.
+        const doc = new DOMParser().parseFromString(html, "text/html");
+
+        doc.querySelectorAll("script, style, iframe, object, embed, link, meta, base")
+          .forEach((node) => node.remove());
+
+        doc.querySelectorAll("*").forEach((el) => {
+          for (const attr of [...el.attributes]) {
+            const name = attr.name.toLowerCase();
+            const value = attr.value.trim().toLowerCase();
+
+            if (name.startsWith("on")) {
+              el.removeAttribute(attr.name);
+            }
+
+            if ((name === "href" || name === "src") && value.startsWith("javascript:")) {
+              el.removeAttribute(attr.name);
+            }
+          }
+        });
+
+        return doc.body.innerHTML;
+      }
+
+      function setHtmlContent(html) {
+        const clean = sanitizeHtml(html);
+
+        if (!clean || !clean.trim()) {
+          quill.setContents([{ insert: "\n" }], "user");
+          return;
+        }
+
+        const delta = quill.clipboard.convert({ html: clean });
+        quill.setContents(delta, "user");
+      }
+
+      function newDocument(skipConfirm = false) {
+        if (!skipConfirm && !window.confirm("Create a new blank document? The current autosaved copy will be replaced.")) {
+          return;
+        }
+
+        quill.setContents([{ insert: "\n" }], "user");
+        localStorage.removeItem(STORAGE_KEY);
+        setDocumentTitle("Untitled");
+        updateCounts();
+        setAutosaveStatus("cleared");
+        setStatus("New blank document created.");
+        quill.focus();
+      }
+
+      function openFilePicker() {
+        els.fileInput.click();
+      }
+
+      function downloadBlob(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+
+        window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+      }
+
+      function buildStandaloneHtml() {
+        const body = quill.root.innerHTML;
+
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(currentFileName)}</title>
+  <style>
+    body {
+      margin: 0;
+      background: #f2f2f2;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.55;
+      color: #111;
+    }
+    article {
+      width: min(8.5in, calc(100% - 48px));
+      margin: 24px auto;
+      min-height: 10in;
+      background: #fff;
+      border: 1px solid #ccc;
+      padding: 1in;
+      box-shadow: 0 0 16px rgba(0,0,0,.15);
+    }
+    img { max-width: 100%; height: auto; }
+    blockquote { border-left: 4px solid #888; margin: .8em 0; padding-left: 12px; color: #333; }
+    pre { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; overflow-x: auto; }
+  </style>
+</head>
+<body>
+  <article>
+${body}
+  </article>
+</body>
+</html>`;
+      }
+
+      function buildPrintHtml() {
+        const body = quill.root.innerHTML;
+
+        return `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(currentFileName)}</title>
+  <style>
+    @page {
+      size: letter;
+      margin: 1in;
+    }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", Times, serif;
+      line-height: 1.55;
+      color: #000;
+    }
+    img { max-width: 100%; height: auto; }
+    blockquote { border-left: 4px solid #888; margin: .8em 0; padding-left: 12px; }
+    pre { background: #f5f5f5; border: 1px solid #ddd; padding: 10px; }
+  </style>
+</head>
+<body>
+${body}
+</body>
+</html>`;
+      }
+
+      function saveHtml() {
+        const html = buildStandaloneHtml();
+        const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+        downloadBlob(blob, `${safeFileName(currentFileName)}.html`);
+        setStatus("Saved as standalone HTML.");
+      }
+
+      function saveDoc() {
+        const body = quill.root.innerHTML;
+
+        const doc = `<html xmlns:o="urn:schemas-microsoft-com:office:office"
+xmlns:w="urn:schemas-microsoft-com:office:word"
+xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+  <meta charset="utf-8" />
+  <title>${escapeHtml(currentFileName)}</title>
+  <!--[if gte mso 9]>
+  <xml>
+    <w:WordDocument>
+      <w:View>Print</w:View>
+      <w:Zoom>100</w:Zoom>
+    </w:WordDocument>
+  </xml>
+  <![endif]-->
+  <style>
+    @page Section1 {
+      size: 8.5in 11.0in;
+      margin: 1.0in 1.0in 1.0in 1.0in;
+    }
+    div.Section1 {
+      page: Section1;
+    }
+    body {
+      font-family: Georgia, "Times New Roman", Times, serif;
+      font-size: 12pt;
+      line-height: 1.5;
+    }
+    img { max-width: 100%; height: auto; }
+  </style>
+</head>
+<body>
+  <div class="Section1">
+${body}
+  </div>
+</body>
+</html>`;
+
+        const blob = new Blob(["\ufeff", doc], { type: "application/msword" });
+        downloadBlob(blob, `${safeFileName(currentFileName)}.doc`);
+        setStatus("Exported as Word-compatible .doc file.");
+      }
+
+      function printDocument() {
+        const frame = document.createElement("iframe");
+        frame.style.position = "fixed";
+        frame.style.right = "0";
+        frame.style.bottom = "0";
+        frame.style.width = "0";
+        frame.style.height = "0";
+        frame.style.border = "0";
+        document.body.appendChild(frame);
+
+        const doc = frame.contentDocument || frame.contentWindow.document;
+        doc.open();
+        doc.write(buildPrintHtml());
+        doc.close();
+
+        window.setTimeout(() => {
+          try {
+            frame.contentWindow.focus();
+            frame.contentWindow.print();
+          } catch (err) {
+            console.error(err);
+            setStatus("Print blocked by browser. Use the browser Print menu instead.");
+          }
+
+          window.setTimeout(() => frame.remove(), 1500);
+        }, 250);
+      }
+
+      function saveToLocalStorage() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(quill.getContents()));
+          setAutosaveStatus("saved locally");
+          setStatus("Document autosaved to this browser.");
+        } catch (err) {
+          console.warn("Autosave failed:", err);
+          setAutosaveStatus("failed - storage full or blocked");
+        }
+      }
+
+      function scheduleAutosave() {
+        setAutosaveStatus("pending...");
+        window.clearTimeout(autosaveTimer);
+        autosaveTimer = window.setTimeout(saveToLocalStorage, 700);
+      }
+
+      async function handleOpenedFile(file) {
+        if (!file) return;
+
+        const extension = file.name.split(".").pop().toLowerCase();
+        setDocumentTitle(file.name);
+        setStatus(`Opening ${file.name}...`);
+
+        const arrayBuffer = await file.arrayBuffer();
+
+        if (extension === "docx") {
+          if (!window.mammoth) {
+            throw new Error("Mammoth.js failed to load, so .docx import is unavailable.");
+          }
+
+          const result = await window.mammoth.convertToHtml({ arrayBuffer });
+
+          if (result.messages && result.messages.length) {
+            console.warn("Mammoth conversion messages:", result.messages);
+          }
+
+          setHtmlContent(result.value);
+        } else if (extension === "txt" || extension === "md" || extension === "text") {
+          const text = new TextDecoder("utf-8").decode(arrayBuffer);
+          quill.setContents([{ insert: text.endsWith("\n") ? text : text + "\n" }], "user");
+        } else if (extension === "html" || extension === "htm") {
+          const rawHtml = new TextDecoder("utf-8").decode(arrayBuffer);
+          const parsed = new DOMParser().parseFromString(rawHtml, "text/html");
+          setHtmlContent(parsed.body.innerHTML);
+        } else {
+          throw new Error("Unsupported file type. Use .docx, .txt, .md, .html, or .htm.");
+        }
+
+        updateCounts();
+        setStatus(`Opened ${file.name}.`);
+      }
+
+      function toggleShortcutOverlay(force) {
+        const shouldShow = typeof force === "boolean"
+          ? force
+          : els.shortcutOverlay.classList.contains("hidden");
+
+        els.shortcutOverlay.classList.toggle("hidden", !shouldShow);
+        els.shortcutOverlay.setAttribute("aria-hidden", String(!shouldShow));
+
+        if (shouldShow) {
+          els.closeShortcutsBtn.focus();
+        } else {
+          quill.focus();
+        }
+      }
+
+      function applyZoom(value) {
+        const scale = Number(value) / 100;
+
+        if (window.CSS && CSS.supports && CSS.supports("zoom", "1")) {
+          els.paper.style.zoom = String(scale);
+          els.paper.style.transform = "";
+        } else {
+          els.paper.style.transformOrigin = "top center";
+          els.paper.style.transform = `scale(${scale})`;
+        }
+
+        setStatus(`Zoom set to ${value}%.`);
+      }
+
+      function restoreFromLocalStorage() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+
+          const delta = JSON.parse(raw);
+          if (delta && Array.isArray(delta.ops) && delta.ops.length) {
+            quill.setContents(delta, "silent");
+            setAutosaveStatus("restored");
+            setStatus("Previous local autosave restored.");
+          }
+        } catch (err) {
+          console.warn("Could not restore autosaved document:", err);
+          setAutosaveStatus("restore failed");
+        }
+      }
+
+      // Wire events.
+      els.newBtn.addEventListener("click", () => newDocument(false));
+      els.openBtn.addEventListener("click", openFilePicker);
+      els.saveHtmlBtn.addEventListener("click", saveHtml);
+      els.saveDocBtn.addEventListener("click", saveDoc);
+      els.printBtn.addEventListener("click", printDocument);
+      els.shortcutsBtn.addEventListener("click", () => toggleShortcutOverlay(true));
+      els.closeShortcutsBtn.addEventListener("click", () => toggleShortcutOverlay(false));
+
+      els.shortcutOverlay.addEventListener("click", (event) => {
+        if (event.target === els.shortcutOverlay) {
+          toggleShortcutOverlay(false);
+        }
+      });
+
+      els.zoomSelect.addEventListener("change", () => {
+        applyZoom(els.zoomSelect.value);
+      });
+
+      els.fileInput.addEventListener("change", async (event) => {
+        const file = event.target.files && event.target.files[0];
+
+        try {
+          await handleOpenedFile(file);
+        } catch (err) {
+          console.error(err);
+          window.alert(err.message || String(err));
+          setStatus("Open failed.");
+        }
+
+        event.target.value = "";
+      });
+
+      els.imageInput.addEventListener("change", () => {
+        const file = els.imageInput.files && els.imageInput.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+          const range = quill.getSelection(true);
+          quill.insertEmbed(range.index, "image", reader.result, "user");
+          setStatus(`Inserted image: ${file.name}`);
+        };
+
+        reader.onerror = () => {
+          setStatus("Image insert failed.");
+        };
+
+        reader.readAsDataURL(file);
+        els.imageInput.value = "";
+      });
+
+      quill.on("text-change", () => {
+        updateCounts();
+        scheduleAutosave();
+      });
+
+      quill.on("selection-change", () => {
+        updateCounts();
+      });
+
+      const toolbarModule = quill.getModule("toolbar");
+
+      toolbarModule.addHandler("image", () => {
+        els.imageInput.click();
+      });
+
+      toolbarModule.addHandler("link", () => {
+        const range = quill.getSelection();
+
+        if (!range || range.length === 0) {
+          setStatus("Select text first, then insert a link.");
+          return;
+        }
+
+        const currentFormat = quill.getFormat(range);
+        const currentUrl = typeof currentFormat.link === "string" ? currentFormat.link : "";
+        const url = window.prompt("Link URL:", currentUrl || "https://");
+
+        if (url === null) return;
+
+        quill.format("link", url || false, "user");
+        setStatus(url ? "Link applied." : "Link removed.");
+      });
+
+      window.addEventListener("keydown", (event) => {
+        const isMod = event.ctrlKey || event.metaKey;
+        const key = (event.key || "").toLowerCase();
+
+        if (event.key === "F1") {
+          event.preventDefault();
+          toggleShortcutOverlay();
+          return;
+        }
+
+        if (event.key === "Escape") {
+          if (!els.shortcutOverlay.classList.contains("hidden")) {
+            toggleShortcutOverlay(false);
+          }
+          return;
+        }
+
+        if (!isMod) return;
+
+        if (key === "s") {
+          event.preventDefault();
+          saveHtml();
+        } else if (key === "o") {
+          event.preventDefault();
+          openFilePicker();
+        } else if (key === "p") {
+          event.preventDefault();
+          printDocument();
+        } else if (key === "n") {
+          event.preventDefault();
+          newDocument(false);
+        }
+      }, true);
+
+      window.addEventListener("resize", updateLayout);
+
+      // Initial setup.
+      restoreFromLocalStorage();
+      updateCounts();
+      updateLayout();
+      applyZoom(els.zoomSelect.value);
+      setDocumentTitle(currentFileName);
+      setStatus("Ready.");
+
+      quill.focus();
+    })();
+  </script>
+</body>
+</html>
