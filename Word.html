@@ -1,0 +1,853 @@
+```html
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-200">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenOffice Writer Classic - Web Edition</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Times+New+Roman&family=Arial&family=Courier+Prime&family=Georgia&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Retro Office Desktop Styling */
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            user-select: none;
+        }
+
+        /* Classic Menu & Toolbar styling */
+        .office-menu-btn {
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 12px;
+            color: #1e293b;
+            cursor: pointer;
+        }
+        .office-menu-btn:hover {
+            background-color: #cbd5e1;
+        }
+        
+        .tb-btn {
+            padding: 4px 6px;
+            border-radius: 3px;
+            border: 1px solid transparent;
+            color: #334155;
+            background: transparent;
+            cursor: pointer;
+            display: inline-flex;
+            items-center: center;
+            justify-content: center;
+            font-size: 13px;
+            transition: all 0.1s;
+        }
+        .tb-btn:hover {
+            background-color: #e2e8f0;
+            border-color: #cbd5e1;
+        }
+        .tb-btn:active, .tb-btn.active {
+            background-color: #cbd5e1;
+            border-color: #94a3b8;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.1);
+        }
+
+        .tb-divider {
+            width: 1px;
+            height: 18px;
+            background-color: #cbd5e1;
+            margin: 0 4px;
+        }
+
+        /* Realistic Page Canvas Layout */
+        .document-viewport {
+            background-color: #64748b;
+            box-shadow: inset 0 2px 6px rgba(0,0,0,0.3);
+        }
+
+        .a4-page {
+            width: 210mm;
+            min-height: 297mm;
+            background: white;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25), 0 0 2px rgba(0, 0, 0, 0.1);
+            margin: 20px auto;
+            box-sizing: border-box;
+            position: relative;
+            user-select: text;
+        }
+
+        /* Editor core style reset */
+        #editor {
+            outline: none;
+            min-height: 100%;
+            line-height: 1.5;
+            color: #0f172a;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 16px;
+        }
+
+        #editor table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1em 0;
+        }
+
+        #editor table, #editor th, #editor td {
+            border: 1px solid #94a3b8;
+            padding: 8px;
+        }
+
+        #editor blockquote {
+            border-left: 4px solid #cbd5e1;
+            padding-left: 1rem;
+            margin-left: 0;
+            margin-right: 0;
+            color: #475569;
+            font-style: italic;
+        }
+
+        #editor img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 2px;
+        }
+
+        /* Print styles for export */
+        @media print {
+            body * {
+                visibility: hidden;
+            }
+            .document-viewport, .a4-page, #editor, #editor * {
+                visibility: visible;
+            }
+            .document-viewport {
+                background: white !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                overflow: visible !important;
+            }
+            .a4-page {
+                box-shadow: none !important;
+                margin: 0 !important;
+                width: 100% !important;
+                padding: 0 !important;
+            }
+            header, .toolbar-container, .status-bar, .ruler-bar, .modal-backdrop {
+                display: none !important;
+            }
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #cbd5e1;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #94a3b8;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #64748b;
+        }
+    </style>
+</head>
+<body class="h-full flex flex-col overflow-hidden select-none bg-slate-300">
+
+    <!-- Top Menu Header Bar (Retro Windows/OpenOffice Style) -->
+    <header class="bg-slate-100 border-b border-slate-300 text-xs shrink-0 flex flex-col">
+        <!-- Title Bar -->
+        <div class="bg-gradient-to-r from-slate-800 to-slate-900 text-slate-200 px-3 py-1 flex justify-between items-center text-xs">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-file-word text-blue-400 text-sm"></i>
+                <span id="doc-title-display" class="font-medium">Document1 - OpenOffice Writer</span>
+            </div>
+            <div class="flex items-center gap-2 text-slate-400 text-[11px]">
+                <span id="autosave-indicator" class="text-emerald-400 flex items-center gap-1">
+                    <i class="fa-solid fa-circle-check text-[10px]"></i> Saved to Browser
+                </span>
+            </div>
+        </div>
+
+        <!-- Classic Menu Bar -->
+        <div class="flex items-center px-2 py-0.5 bg-slate-100 border-b border-slate-300 relative z-30">
+            <!-- File Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">File</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-48 text-slate-800 z-50">
+                    <button onclick="docNew()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between items-center">
+                        <span><i class="fa-solid fa-file text-blue-500 mr-2"></i>New</span>
+                        <span class="text-[10px] opacity-60">Ctrl+N</span>
+                    </button>
+                    <label class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between items-center cursor-pointer">
+                        <span><i class="fa-solid fa-folder-open text-amber-500 mr-2"></i>Open...</span>
+                        <input type="file" id="file-input" accept=".txt,.html,.doc" class="hidden" onchange="docOpen(event)">
+                    </label>
+                    <hr class="my-1 border-slate-200">
+                    <button onclick="docSave('html')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between items-center">
+                        <span><i class="fa-solid fa-floppy-disk text-emerald-600 mr-2"></i>Save as HTML</span>
+                        <span class="text-[10px] opacity-60">Ctrl+S</span>
+                    </button>
+                    <button onclick="docSave('txt')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between items-center">
+                        <span><i class="fa-solid fa-file-lines text-slate-500 mr-2"></i>Export Plain Text</span>
+                    </button>
+                    <hr class="my-1 border-slate-200">
+                    <button onclick="window.print()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between items-center">
+                        <span><i class="fa-solid fa-print text-indigo-500 mr-2"></i>Print / Export PDF</span>
+                        <span class="text-[10px] opacity-60">Ctrl+P</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Edit Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">Edit</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-48 text-slate-800 z-50">
+                    <button onclick="execCmd('undo')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between">
+                        <span><i class="fa-solid fa-rotate-left mr-2 text-slate-500"></i>Undo</span>
+                        <span class="text-[10px] opacity-60">Ctrl+Z</span>
+                    </button>
+                    <button onclick="execCmd('redo')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between">
+                        <span><i class="fa-solid fa-rotate-right mr-2 text-slate-500"></i>Redo</span>
+                        <span class="text-[10px] opacity-60">Ctrl+Y</span>
+                    </button>
+                    <hr class="my-1 border-slate-200">
+                    <button onclick="openFindReplaceModal()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between">
+                        <span><i class="fa-solid fa-magnifying-glass mr-2 text-slate-500"></i>Find & Replace...</span>
+                        <span class="text-[10px] opacity-60">Ctrl+F</span>
+                    </button>
+                    <button onclick="execCmd('selectAll')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex justify-between">
+                        <span>Select All</span>
+                        <span class="text-[10px] opacity-60">Ctrl+A</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">View</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-44 text-slate-800 z-50">
+                    <button onclick="toggleRulers()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white flex items-center justify-between">
+                        <span>Show Rulers</span>
+                        <i id="ruler-check" class="fa-solid fa-check text-xs text-blue-600"></i>
+                    </button>
+                    <hr class="my-1 border-slate-200">
+                    <button onclick="setZoom(75)" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Zoom 75%</button>
+                    <button onclick="setZoom(100)" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Zoom 100%</button>
+                    <button onclick="setZoom(125)" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Zoom 125%</button>
+                    <button onclick="setZoom(150)" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Zoom 150%</button>
+                </div>
+            </div>
+
+            <!-- Insert Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">Insert</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-48 text-slate-800 z-50">
+                    <button onclick="openTableModal()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-table mr-2 text-blue-500"></i>Table...
+                    </button>
+                    <button onclick="openImageModal()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-image mr-2 text-emerald-500"></i>Picture...
+                    </button>
+                    <button onclick="openLinkModal()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-link mr-2 text-cyan-500"></i>Hyperlink...
+                    </button>
+                    <hr class="my-1 border-slate-200">
+                    <button onclick="execCmd('insertHorizontalRule')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-minus mr-2 text-slate-500"></i>Horizontal Line
+                    </button>
+                    <button onclick="insertSymbol('©')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-copyright mr-2 text-amber-500"></i>Copyright Symbol (©)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">Table</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-44 text-slate-800 z-50">
+                    <button onclick="insertRowAbove()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Insert Row Above</button>
+                    <button onclick="insertRowBelow()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">Insert Row Below</button>
+                    <button onclick="deleteRow()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white text-red-600">Delete Row</button>
+                </div>
+            </div>
+
+            <!-- Help Menu -->
+            <div class="relative group">
+                <button class="office-menu-btn">Help</button>
+                <div class="hidden group-hover:block absolute left-0 top-full bg-white border border-slate-300 shadow-lg rounded-b py-1 w-48 text-slate-800 z-50">
+                    <button onclick="openShortcutsModal()" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-keyboard mr-2 text-purple-500"></i>Keyboard Shortcuts
+                    </button>
+                    <button onclick="alert('Retro Web Word Processor v1.0\nBuilt with HTML5, Tailwind CSS, and ContentEditable Engine.')" class="w-full text-left px-3 py-1.5 hover:bg-blue-600 hover:text-white">
+                        <i class="fa-solid fa-circle-info mr-2 text-blue-500"></i>About Writer
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toolbars Container -->
+        <div class="toolbar-container bg-slate-100 p-1 flex flex-col gap-1 border-b border-slate-300">
+            <!-- Toolbar Line 1: Standard Toolbar -->
+            <div class="flex items-center flex-wrap gap-0.5">
+                <button class="tb-btn" onclick="docNew()" title="New Document (Ctrl+N)"><i class="fa-solid fa-file text-blue-600"></i></button>
+                <label class="tb-btn cursor-pointer" title="Open File">
+                    <i class="fa-solid fa-folder-open text-amber-500"></i>
+                    <input type="file" accept=".txt,.html,.doc" class="hidden" onchange="docOpen(event)">
+                </label>
+                <button class="tb-btn" onclick="docSave('html')" title="Save (Ctrl+S)"><i class="fa-solid fa-floppy-disk text-emerald-600"></i></button>
+                <button class="tb-btn" onclick="window.print()" title="Print / Export PDF (Ctrl+P)"><i class="fa-solid fa-print text-indigo-600"></i></button>
+                
+                <div class="tb-divider"></div>
+
+                <button class="tb-btn" onclick="execCmd('undo')" title="Undo (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                <button class="tb-btn" onclick="execCmd('redo')" title="Redo (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                <button class="tb-btn" onclick="openFindReplaceModal()" title="Find & Replace (Ctrl+F)"><i class="fa-solid fa-magnifying-glass"></i></button>
+
+                <div class="tb-divider"></div>
+
+                <button class="tb-btn" onclick="openTableModal()" title="Insert Table"><i class="fa-solid fa-table text-blue-500"></i></button>
+                <button class="tb-btn" onclick="openImageModal()" title="Insert Image"><i class="fa-solid fa-image text-emerald-600"></i></button>
+                <button class="tb-btn" onclick="openLinkModal()" title="Insert Hyperlink"><i class="fa-solid fa-link text-cyan-600"></i></button>
+                
+                <div class="tb-divider"></div>
+
+                <button class="tb-btn" onclick="execCmd('removeFormat')" title="Clear Formatting"><i class="fa-solid fa-eraser text-red-500"></i></button>
+            </div>
+
+            <!-- Toolbar Line 2: Formatting Toolbar -->
+            <div class="flex items-center flex-wrap gap-0.5">
+                <!-- Style Selector -->
+                <select id="formatBlock" onchange="execCmd('formatBlock', this.value)" class="h-6 px-1 text-xs bg-white border border-slate-300 rounded focus:outline-none">
+                    <option value="P">Normal</option>
+                    <option value="H1">Heading 1</option>
+                    <option value="H2">Heading 2</option>
+                    <option value="H3">Heading 3</option>
+                    <option value="PRE">Code Block</option>
+                    <option value="BLOCKQUOTE">Blockquote</option>
+                </select>
+
+                <!-- Font Family Selector -->
+                <select id="fontName" onchange="execCmd('fontName', this.value)" class="h-6 px-1 text-xs bg-white border border-slate-300 rounded focus:outline-none w-28">
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Courier Prime">Courier New</option>
+                    <option value="Inter">Inter (Sans)</option>
+                </select>
+
+                <!-- Font Size Selector -->
+                <select id="fontSize" onchange="execCmd('fontSize', this.value)" class="h-6 px-1 text-xs bg-white border border-slate-300 rounded focus:outline-none w-14">
+                    <option value="1">10 pt</option>
+                    <option value="2">12 pt</option>
+                    <option value="3" selected>14 pt</option>
+                    <option value="4">18 pt</option>
+                    <option value="5">24 pt</option>
+                    <option value="6">36 pt</option>
+                </select>
+
+                <div class="tb-divider"></div>
+
+                <!-- Text Style Toggle Buttons -->
+                <button class="tb-btn" onclick="execCmd('bold')" title="Bold (Ctrl+B)"><i class="fa-solid fa-bold font-bold"></i></button>
+                <button class="tb-btn" onclick="execCmd('italic')" title="Italic (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
+                <button class="tb-btn" onclick="execCmd('underline')" title="Underline (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>
+                <button class="tb-btn" onclick="execCmd('strikeThrough')" title="Strikethrough"><i class="fa-solid fa-strikethrough"></i></button>
+
+                <div class="tb-divider"></div>
+
+                <!-- Color Pickers -->
+                <label class="tb-btn cursor-pointer relative" title="Text Color">
+                    <i class="fa-solid fa-font text-red-600"></i>
+                    <input type="color" onchange="execCmd('foreColor', this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
+                </label>
+                <label class="tb-btn cursor-pointer relative" title="Highlight Color">
+                    <i class="fa-solid fa-highlighter text-amber-500"></i>
+                    <input type="color" value="#fef08a" onchange="execCmd('hiliteColor', this.value)" class="absolute inset-0 opacity-0 w-full h-full cursor-pointer">
+                </label>
+
+                <div class="tb-divider"></div>
+
+                <!-- Alignment -->
+                <button class="tb-btn" onclick="execCmd('justifyLeft')" title="Align Left"><i class="fa-solid fa-align-left"></i></button>
+                <button class="tb-btn" onclick="execCmd('justifyCenter')" title="Align Center"><i class="fa-solid fa-align-center"></i></button>
+                <button class="tb-btn" onclick="execCmd('justifyRight')" title="Align Right"><i class="fa-solid fa-align-right"></i></button>
+                <button class="tb-btn" onclick="execCmd('justifyFull')" title="Justify"><i class="fa-solid fa-align-justify"></i></button>
+
+                <div class="tb-divider"></div>
+
+                <!-- Lists & Indent -->
+                <button class="tb-btn" onclick="execCmd('insertUnorderedList')" title="Bullet List"><i class="fa-solid fa-list-ul"></i></button>
+                <button class="tb-btn" onclick="execCmd('insertOrderedList')" title="Numbered List"><i class="fa-solid fa-list-ol"></i></button>
+                <button class="tb-btn" onclick="execCmd('outdent')" title="Decrease Indent"><i class="fa-solid fa-outdent"></i></button>
+                <button class="tb-btn" onclick="execCmd('indent')" title="Increase Indent"><i class="fa-solid fa-indent"></i></button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top Horizontal Ruler Bar -->
+    <div id="ruler-top" class="ruler-bar bg-slate-200 border-b border-slate-300 h-6 flex items-center px-4 relative overflow-hidden select-none">
+        <div class="max-w-[210mm] w-full mx-auto h-full relative flex items-end">
+            <!-- Visual Ruler Ticks -->
+            <div class="w-full h-3 border-b border-slate-400 flex justify-between text-[9px] text-slate-600 font-mono">
+                <span>0</span><span>2</span><span>4</span><span>6</span><span>8</span><span>10</span><span>12</span><span>14</span><span>16</span><span>18</span><span>20</span><span>21cm</span>
+            </div>
+            <!-- Margin Sliders -->
+            <div title="Left Margin" class="absolute left-6 top-1/2 -translate-y-1/2 w-2 h-4 bg-amber-500 rounded-sm cursor-ew-resize border border-amber-700 shadow-sm"></div>
+            <div title="Right Margin" class="absolute right-6 top-1/2 -translate-y-1/2 w-2 h-4 bg-amber-500 rounded-sm cursor-ew-resize border border-amber-700 shadow-sm"></div>
+        </div>
+    </div>
+
+    <!-- Main Workspace (Document Canvas) -->
+    <main class="flex-1 flex overflow-hidden relative">
+
+        <!-- Scrollable Document Viewport -->
+        <div class="document-viewport flex-1 overflow-auto p-4 md:p-8 flex justify-center">
+            
+            <!-- Page Frame (A4 Aspect Ratio Setup) -->
+            <div id="page-wrapper" class="a4-page transition-transform duration-150 origin-top p-12 md:p-16">
+                <!-- Editable Canvas Core -->
+                <div id="editor" contenteditable="true" spellcheck="true" class="w-full h-full min-h-[700px] focus:outline-none">
+                    <h1 class="text-2xl font-bold mb-4">Welcome to OpenOffice Web Edition</h1>
+                    <p class="mb-3">This is a fully featured, lightweight single-page word processor styled after classic desktop office suites like Microsoft Word 2003 and OpenOffice Writer.</p>
+                    <p class="mb-3">You can edit text freely, format paragraphs, insert pictures, construct tables, export documents, and use standard keyboard shortcuts!</p>
+                    
+                    <blockquote class="mb-3">
+                        "Simplicity is the ultimate sophistication." — Leonardo da Vinci
+                    </blockquote>
+
+                    <table class="my-4">
+                        <thead>
+                            <tr class="bg-slate-100">
+                                <th>Feature</th>
+                                <th>Status</th>
+                                <th>Shortcut</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Rich Text Editing</td>
+                                <td>Supported</td>
+                                <td>Ctrl+B, Ctrl+I, Ctrl+U</td>
+                            </tr>
+                            <tr>
+                                <td>Auto-Save Local Storage</td>
+                                <td>Active</td>
+                                <td>Ctrl+S</td>
+                            </tr>
+                            <tr>
+                                <td>PDF / Print Export</td>
+                                <td>Ready</td>
+                                <td>Ctrl+P</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Bottom Status Bar -->
+    <footer class="status-bar bg-slate-100 border-t border-slate-300 text-xs px-3 py-1 flex justify-between items-center text-slate-600 shrink-0 z-20">
+        <div class="flex items-center gap-4">
+            <span>Page <strong id="stat-page" class="text-slate-800">1</strong> of 1</span>
+            <span class="hidden sm:inline">|</span>
+            <span class="hidden sm:inline"><strong id="stat-words" class="text-slate-800">0</strong> Words</span>
+            <span class="hidden sm:inline">|</span>
+            <span class="hidden sm:inline"><strong id="stat-chars" class="text-slate-800">0</strong> Characters</span>
+        </div>
+
+        <div class="flex items-center gap-3">
+            <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-magnifying-glass text-[10px] text-slate-500"></i>
+                <input type="range" id="zoom-slider" min="50" max="200" value="100" step="5" oninput="setZoom(this.value)" class="w-20 h-1 accent-blue-600">
+                <span id="zoom-label" class="w-10 text-right">100%</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- MODAL DIALOGS -->
+
+    <!-- Table Modal -->
+    <div id="modal-table" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-300 w-80 p-4">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-table text-blue-500"></i> Insert Table
+            </h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 mb-1">Rows:</label>
+                    <input type="number" id="tbl-rows" value="3" min="1" max="20" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+                <div>
+                    <label class="block text-slate-600 mb-1">Columns:</label>
+                    <input type="number" id="tbl-cols" value="3" min="1" max="10" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="closeModals()" class="px-3 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 text-xs">Cancel</button>
+                <button onclick="confirmInsertTable()" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div id="modal-image" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-300 w-96 p-4">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-image text-emerald-500"></i> Insert Image
+            </h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 mb-1">Image URL:</label>
+                    <input type="text" id="img-url" placeholder="https://example.com/image.png" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+                <div class="text-center text-slate-400 my-1">- OR -</div>
+                <div>
+                    <label class="block text-slate-600 mb-1">Upload Local File:</label>
+                    <input type="file" id="img-file" accept="image/*" class="w-full text-xs">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="closeModals()" class="px-3 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 text-xs">Cancel</button>
+                <button onclick="confirmInsertImage()" class="px-3 py-1 bg-emerald-600 text-white rounded hover:bg-emerald-700 text-xs font-medium">Insert</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Link Modal -->
+    <div id="modal-link" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-300 w-80 p-4">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
+                <i class="fa-solid fa-link text-cyan-500"></i> Insert Hyperlink
+            </h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 mb-1">URL Web Address:</label>
+                    <input type="text" id="link-url" placeholder="https://google.com" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="closeModals()" class="px-3 py-1 bg-slate-200 text-slate-700 rounded hover:bg-slate-300 text-xs">Cancel</button>
+                <button onclick="confirmInsertLink()" class="px-3 py-1 bg-cyan-600 text-white rounded hover:bg-cyan-700 text-xs font-medium">Create Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Find & Replace Modal -->
+    <div id="modal-find" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-300 w-96 p-4">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm flex items-center justify-between">
+                <span><i class="fa-solid fa-magnifying-glass text-slate-500 mr-2"></i>Find & Replace</span>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block text-slate-600 mb-1">Find Text:</label>
+                    <input type="text" id="find-query" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+                <div>
+                    <label class="block text-slate-600 mb-1">Replace With:</label>
+                    <input type="text" id="replace-query" class="w-full px-2 py-1 border border-slate-300 rounded">
+                </div>
+            </div>
+            <div class="mt-4 flex justify-end gap-2">
+                <button onclick="performReplaceAll()" class="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium">Replace All</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shortcuts Drawer Modal -->
+    <div id="modal-shortcuts" class="hidden fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg shadow-xl border border-slate-300 w-96 p-5 max-h-[80vh] overflow-y-auto">
+            <h3 class="font-semibold text-slate-800 mb-3 text-sm flex items-center justify-between border-b pb-2">
+                <span><i class="fa-solid fa-keyboard text-purple-500 mr-2"></i>Keyboard Shortcuts</span>
+                <button onclick="closeModals()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+            </h3>
+            <div class="space-y-2 text-xs text-slate-700">
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + B</span><span class="font-semibold">Bold</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + I</span><span class="font-semibold">Italic</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + U</span><span class="font-semibold">Underline</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + S</span><span class="font-semibold">Save Document</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + P</span><span class="font-semibold">Print / Export PDF</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + F</span><span class="font-semibold">Find & Replace</span></div>
+                <div class="flex justify-between border-b pb-1"><span>Ctrl + Z</span><span class="font-semibold">Undo</span></div>
+                <div class="flex justify-between"><span>Ctrl + Y</span><span class="font-semibold">Redo</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Application Engine Logic -->
+    <script>
+        const editor = document.getElementById("editor");
+        const pageWrapper = document.getElementById("page-wrapper");
+        const autosaveIndicator = document.getElementById("autosave-indicator");
+        
+        let currentZoom = 100;
+        let isAutoSavePending = false;
+
+        // Initialize App
+        window.addEventListener("DOMContentLoaded", () => {
+            // Restore from localStorage if present
+            const savedContent = localStorage.getItem("openoffice_doc_content");
+            if (savedContent) {
+                editor.innerHTML = savedContent;
+            }
+            
+            updateStats();
+            
+            // Editor Live Listeners
+            editor.addEventListener("input", () => {
+                updateStats();
+                triggerAutoSave();
+            });
+
+            // Standard Keyboard Hotkeys Intercept
+            document.addEventListener("keydown", (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    switch (e.key.toLowerCase()) {
+                        case 's':
+                            e.preventDefault();
+                            docSave('html');
+                            break;
+                        case 'p':
+                            e.preventDefault();
+                            window.print();
+                            break;
+                        case 'f':
+                            e.preventDefault();
+                            openFindReplaceModal();
+                            break;
+                    }
+                }
+            });
+        });
+
+        // ExecCommand Formatter Utility
+        function execCmd(command, value = null) {
+            document.execCommand(command, false, value);
+            editor.focus();
+            updateStats();
+            triggerAutoSave();
+        }
+
+        // Live Statistics Tracker
+        function updateStats() {
+            const text = editor.innerText || "";
+            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const chars = text.length;
+
+            document.getElementById("stat-words").innerText = words.toLocaleString();
+            document.getElementById("stat-chars").innerText = chars.toLocaleString();
+        }
+
+        // Zoom Controller
+        function setZoom(val) {
+            currentZoom = parseInt(val);
+            pageWrapper.style.transform = `scale(${currentZoom / 100})`;
+            document.getElementById("zoom-slider").value = currentZoom;
+            document.getElementById("zoom-label").innerText = currentZoom + "%";
+        }
+
+        // Toggle Rulers Visibility
+        function toggleRulers() {
+            const ruler = document.getElementById("ruler-top");
+            const check = document.getElementById("ruler-check");
+            if (ruler.classList.contains("hidden")) {
+                ruler.classList.remove("hidden");
+                check.classList.remove("hidden");
+            } else {
+                ruler.classList.add("hidden");
+                check.classList.add("hidden");
+            }
+        }
+
+        // Auto Save Logic
+        function triggerAutoSave() {
+            if (!isAutoSavePending) {
+                isAutoSavePending = true;
+                autosaveIndicator.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Saving...';
+                autosaveIndicator.className = "text-amber-500 flex items-center gap-1";
+
+                setTimeout(() => {
+                    localStorage.setItem("openoffice_doc_content", editor.innerHTML);
+                    autosaveIndicator.innerHTML = '<i class="fa-solid fa-circle-check"></i> Saved to Browser';
+                    autosaveIndicator.className = "text-emerald-400 flex items-center gap-1";
+                    isAutoSavePending = false;
+                }, 800);
+            }
+        }
+
+        // Document Management
+        function docNew() {
+            if (confirm("Are you sure you want to create a new document? Any unsaved changes will be cleared.")) {
+                // Completely clear document canvas with empty initial paragraph container
+                editor.innerHTML = "<p><br></p>";
+                
+                // Clear persistent local storage cache
+                localStorage.removeItem("openoffice_doc_content");
+                
+                // Reset document title display
+                document.getElementById("doc-title-display").innerText = "Untitled Document - OpenOffice Writer";
+                
+                // Update interface stats and indicators
+                updateStats();
+                autosaveIndicator.innerHTML = '<i class="fa-solid fa-circle-check"></i> New Document Created';
+                autosaveIndicator.className = "text-emerald-400 flex items-center gap-1";
+                
+                // Focus cursor back onto the fresh canvas
+                editor.focus();
+            }
+        }
+
+        function docSave(type) {
+            const content = editor.innerHTML;
+            let blob, filename;
+
+            if (type === 'html') {
+                blob = new Blob([`<!DOCTYPE html><html><head><title>Document</title></head><body>${content}</body></html>`], { type: 'text/html' });
+                filename = 'document.html';
+            } else {
+                blob = new Blob([editor.innerText], { type: 'text/plain' });
+                filename = 'document.txt';
+            }
+
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+        }
+
+        function docOpen(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                if (file.name.endsWith('.txt')) {
+                    editor.innerText = e.target.result;
+                } else {
+                    editor.innerHTML = e.target.result;
+                }
+                document.getElementById("doc-title-display").innerText = `${file.name} - OpenOffice Writer`;
+                updateStats();
+                triggerAutoSave();
+            };
+            reader.readAsText(file);
+        }
+
+        // Modal Utility Functions
+        function closeModals() {
+            document.querySelectorAll('[id^="modal-"]').forEach(m => m.classList.add('hidden'));
+        }
+
+        function openTableModal() { closeModals(); document.getElementById('modal-table').classList.remove('hidden'); }
+        function openImageModal() { closeModals(); document.getElementById('modal-image').classList.remove('hidden'); }
+        function openLinkModal() { closeModals(); document.getElementById('modal-link').classList.remove('hidden'); }
+        function openFindReplaceModal() { closeModals(); document.getElementById('modal-find').classList.remove('hidden'); }
+        function openShortcutsModal() { closeModals(); document.getElementById('modal-shortcuts').classList.remove('hidden'); }
+
+        // Confirm Action Helpers
+        function confirmInsertTable() {
+            const rows = parseInt(document.getElementById('tbl-rows').value) || 2;
+            const cols = parseInt(document.getElementById('tbl-cols').value) || 2;
+            
+            let html = '<table class="my-3 border-collapse w-full"><tbody>';
+            for (let i = 0; i < rows; i++) {
+                html += '<tr>';
+                for (let j = 0; j < cols; j++) {
+                    html += '<td class="border border-slate-300 p-2">Cell</td>';
+                }
+                html += '</tr>';
+            }
+            html += '</tbody></table><p><br></p>';
+
+            execCmd('insertHTML', html);
+            closeModals();
+        }
+
+        function confirmInsertImage() {
+            const url = document.getElementById('img-url').value;
+            const fileInput = document.getElementById('img-file');
+
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    execCmd('insertImage', e.target.result);
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            } else if (url) {
+                execCmd('insertImage', url);
+            }
+            closeModals();
+        }
+
+        function confirmInsertLink() {
+            const url = document.getElementById('link-url').value;
+            if (url) {
+                execCmd('createLink', url);
+            }
+            closeModals();
+        }
+
+        function insertSymbol(sym) {
+            execCmd('insertText', sym);
+        }
+
+        // Table Manipulations
+        function insertRowAbove() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const td = sel.anchorNode.parentElement?.closest('td');
+            if (td) {
+                const tr = td.parentElement;
+                const newTr = tr.cloneNode(true);
+                tr.parentNode.insertBefore(newTr, tr);
+            }
+        }
+
+        function insertRowBelow() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const td = sel.anchorNode.parentElement?.closest('td');
+            if (td) {
+                const tr = td.parentElement;
+                const newTr = tr.cloneNode(true);
+                tr.parentNode.insertBefore(newTr, tr.nextSibling);
+            }
+        }
+
+        function deleteRow() {
+            const sel = window.getSelection();
+            if (!sel.rangeCount) return;
+            const td = sel.anchorNode.parentElement?.closest('td');
+            if (td) {
+                td.parentElement.remove();
+            }
+        }
+
+        // Find and Replace Utility
+        function performReplaceAll() {
+            const findText = document.getElementById('find-query').value;
+            const replaceText = document.getElementById('replace-query').value;
+
+            if (!findText) return;
+
+            const regex = new RegExp(findText, 'g');
+            editor.innerHTML = editor.innerHTML.replace(regex, replaceText);
+            closeModals();
+            updateStats();
+            triggerAutoSave();
+        }
+    </script>
+</body>
+</html>
+```
