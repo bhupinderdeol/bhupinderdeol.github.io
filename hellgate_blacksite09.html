@@ -38,6 +38,716 @@ button{font:inherit;color:inherit;cursor:pointer;touch-action:manipulation}
 @media(max-width:700px),(pointer:coarse){.shell{display:flex;flex-direction:column;padding:7px;gap:8px}.topbar,.main,.side,.mobile-controls,.footer{width:100%}.topbar{padding:9px}.mission-tag{font-size:9px}.game-wrap{aspect-ratio:4/3;min-height:230px;max-height:52dvh}.side{display:grid;grid-template-columns:1fr 1fr}.side .panel:first-child{grid-column:1/-1}.mobile-controls{display:grid}.hud .stat{padding:7px 3px}.stat small{font-size:8px}.stat strong{font-size:15px}.stat.objective strong{font-size:10px}.story{min-height:0}.footer{font-size:9px}}
 @media(max-width:380px){.side{grid-template-columns:1fr}.side .panel:first-child{grid-column:auto}.game-wrap{min-height:210px}.mobile-controls{padding:8px}.pad{grid-template-columns:repeat(3,44px);grid-template-rows:repeat(2,44px)}}
 </style>
+<style>
+
+
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@500;700;900&display=swap');
+
+:root {
+    --bg: #080b10;
+    --panel: #101820;
+    --line: #293744;
+    --red: #ff3b32;
+    --cyan: #55e6e1;
+    --amber: #ffc15a;
+    --muted: #82919d;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: #e7edf0;
+    font-family: 'Share Tech Mono', monospace;
+}
+
+body {
+    min-height: 100dvh;
+    background:
+        radial-gradient(ellipse at 50% -15%, #26323b 0, #0b1016 46%, #05070a 100%);
+}
+
+button {
+    font: inherit;
+    color: inherit;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+/* =====================================
+   MAIN PAGE LAYOUT
+   Game -> Controls -> Information -> Footer
+===================================== */
+
+.shell {
+    width: min(1500px, 100%);
+    margin: auto;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+        "topbar"
+        "main"
+        "mobile"
+        "side"
+        "footer";
+    gap: 12px;
+    align-items: start;
+}
+
+.topbar {
+    grid-area: topbar;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    border: 1px solid var(--line);
+    background: linear-gradient(110deg, #111b24, #090d12);
+    box-shadow: 0 8px 30px #0008;
+}
+
+.brand {
+    font: 900 clamp(17px, 3vw, 27px) Orbitron, sans-serif;
+    letter-spacing: 3px;
+    color: #e9f0f3;
+}
+
+.brand span {
+    color: var(--red);
+    text-shadow: 0 0 15px #f33;
+}
+
+.subtitle {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-top: 4px;
+}
+
+.mission-tag {
+    color: var(--amber);
+    font-size: 11px;
+    text-align: right;
+    letter-spacing: 1px;
+}
+
+/* =====================================
+   GAME VIEWPORT
+===================================== */
+
+.main {
+    grid-area: main;
+    width: 100%;
+    min-width: 0;
+}
+
+.game-wrap {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    min-height: 280px;
+    max-height: 72dvh;
+    margin: auto;
+    background: #020304;
+    border: 1px solid #384651;
+    box-shadow:
+        0 0 0 3px #080d12,
+        0 18px 55px #000b;
+    overflow: hidden;
+}
+
+#view {
+    display: block;
+    width: 100%;
+    height: 100%;
+    image-rendering: pixelated;
+    touch-action: none;
+}
+
+.vignette {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(ellipse at center, transparent 43%, #000b 100%),
+        linear-gradient(0deg, #0007, transparent 22%, transparent 80%, #0006);
+}
+
+.scanlines {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: .13;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent 0 2px,
+        #000 3px 4px
+    );
+}
+
+#crosshair {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    width: 16px;
+    height: 16px;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+    opacity: .8;
+}
+
+#crosshair:before,
+#crosshair:after {
+    content: "";
+    position: absolute;
+    background: #d8f5ed;
+    box-shadow: 0 0 5px #6effdf;
+}
+
+#crosshair:before {
+    width: 2px;
+    height: 14px;
+    left: 7px;
+    top: 1px;
+}
+
+#crosshair:after {
+    height: 2px;
+    width: 14px;
+    top: 7px;
+    left: 1px;
+}
+
+#hitmark {
+    position: absolute;
+    left: 50%;
+    top: 46%;
+    transform: translate(-50%, -50%);
+    font: 22px Orbitron;
+    color: #ff5148;
+    opacity: 0;
+    pointer-events: none;
+}
+
+#damage {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse, transparent 35%, #e11b164d 100%);
+    transition: opacity .08s;
+}
+
+/* =====================================
+   GAME HUD
+===================================== */
+
+.hud {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 1px;
+    background: #29343c;
+    border: 1px solid #29343c;
+    border-top: 0;
+}
+
+.stat {
+    background: linear-gradient(#151e26, #0c1218);
+    padding: 10px;
+    text-align: center;
+    min-width: 0;
+}
+
+.stat small {
+    display: block;
+    color: #82919d;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+}
+
+.stat strong {
+    display: block;
+    font: 700 clamp(15px, 2.2vw, 22px) Orbitron;
+    color: #e6ecee;
+    margin-top: 4px;
+}
+
+.stat.health strong {
+    color: #ff5a50;
+}
+
+.stat.ammo strong {
+    color: #77e8c5;
+}
+
+.stat.objective strong {
+    font-size: 12px;
+    color: var(--amber);
+}
+
+/* =====================================
+   TOUCH CONTROLS
+   Immediately below the game
+===================================== */
+
+.mobile-controls {
+    grid-area: mobile;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    width: 100%;
+    border: 1px solid var(--line);
+    background: linear-gradient(145deg, #141e27, #0b1117);
+    padding: 13px;
+    box-shadow: 0 8px 24px #0005;
+}
+
+.pad {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(42px, 58px));
+    grid-template-rows: repeat(2, 48px);
+    gap: 6px;
+    justify-content: center;
+    align-content: center;
+}
+
+.pad button,
+.combat button {
+    border: 1px solid #41525f;
+    border-radius: 8px;
+    background: linear-gradient(#26343e, #121c24);
+    font-size: 17px;
+    touch-action: none;
+    user-select: none;
+}
+
+.pad button:active,
+.pad button.pressed,
+.combat button:active,
+.combat button.pressed {
+    background: #8f2623;
+    border-color: #ff5b51;
+}
+
+.pad .up {
+    grid-column: 2;
+}
+
+.pad .left {
+    grid-column: 1;
+    grid-row: 2;
+}
+
+.pad .down {
+    grid-column: 2;
+    grid-row: 2;
+}
+
+.pad .right {
+    grid-column: 3;
+    grid-row: 2;
+}
+
+.combat {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: center;
+}
+
+.combat button {
+    min-height: 54px;
+    font: 700 11px Orbitron;
+    letter-spacing: 1px;
+}
+
+.combat .fire {
+    background: linear-gradient(#9e2825, #571715);
+    border-color: #d84a42;
+}
+
+.combat .use {
+    color: var(--cyan);
+}
+
+/* =====================================
+   INFORMATION AND INSTRUCTIONS
+   Moved below the game controls
+===================================== */
+
+.side {
+    grid-area: side;
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.panel {
+    border: 1px solid var(--line);
+    background: linear-gradient(145deg, #141e27, #0b1117);
+    padding: 14px;
+    box-shadow: 0 8px 24px #0005;
+    min-width: 0;
+}
+
+.panel h2 {
+    font: 700 12px Orbitron;
+    letter-spacing: 1.5px;
+    color: var(--cyan);
+    margin: 0 0 11px;
+}
+
+.story {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #bdc8ce;
+    min-height: 0;
+}
+
+.story b {
+    color: #fff;
+}
+
+.objective {
+    font-size: 12px;
+    line-height: 1.7;
+    color: #d3dce0;
+}
+
+.objective span {
+    color: var(--amber);
+}
+
+/* Keyboard instructions: final information panel */
+
+.side .panel:nth-child(3) {
+    grid-column: 1 / -1;
+    display: grid;
+    grid-template-columns: 170px minmax(0, 1fr) 180px;
+    gap: 12px;
+    align-items: center;
+}
+
+.side .panel:nth-child(3) h2 {
+    grid-column: 1 / -1;
+    margin-bottom: 0;
+}
+
+.keygrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    max-width: 170px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.key {
+    border: 1px solid #42515c;
+    background: #202c35;
+    border-radius: 4px;
+    text-align: center;
+    padding: 7px 2px;
+    font-size: 11px;
+    color: #dce5e8;
+}
+
+.key.blank {
+    visibility: hidden;
+}
+
+.help {
+    font-size: 11px;
+    color: var(--muted);
+    line-height: 1.9;
+}
+
+.help b {
+    color: #e8eff2;
+}
+
+.action {
+    width: 100%;
+    border: 1px solid #485965;
+    background: linear-gradient(#273641, #15212a);
+    padding: 10px;
+    margin-top: 6px;
+    font: 700 11px Orbitron;
+    letter-spacing: 1px;
+}
+
+.action:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.action.primary {
+    background: linear-gradient(#a92a27, #681714);
+    border-color: #e64b42;
+}
+
+.action.primary:hover {
+    color: white;
+    filter: brightness(1.15);
+}
+
+/* =====================================
+   START / PAUSE / END GAME OVERLAY
+===================================== */
+
+.overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 20px;
+    background: linear-gradient(#05090deF, #080c11f5);
+}
+
+.overlay.hidden {
+    display: none;
+}
+
+.modal {
+    max-width: 560px;
+}
+
+.modal .eyebrow {
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--cyan);
+}
+
+.modal h1 {
+    font: 900 clamp(24px, 6vw, 48px) Orbitron;
+    color: #f1f3f4;
+    letter-spacing: 4px;
+    margin: 12px 0;
+    text-shadow: 0 0 25px #f33a;
+}
+
+.modal h1 em {
+    font-style: normal;
+    color: var(--red);
+}
+
+.modal p {
+    font-size: 12px;
+    line-height: 1.8;
+    color: #b2bec5;
+}
+
+.modal .action {
+    max-width: 230px;
+    margin-top: 14px;
+}
+
+/* =====================================
+   FOOTER
+===================================== */
+
+.footer {
+    grid-area: footer;
+    width: 100%;
+    text-align: center;
+    color: #61717d;
+    font-size: 10px;
+    letter-spacing: 1px;
+    padding: 8px;
+    border-top: 1px solid #202b34;
+}
+
+/* =====================================
+   TABLETS AND TOUCH DEVICES
+===================================== */
+
+@media (max-width: 900px), (pointer: coarse) {
+
+    .shell {
+        padding: 9px;
+        gap: 9px;
+    }
+
+    .game-wrap {
+        max-height: 65dvh;
+    }
+
+    .side {
+        gap: 9px;
+    }
+
+    .panel {
+        padding: 11px;
+    }
+}
+
+/* =====================================
+   MOBILE PHONES
+===================================== */
+
+@media (max-width: 700px), (pointer: coarse) {
+
+    .shell {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "topbar"
+            "main"
+            "mobile"
+            "side"
+            "footer";
+        padding: 7px;
+        gap: 8px;
+    }
+
+    .topbar {
+        padding: 9px;
+    }
+
+    .brand {
+        letter-spacing: 2px;
+    }
+
+    .subtitle {
+        font-size: 9px;
+    }
+
+    .mission-tag {
+        font-size: 9px;
+    }
+
+    .game-wrap {
+        aspect-ratio: 4 / 3;
+        min-height: 220px;
+        max-height: 55dvh;
+    }
+
+    .mobile-controls {
+        padding: 10px;
+        gap: 8px;
+    }
+
+    .side {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+
+    .side .panel:nth-child(3) {
+        grid-column: 1 / -1;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .side .panel:nth-child(3) h2 {
+        grid-column: 1 / -1;
+    }
+
+    .side .panel:nth-child(3) .keygrid {
+        grid-column: 1;
+    }
+
+    .side .panel:nth-child(3) .help {
+        grid-column: 2;
+    }
+
+    .side .panel:nth-child(3) .action {
+        grid-column: 1 / -1;
+    }
+
+    .hud .stat {
+        padding: 7px 3px;
+    }
+
+    .stat small {
+        font-size: 8px;
+        letter-spacing: .5px;
+    }
+
+    .stat strong {
+        font-size: 15px;
+    }
+
+    .stat.objective strong {
+        font-size: 10px;
+    }
+
+    .footer {
+        font-size: 9px;
+    }
+}
+
+/* =====================================
+   VERY SMALL PHONES
+===================================== */
+
+@media (max-width: 380px) {
+
+    .shell {
+        padding: 5px;
+        gap: 7px;
+    }
+
+    .topbar {
+        align-items: flex-start;
+    }
+
+    .mission-tag {
+        font-size: 8px;
+    }
+
+    .game-wrap {
+        min-height: 205px;
+        aspect-ratio: 4 / 3;
+    }
+
+    .mobile-controls {
+        grid-template-columns: 1fr;
+        padding: 9px;
+    }
+
+    .pad {
+        grid-template-columns: repeat(3, 44px);
+        grid-template-rows: repeat(2, 44px);
+    }
+
+    .combat button {
+        min-height: 46px;
+    }
+
+    .side {
+        grid-template-columns: 1fr;
+    }
+
+    .side .panel:nth-child(3) {
+        grid-column: 1;
+        grid-template-columns: 1fr;
+    }
+
+    .side .panel:nth-child(3) h2,
+    .side .panel:nth-child(3) .keygrid,
+    .side .panel:nth-child(3) .help,
+    .side .panel:nth-child(3) .action {
+        grid-column: 1;
+    }
+
+    .keygrid {
+        margin: 0 auto;
+    }
+}
+
+
+ 
+</style>
+
+
+ 
 </head>
 <body>
 <div class="shell">
