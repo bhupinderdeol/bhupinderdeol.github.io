@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>God Mode Arcade Studio v2.0 - 10-in-1 Ultra Suite</title>
+    <!-- Tailwind CSS Engine -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Tone.js Audio Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+    
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+
+        .scanlines {
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
+            background-size: 100% 4px;
+        }
+
+        .dpad-active:active, .dpad-active.pressed {
+            background-color: rgba(6, 182, 212, 0.7) !important;
+            transform: scale(0.92);
+        }
+
+        .btn-act:active, .btn-act.pressed {
+            transform: scale(0.92);
+            filter: brightness(1.3);
+        }
+    </style>
+</head>
+<body class="w-screen h-screen bg-slate-950 text-slate-100 flex flex-col overflow-hidden font-mono">
+
+    <!-- Header Control Bar -->
+    <header class="bg-slate-900/90 border-b border-cyan-500/30 px-3 py-2 flex justify-between items-center z-30 shadow-lg backdrop-blur">
+        <div class="flex items-center gap-2 md:gap-4">
+            <h1 class="text-xs md:text-base font-black tracking-widest text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-fuchsia-500 to-amber-400 uppercase">
+                ARCADE ENGINE v2.0
+            </h1>
+            <select id="gameSelect" class="bg-slate-950 text-cyan-400 border border-cyan-500/50 rounded px-2 py-1 text-xs md:text-sm font-bold outline-none cursor-pointer">
+                <optgroup label="CLASSIC ENGINE SUITE (1-5)">
+                    <option value="mario">1. Super Mario 2D Platformer</option>
+                    <option value="doom">2. DOOM Raycasting 3D</option>
+                    <option value="flight">3. FlightGear Simulator 3D</option>
+                    <option value="asteroids">4. Asteroids Vector combat</option>
+                    <option value="racer">5. Cyberpunk 3D Racer</option>
+                </optgroup>
+                <optgroup label="PRO ENGINE SUITE (6-10)">
+                    <option value="pacman">6. Pac-Man Arcade Maze</option>
+                    <option value="spaceinvaders">7. Space Invaders Defense</option>
+                    <option value="tetris">8. Neon Tetris Engine</option>
+                    <option value="pong">9. Cyber Pong 3D Matrix</option>
+                    <option value="flappy">10. Flappy Cyber-Drone</option>
+                </optgroup>
+            </select>
+        </div>
+
+        <button id="godToggle" class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-400/50 hover:bg-amber-400/20 text-amber-400 px-3 py-1 rounded-full text-xs font-bold transition-all shadow-sm">
+            <span>⚡ GOD MODE:</span>
+            <span id="godStatus">OFF</span>
+        </button>
+    </header>
+
+    <!-- Canvas Engine Container -->
+    <main id="viewport" class="relative flex-1 bg-black flex items-center justify-center overflow-hidden">
+        <canvas id="gameCanvas" class="w-full h-full object-contain"></canvas>
+        <div class="scanlines absolute inset-0 pointer-events-none z-10 opacity-60"></div>
+        
+        <!-- Live Engine HUD -->
+        <div class="absolute top-3 left-3 z-20 text-xs md:text-sm text-cyan-400 tracking-widest drop-shadow-[0_0_5px_rgba(6,182,212,0.8)] pointer-events-none">
+            SCORE: <span id="hudScore">000000</span> | GOD: <span id="hudGod" class="text-slate-400">INACTIVE</span>
+        </div>
+
+        <!-- Universal Mobile Navigation Touch Pad Controls -->
+        <div id="touchControls" class="absolute bottom-0 left-0 w-full h-1/2 pointer-events-none z-20 flex justify-between p-4 box-border">
+            <!-- Left D-Pad Controls -->
+            <div class="relative w-36 h-36 pointer-events-auto">
+                <button id="btnUp" class="dpad-btn dpad-active absolute top-0 left-12 w-12 h-12 bg-slate-800/70 border border-slate-500/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▲</button>
+                <button id="btnLeft" class="dpad-btn dpad-active absolute top-12 left-0 w-12 h-12 bg-slate-800/70 border border-slate-500/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">◀</button>
+                <button id="btnRight" class="dpad-btn dpad-active absolute top-12 right-0 w-12 h-12 bg-slate-800/70 border border-slate-500/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▶</button>
+                <button id="btnDown" class="dpad-btn dpad-active absolute bottom-0 left-12 w-12 h-12 bg-slate-800/70 border border-slate-500/50 rounded-lg text-white font-bold flex items-center justify-center backdrop-blur">▼</button>
+            </div>
+
+            <!-- Right Action Controls -->
+            <div class="relative w-36 h-36 pointer-events-auto">
+                <button id="btnB" class="btn-act absolute bottom-16 right-16 w-14 h-14 bg-cyan-500/40 border-2 border-cyan-400 rounded-full text-white font-bold text-xs flex items-center justify-center backdrop-blur shadow-[0_0_10px_rgba(6,182,212,0.4)]">FIRE</button>
+                <button id="btnA" class="btn-act absolute bottom-2 right-2 w-14 h-14 bg-rose-500/40 border-2 border-rose-400 rounded-full text-white font-bold text-xs flex items-center justify-center backdrop-blur shadow-[0_0_10px_rgba(244,63,94,0.4)]">ACTION</button>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // -------------------------------------------------------------
+        // TONE.JS SYNTHESIZER SOUND ENGINE
+        // -------------------------------------------------------------
+        let synth, noiseSynth;
+        function initAudio() {
+            if (!synth) {
+                synth = new Tone.Synth().toDestination();
+                noiseSynth = new Tone.NoiseSynth({
+                    noise: { type: 'white' },
+                    envelope: { attack: 0.005, decay: 0.08, sustain: 0 }
+                }).toDestination();
+            }
+        }
+        function playSfx(type) {
+            try {
+                if (Tone.context.state !== 'running') Tone.start();
+                initAudio();
+                if (type === 'jump') synth.triggerAttackRelease('E5', '16n');
+                else if (type === 'shoot') synth.triggerAttackRelease('A4', '32n');
+                else if (type === 'hit') noiseSynth.triggerAttackRelease('16n');
+                else if (type === 'coin') synth.triggerAttackRelease('B5', '16n');
+            } catch (e) {}
+        }
+
+        // -------------------------------------------------------------
+        // ENGINE CORE & TOUCH ROUTER
+        // -------------------------------------------------------------
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        let currentGame = 'mario';
+        let godMode = false;
+        let score = 0;
+        let animationFrameId = null;
+
+        const keys = { up: false, down: false, left: false, right: false, a: false, b: false };
+
+        function resizeCanvas() {
+            canvas.width = canvas.clientWidth * window.devicePixelRatio;
+            canvas.height = canvas.clientHeight * window.devicePixelRatio;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        window.addEventListener('keydown', e => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = true;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = true;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = true;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = true;
+            if (e.code === 'Space' || e.code === 'KeyK') keys.a = true;
+            if (e.code === 'KeyJ' || e.code === 'ControlLeft') keys.b = true;
+        });
+
+        window.addEventListener('keyup', e => {
+            if (e.code === 'KeyW' || e.code === 'ArrowUp') keys.up = false;
+            if (e.code === 'KeyS' || e.code === 'ArrowDown') keys.down = false;
+            if (e.code === 'KeyA' || e.code === 'ArrowLeft') keys.left = false;
+            if (e.code === 'KeyD' || e.code === 'ArrowRight') keys.right = false;
+            if (e.code === 'Space' || e.code === 'KeyK') keys.a = false;
+            if (e.code === 'KeyJ' || e.code === 'ControlLeft') keys.b = false;
+        });
+
+        function bindTouch(id, keyName) {
+            const btn = document.getElementById(id);
+            const setKey = (val) => { keys[keyName] = val; btn.classList.toggle('pressed', val); };
+            btn.addEventListener('touchstart', (e) => { e.preventDefault(); setKey(true); });
+            btn.addEventListener('touchend', (e) => { e.preventDefault(); setKey(false); });
+            btn.addEventListener('mousedown', () => setKey(true));
+            btn.addEventListener('mouseup', () => setKey(false));
+        }
+        bindTouch('btnUp', 'up'); bindTouch('btnDown', 'down');
+        bindTouch('btnLeft', 'left'); bindTouch('btnRight', 'right');
+        bindTouch('btnA', 'a'); bindTouch('btnB', 'b');
+
+        const godBtn = document.getElementById('godToggle');
+        godBtn.addEventListener('click', () => {
+            godMode = !godMode;
+            godBtn.classList.toggle('bg-amber-400', godMode);
+            godBtn.classList.toggle('text-black', godMode);
+            document.getElementById('godStatus').innerText = godMode ? 'ACTIVE' : 'OFF';
+            document.getElementById('hudGod').innerText = godMode ? 'ACTIVE' : 'INACTIVE';
+            document.getElementById('hudGod').className = godMode ? 'text-amber-400 font-bold' : 'text-slate-400';
+        });
+
+        document.getElementById('gameSelect').addEventListener('change', (e) => {
+            currentGame = e.target.value;
+            initGame();
+        });
+
+        // -------------------------------------------------------------
+        // GAMES 1-5 ENGINE ENHANCEMENTS
+        // -------------------------------------------------------------
+        let mario = { x: 100, y: 300, vx: 0, vy: 0, grounded: false };
+        let enemies = [{ x: 500, y: 370, vx: -2, alive: true }];
+        function updateMario() {
+            if (keys.left) mario.vx = -6; else if (keys.right) mario.vx = 6; else mario.vx *= 0.8;
+            if (keys.a && (mario.grounded || godMode)) { mario.vy = -12; mario.grounded = false; playSfx('jump'); }
+            mario.vy += 0.6; mario.x += mario.vx; mario.y += mario.vy;
+            const floor = canvas.height - 100;
+            if (mario.y > floor) { mario.y = floor; mario.vy = 0; mario.grounded = true; }
+            enemies.forEach(e => {
+                if (!e.alive) return;
+                e.x += e.vx; if (e.x < 200 || e.x > 700) e.vx *= -1;
+                if (Math.abs(mario.x - e.x) < 25 && Math.abs(mario.y - e.y) < 25) {
+                    if (mario.vy > 0 || godMode) { e.alive = false; mario.vy = -8; score += 200; playSfx('hit'); }
+                }
+            });
+        }
+        function renderMario() {
+            ctx.fillStyle = '#38bdf8'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#ea580c'; ctx.fillRect(0, canvas.height - 70, canvas.width, 70);
+            ctx.fillStyle = godMode ? '#facc15' : '#ef4444'; ctx.fillRect(mario.x - 15, mario.y - 30, 30, 30);
+            enemies.forEach(e => { if (e.alive) { ctx.fillStyle = '#78350f'; ctx.fillRect(e.x - 15, e.y - 20, 30, 20); } });
+        }
+
+        let player3D = { x: 3, y: 3, dir: 0 };
+        const map = [[1,1,1,1,1,1,1,1],[1,0,0,0,0,0,0,1],[1,0,1,0,0,1,0,1],[1,0,1,0,0,0,0,1],[1,1,1,1,1,1,1,1]];
+        function updateDoom() {
+            if (keys.left) player3D.dir -= 0.05; if (keys.right) player3D.dir += 0.05;
+            const spd = godMode ? 0.1 : 0.05;
+            if (keys.up) { player3D.x += Math.cos(player3D.dir) * spd; player3D.y += Math.sin(player3D.dir) * spd; }
+            if (keys.b) { playSfx('shoot'); score += 10; }
+        }
+        function renderDoom() {
+            ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, canvas.width, canvas.height / 2);
+            ctx.fillStyle = '#334155'; ctx.fillRect(0, canvas.height / 2, canvas.width, canvas.height / 2);
+            const numRays = 80; const rayWidth = canvas.width / numRays;
+            for (let i = 0; i < numRays; i++) {
+                const rayAngle = (player3D.dir - Math.PI / 6) + (i / numRays) * (Math.PI / 3);
+                let distance = 0, hit = false;
+                while (!hit && distance < 10) {
+                    distance += 0.05;
+                    const cx = Math.floor(player3D.x + Math.cos(rayAngle) * distance);
+                    const cy = Math.floor(player3D.y + Math.sin(rayAngle) * distance);
+                    if (map[cy] && map[cy][cx] === 1) hit = true;
+                }
+                const h = canvas.height / (distance * Math.cos(rayAngle - player3D.dir));
+                ctx.fillStyle = godMode ? `hsl(${i * 5}, 100%, 50%)` : `rgb(${Math.max(0, 220 - distance * 25)}, 20, 20)`;
+                ctx.fillRect(i * rayWidth, (canvas.height - h) / 2, rayWidth, h);
+            }
+        }
+
+        let plane = { alt: 5000, speed: 250, heading: 0, pitch: 0, roll: 0 };
+        function updateFlight() {
+            if (keys.up) plane.pitch -= 0.5; if (keys.down) plane.pitch += 0.5;
+            if (keys.left) plane.roll -= 1.0; if (keys.right) plane.roll += 1.0;
+            if (godMode) plane.speed = 600;
+            plane.alt += plane.pitch * 2; plane.heading += plane.roll * 0.1;
+        }
+        function renderFlight() {
+            ctx.fillStyle = '#0284c7'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(canvas.width / 2, canvas.height / 2); ctx.rotate((plane.roll * Math.PI) / 180);
+            ctx.fillStyle = '#15803d'; ctx.fillRect(-canvas.width, plane.pitch * 5, canvas.width * 2, canvas.height); ctx.restore();
+            ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 2; ctx.strokeRect(canvas.width / 2 - 50, canvas.height / 2 - 50, 100, 100);
+        }
+
+        let ship = { x: 300, y: 300, angle: 0, vx: 0, vy: 0 }, bullets = [];
+        function updateAsteroids() {
+            if (keys.left) ship.angle -= 0.08; if (keys.right) ship.angle += 0.08;
+            if (keys.up) { ship.vx += Math.cos(ship.angle) * 0.2; ship.vy += Math.sin(ship.angle) * 0.2; }
+            if (keys.b) { bullets.push({ x: ship.x, y: ship.y, vx: Math.cos(ship.angle) * 8, vy: Math.sin(ship.angle) * 8 }); playSfx('shoot'); keys.b = false; }
+            ship.x += ship.vx; ship.y += ship.vy; bullets.forEach(b => { b.x += b.vx; b.y += b.vy; });
+        }
+        function renderAsteroids() {
+            ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.save(); ctx.translate(ship.x, ship.y); ctx.rotate(ship.angle);
+            ctx.strokeStyle = godMode ? '#facc15' : '#38bdf8'; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(15, 0); ctx.lineTo(-10, -10); ctx.lineTo(-5, 0); ctx.lineTo(-10, 10); ctx.closePath(); ctx.stroke(); ctx.restore();
+            ctx.fillStyle = '#f43f5e'; bullets.forEach(b => ctx.fillRect(b.x, b.y, 4, 4));
+        }
+
+        let car = { x: 0, speed: 0 };
+        function updateRacer() {
+            if (keys.left) car.x -= 0.05; if (keys.right) car.x += 0.05;
+            car.speed = godMode ? 200 : 100; score += Math.round(car.speed / 10);
+        }
+        function renderRacer() {
+            ctx.fillStyle = '#1e1b4b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#d946ef'; ctx.lineWidth = 3; ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, canvas.height / 2); ctx.lineTo(0, canvas.height);
+            ctx.moveTo(canvas.width / 2, canvas.height / 2); ctx.lineTo(canvas.width, canvas.height); ctx.stroke();
+            ctx.fillStyle = godMode ? '#facc15' : '#06b6d4'; ctx.fillRect(canvas.width / 2 + (car.x * 200) - 25, canvas.height - 100, 50, 30);
+        }
+
+        // -------------------------------------------------------------
+        // NEW ENGINE SUITE GAMES 6-10 (PRO ENHANCED)
+        // -------------------------------------------------------------
+        // GAME 6: PAC-MAN ENGINE
+        let pacman = { x: 200, y: 200, dir: 0 };
+        let dots = [{x: 100, y: 200}, {x: 300, y: 200}, {x: 200, y: 100}, {x: 200, y: 300}];
+        function updatePacman() {
+            const spd = godMode ? 6 : 3;
+            if (keys.left) pacman.x -= spd; if (keys.right) pacman.x += spd;
+            if (keys.up) pacman.y -= spd; if (keys.down) pacman.y += spd;
+            dots.forEach((d, i) => {
+                if (Math.abs(pacman.x - d.x) < 20 && Math.abs(pacman.y - d.y) < 20) {
+                    dots.splice(i, 1); score += 100; playSfx('coin');
+                }
+            });
+        }
+        function renderPacman() {
+            ctx.fillStyle = '#000'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = godMode ? '#00ffcc' : '#facc15';
+            ctx.beginPath(); ctx.arc(pacman.x, pacman.y, 18, 0.2 * Math.PI, 1.8 * Math.PI); ctx.lineTo(pacman.x, pacman.y); ctx.fill();
+            ctx.fillStyle = '#fff'; dots.forEach(d => { ctx.beginPath(); ctx.arc(d.x, d.y, 6, 0, Math.PI * 2); ctx.fill(); });
+        }
+
+        // GAME 7: SPACE INVADERS ENGINE
+        let invaderCannon = { x: 300 };
+        let invaders = [{x: 100, y: 100}, {x: 200, y: 100}, {x: 300, y: 100}, {x: 400, y: 100}];
+        let invShots = [];
+        function updateInvaders() {
+            if (keys.left) invaderCannon.x -= 5; if (keys.right) invaderCannon.x += 5;
+            if (keys.b || godMode) { invShots.push({ x: invaderCannon.x, y: canvas.height - 80 }); playSfx('shoot'); keys.b = false; }
+            invShots.forEach((s, idx) => {
+                s.y -= 8;
+                invaders.forEach((inv, i) => {
+                    if (Math.abs(s.x - inv.x) < 20 && Math.abs(s.y - inv.y) < 20) {
+                        invaders.splice(i, 1); invShots.splice(idx, 1); score += 150; playSfx('hit');
+                    }
+                });
+            });
+        }
+        function renderInvaders() {
+            ctx.fillStyle = '#050515'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = godMode ? '#facc15' : '#22c55e'; ctx.fillRect(invaderCannon.x - 20, canvas.height - 70, 40, 20);
+            ctx.fillStyle = '#ef4444'; invaders.forEach(inv => ctx.fillRect(inv.x - 15, inv.y, 30, 20));
+            ctx.fillStyle = '#38bdf8'; invShots.forEach(s => ctx.fillRect(s.x - 2, s.y, 4, 10));
+        }
+
+        // GAME 8: TETRIS NEON ENGINE
+        let tetrisY = 0;
+        function updateTetris() {
+            tetrisY += godMode ? 8 : 2;
+            if (tetrisY > canvas.height - 100) { tetrisY = 0; score += 300; playSfx('hit'); }
+        }
+        function renderTetris() {
+            ctx.fillStyle = '#09090b'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#27272a';
+            for (let i = 0; i < canvas.width; i += 30) ctx.strokeRect(i, 0, 30, canvas.height);
+            ctx.fillStyle = godMode ? '#facc15' : '#a855f7';
+            ctx.fillRect(canvas.width / 2 - 30, tetrisY, 60, 60);
+        }
+
+        // GAME 9: PONG CYBER MATRIX ENGINE
+        let paddleY = 200, ball = { x: 300, y: 200, vx: 5, vy: 5 };
+        function updatePong() {
+            if (keys.up) paddleY -= 7; if (keys.down) paddleY += 7;
+            ball.x += ball.vx * (godMode ? 1.5 : 1); ball.y += ball.vy;
+            if (ball.y < 0 || ball.y > canvas.height - 50) ball.vy *= -1;
+            if (ball.x < 50 && Math.abs(ball.y - paddleY) < 60) { ball.vx *= -1; score += 50; playSfx('hit'); }
+            if (ball.x > canvas.width - 50) ball.vx *= -1;
+            if (ball.x < 0) { ball.x = 300; ball.y = 200; }
+        }
+        function renderPong() {
+            ctx.fillStyle = '#020617'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = godMode ? '#facc15' : '#06b6d4'; ctx.fillRect(30, paddleY - 40, 15, 80);
+            ctx.fillStyle = '#f43f5e'; ctx.fillRect(ball.x, ball.y, 15, 15);
+        }
+
+        // GAME 10: FLAPPY CYBER-DRONE ENGINE
+        let drone = { y: 200, vy: 0 };
+        function updateFlappy() {
+            if (keys.a || keys.up || godMode) { drone.vy = -6; playSfx('jump'); keys.a = false; }
+            drone.vy += 0.4; drone.y += drone.vy;
+            score += 1;
+        }
+        function renderFlappy() {
+            ctx.fillStyle = '#0c4a6e'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = godMode ? '#facc15' : '#f43f5e';
+            ctx.beginPath(); ctx.arc(150, drone.y, 16, 0, Math.PI * 2); ctx.fill();
+        }
+
+        // -------------------------------------------------------------
+        // MAIN ROUTER GAME LOOP
+        // -------------------------------------------------------------
+        function initGame() {
+            if (animationFrameId) cancelAnimationFrame(animationFrameId);
+            gameLoop();
+        }
+
+        function gameLoop() {
+            document.getElementById('hudScore').innerText = score.toString().padStart(6, '0');
+
+            switch (currentGame) {
+                case 'mario': updateMario(); renderMario(); break;
+                case 'doom': updateDoom(); renderDoom(); break;
+                case 'flight': updateFlight(); renderFlight(); break;
+                case 'asteroids': updateAsteroids(); renderAsteroids(); break;
+                case 'racer': updateRacer(); renderRacer(); break;
+                case 'pacman': updatePacman(); renderPacman(); break;
+                case 'spaceinvaders': updateInvaders(); renderInvaders(); break;
+                case 'tetris': updateTetris(); renderTetris(); break;
+                case 'pong': updatePong(); renderPong(); break;
+                case 'flappy': updateFlappy(); renderFlappy(); break;
+            }
+
+            animationFrameId = requestAnimationFrame(gameLoop);
+        }
+
+        initGame();
+    </script>
+</body>
+</html>
