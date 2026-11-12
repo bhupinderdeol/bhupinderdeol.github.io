@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Earth to Mars: Beyond Three Civilisations</title>
+<style>
+:root{--cyan:#55eaff;--gold:#ffc96b;--violet:#c6a2ff;--ink:#07101e}
+*{box-sizing:border-box}
+body{margin:0;background:#030711;color:#eaf7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.shell{max-width:1180px;margin:auto;padding:14px}
+header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:5px 2px 12px}
+h1{font-size:clamp(20px,3vw,30px);margin:0;letter-spacing:.08em}
+.sub{color:#91a9c6;font-size:12px;letter-spacing:.16em;text-transform:uppercase}
+.hud{display:flex;gap:8px;flex-wrap:wrap}
+.stat{background:#0b1830;border:1px solid #203858;border-radius:10px;padding:8px 12px;min-width:95px}
+.stat small{display:block;color:#8da8c8;font-size:10px;text-transform:uppercase;letter-spacing:.12em}
+.stat b{font-size:15px;color:#fff}
+.game-wrap{position:relative;border:1px solid #24476a;border-radius:16px;overflow:hidden;background:#020612;box-shadow:0 16px 50px #0009}
+canvas{display:block;width:100%;height:auto;aspect-ratio:16/9;touch-action:none}
+.overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:18px;background:linear-gradient(120deg,#030a18dd,#06132dcc)}
+.panel{width:min(560px,100%);background:#09172bed;border:1px solid #3a668c;border-radius:16px;padding:22px;box-shadow:0 15px 50px #000b}
+.panel h2{margin:0 0 8px;font-size:clamp(20px,4vw,30px)}
+.panel p{color:#bfd0e4;line-height:1.55;margin:8px 0 16px}
+.eyebrow{font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--cyan)}
+button{border:1px solid #3b7298;border-radius:10px;background:#102a47;color:#effaff;padding:11px 15px;font-weight:700;cursor:pointer}
+button:hover{filter:brightness(1.25)}
+button.primary{background:linear-gradient(110deg,#087eaa,#1766b4);border-color:#54dff7}
+button.gold{background:linear-gradient(110deg,#80521b,#b17a24);border-color:#ffcf7b}
+button:disabled{opacity:.4;cursor:not-allowed}
+.action-row{display:flex;gap:9px;flex-wrap:wrap}
+#encounter{display:none;position:absolute;left:50%;bottom:14px;transform:translateX(-50%);width:min(700px,calc(100% - 24px));background:#061426ee;border:1px solid #65cde6;border-radius:13px;padding:13px 15px;box-shadow:0 8px 30px #000b}
+#encounter h3{margin:0 0 4px;font-size:15px;color:#fff}
+#encounter p{margin:4px 0 10px;font-size:13px;color:#c3d7e8;line-height:1.4}
+#alienLang{color:#b7a2ff;letter-spacing:.18em;font-size:12px}
+#toast{position:absolute;top:12px;left:50%;transform:translateX(-50%);background:#061426dd;border:1px solid #356486;padding:7px 12px;border-radius:20px;font-size:12px;color:#dffaff;pointer-events:none;white-space:nowrap}
+.below{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 2px}
+.controls{display:flex;gap:7px;flex-wrap:wrap}
+.controls span{font-size:12px;color:#9db4ce;background:#0a172a;border:1px solid #1b3554;border-radius:7px;padding:7px 9px}
+.mobile-controls{display:none;gap:7px;align-items:center;justify-content:center;padding:8px}
+.mobile-controls button{min-width:48px;min-height:44px;font-size:18px}
+footer{font-size:11px;color:#68819f;text-align:center;padding:12px}
+@media(max-width:650px){.shell{padding:8px}.stat{min-width:78px;padding:6px 8px}.stat b{font-size:13px}.mobile-controls{display:flex}.below{padding:8px 2px}#encounter{bottom:6px;padding:10px}.panel{padding:17px}}
+</style>
+</head>
+<body>
+<div class="shell">
+<header>
+ <div><div class="sub">A story-driven space adventure</div><h1>EARTH TO MARS <span style="color:#55eaff">/</span> THREE CIVILISATIONS</h1></div>
+ <div class="hud">
+  <div class="stat"><small>Mission</small><b id="mission">Launch prep</b></div>
+  <div class="stat"><small>Journey</small><b id="progress">0%</b></div>
+  <div class="stat"><small>Velocity</small><b id="velocity">1.0×</b></div>
+  <div class="stat"><small>Solar energy</small><b id="energy">100%</b></div>
+ </div>
+</header>
+<div class="game-wrap">
+ <canvas id="game" width="1280" height="720" aria-label="Space journey game viewport"></canvas>
+ <div id="toast">SYSTEM ONLINE · Awaiting launch</div>
+ <div class="overlay" id="startScreen">
+  <div class="panel">
+   <div class="eyebrow">Humanity's first great leap</div>
+   <h2>One rocket. Three encounters. A new world.</h2>
+   <p>A SpaceX-inspired human starship is travelling from Earth to Mars when three unknown civilisations intercept it. They do not attack. Each has a different biology, language, spacecraft and breakthrough technology. Work with them to make the journey five times faster and help humanity establish a home on Mars.</p>
+   <div class="action-row"><button class="primary" id="startBtn">LAUNCH MISSION</button><button id="storyBtn">MISSION BRIEFING</button></div>
+  </div>
+ </div>
+ <div id="encounter">
+  <div class="eyebrow" id="alienType">UNKNOWN CONTACT</div>
+  <h3 id="alienName">Incoming transmission</h3>
+  <div id="alienLang">✧ ⟡ ◈ ⋔ ⟡</div>
+  <p id="alienText"></p>
+  <div class="action-row"><button class="gold" id="acceptBtn">ACCEPT TECHNOLOGY</button><button id="translateBtn">TRANSLATE SIGNAL</button></div>
+ </div>
+</div>
+<div class="mobile-controls">
+ <button data-key="ArrowLeft">◀</button><button data-key="ArrowUp">▲</button><button data-key="ArrowDown">▼</button><button data-key="ArrowRight">▶</button><button data-key=" ">BOOST</button><button id="mobileInteract">E</button>
+</div>
+<div class="below">
+ <div class="controls"><span>← → steer</span><span>↑ ↓ adjust pitch</span><span>SPACE boost</span><span>E interact / accept</span></div>
+ <button id="instructionsBtn">INSTRUCTIONS</button>
+</div>
+<footer>Fictional science adventure · Original browser game · No external libraries or backend required</footer>
+</div>
+<script>
+(()=>{
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+const $=id=>document.getElementById(id);
+let W=1280,H=720,started=false,progress=0,velocity=1,energy=100,encounterIndex=0,activeEncounter=false,finished=false,translated=false;
+let shipX=640,shipY=485,keys={},stars=[],particles=[],time=0,toastTimer=0;
+const aliens=[
+ {name:'THE CRYSTALLINE COLLECTIVE',type:'ANDROMEDA · LIGHT-MATHEMATICS',lang:'⟡ ◈ ✧ ⟐ ◇ ⟡ ◈',translation:'“Your vessel is brave, but its energy is wasteful. We will give you a quantum solar lattice that gathers sunlight and converts it into clean propulsion power.”',short:'Quantum solar lattice',color:'#7deaff',shape:0},
+ {name:'THE LUMEN-TIDE',type:'PELAGIC WORLD · BIOLOGICAL INTELLIGENCE',lang:'≈ ∿ ∴ ≋ ⌁ ∿ ≈',translation:'“We speak through chemistry, vibration and living memory. Our bio-synthesiser will create high-density reaction fuel and self-repairing hull material from safe raw inputs.”',short:'Bio-synthetic fuel & living hull',color:'#8dffbd',shape:1},
+ {name:'THE VANTHRA',type:'GALACTIC CORE · GRAVITATIONAL ENGINEERS',lang:'⋔ ⊙ ⊗ ⌖ ⊙ ⋔ ⊗',translation:'“You have learned to cross space. Now learn to negotiate with it. Our inertial field and gravity-navigation system will shorten your voyage without crushing your crew.”',short:'Inertial field & gravity drive',color:'#ffca78',shape:2}
+];
+function initStars(){stars=Array.from({length:240},()=>({x:Math.random()*W,y:Math.random()*H,z:Math.random()*1.8+.2,r:Math.random()*1.8+.3}));}
+initStars();
+function rounded(x,y,w,h,r,fill,stroke){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.stroke()}}
+function drawEarth(){let g=ctx.createRadialGradient(230,530,25,230,530,250);g.addColorStop(0,'#58b9ed');g.addColorStop(.55,'#14538b');g.addColorStop(1,'#061329');ctx.fillStyle=g;ctx.beginPath();ctx.arc(230,530,240,0,Math.PI*2);ctx.fill();ctx.fillStyle='#5dba8a';ctx.globalAlpha=.65;ctx.beginPath();ctx.ellipse(170,470,85,36,-.5,0,Math.PI*2);ctx.ellipse(290,570,90,45,.6,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;ctx.strokeStyle='#79d8ff55';ctx.lineWidth=8;ctx.beginPath();ctx.arc(230,530,247,-2.8,-.5);ctx.stroke()}
+function drawMars(){let g=ctx.createRadialGradient(1030,210,10,1030,210,145);g.addColorStop(0,'#ffcf9a');g.addColorStop(.55,'#c45b3c');g.addColorStop(1,'#3e1721');ctx.fillStyle=g;ctx.beginPath();ctx.arc(1030,210,145,0,Math.PI*2);ctx.fill();ctx.fillStyle='#6e2b2c';ctx.globalAlpha=.5;for(let i=0;i<8;i++){ctx.beginPath();ctx.ellipse(970+i*19,165+i*13,24,8,.3,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;ctx.strokeStyle='#ff9e7155';ctx.lineWidth=7;ctx.beginPath();ctx.arc(1030,210,153,-2.7,-.6);ctx.stroke()}
+function drawRocket(){ctx.save();ctx.translate(shipX,shipY);ctx.rotate((shipX-640)*-.0006);
+ let flame=ctx.createLinearGradient(0,25,0,115);flame.addColorStop(0,'#fff');flame.addColorStop(.3,'#63eaff');flame.addColorStop(1,'#2465ff00');
+ ctx.fillStyle=flame;ctx.beginPath();ctx.moveTo(-13,26);ctx.lineTo(0,125+Math.random()*14);ctx.lineTo(13,26);ctx.fill();
+ ctx.fillStyle='#dce7ef';ctx.beginPath();ctx.moveTo(0,-62);ctx.quadraticCurveTo(28,-25,25,36);ctx.lineTo(15,50);ctx.lineTo(-15,50);ctx.lineTo(-25,36);ctx.quadraticCurveTo(-28,-25,0,-62);ctx.fill();
+ ctx.fillStyle='#7892a9';ctx.fillRect(-22,22,44,12);ctx.fillStyle='#3a536b';ctx.beginPath();ctx.moveTo(-20,27);ctx.lineTo(-43,55);ctx.lineTo(-18,48);ctx.fill();ctx.beginPath();ctx.moveTo(20,27);ctx.lineTo(43,55);ctx.lineTo(18,48);ctx.fill();
+ ctx.fillStyle='#163b58';ctx.beginPath();ctx.ellipse(0,-13,12,18,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#8deaff';ctx.lineWidth=3;ctx.stroke();
+ ctx.fillStyle='#fff';ctx.font='bold 9px Arial';ctx.textAlign='center';ctx.fillText('EARTH',0,18);ctx.restore()}
+function drawUfo(a,x,y,s=1){ctx.save();ctx.translate(x,y);ctx.scale(s,s);ctx.shadowBlur=24;ctx.shadowColor=a.color;
+ if(a.shape===0){ctx.fillStyle='#8cecff';ctx.beginPath();for(let i=0;i<8;i++){let an=i*Math.PI/4;ctx.lineTo(Math.cos(an)*45,Math.sin(an)*30)}ctx.closePath();ctx.fill();ctx.fillStyle='#eaffff';ctx.beginPath();ctx.arc(0,0,14,0,Math.PI*2);ctx.fill();ctx.strokeStyle=a.color;ctx.lineWidth=4;ctx.beginPath();ctx.arc(0,0,55,0,Math.PI*2);ctx.stroke()}
+ else if(a.shape===1){ctx.fillStyle='#48d89d';ctx.beginPath();ctx.ellipse(0,0,55,27,0,0,Math.PI*2);ctx.fill();for(let i=0;i<7;i++){ctx.strokeStyle='#a4ffcc';ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(-38+i*12,12);ctx.quadraticCurveTo(-55+i*15,48+Math.sin(time+i)*8,-65+i*18,63);ctx.stroke()}ctx.fillStyle='#d7fff0';ctx.beginPath();ctx.ellipse(0,-14,25,14,0,Math.PI,Math.PI*2);ctx.fill()}
+ else {ctx.fillStyle='#393b54';ctx.beginPath();ctx.moveTo(-62,20);ctx.lineTo(-35,-25);ctx.lineTo(0,-48);ctx.lineTo(35,-25);ctx.lineTo(62,20);ctx.lineTo(0,35);ctx.closePath();ctx.fill();ctx.strokeStyle='#ffca78';ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#ffca78';ctx.beginPath();ctx.arc(0,-5,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#ffca7888';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,72+Math.sin(time*2)*5,0,Math.PI*2);ctx.stroke()}
+ ctx.restore()}
+function draw(){ctx.clearRect(0,0,W,H);let bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#030817');bg.addColorStop(1,'#09172c');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+ stars.forEach(s=>{ctx.fillStyle=`rgba(210,235,255,${.25+s.z*.35})`;ctx.fillRect(s.x,s.y,s.r,s.r);if(started&&!finished){s.y+=s.z*(1+velocity*.35);if(s.y>H){s.y=0;s.x=Math.random()*W}}});
+ // distant nebulae
+ for(let i=0;i<3;i++){let g=ctx.createRadialGradient(380+i*280,170+i*70,5,380+i*280,170+i*70,210);g.addColorStop(0,['#203f7950','#49286b40','#164b5140'][i]);g.addColorStop(1,'#00000000');ctx.fillStyle=g;ctx.fillRect(100+i*250,0,400,400)}
+ if(progress<25&&!finished)drawEarth();else drawEarth();
+ drawMars();
+ ctx.strokeStyle='#5e9cc544';ctx.setLineDash([8,12]);ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(330,485);ctx.quadraticCurveTo(650,100,900,285);ctx.stroke();ctx.setLineDash([]);
+ if(activeEncounter){let a=aliens[encounterIndex];let ax=640+Math.sin(time*.5)*12,ay=245;drawUfo(a,ax,ay,1.5);ctx.strokeStyle=a.color+'99';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(ax,ay+60);ctx.lineTo(shipX,shipY-45);ctx.stroke();ctx.fillStyle=a.color+'19';ctx.beginPath();ctx.moveTo(ax-38,ay+30);ctx.lineTo(ax+38,ay+30);ctx.lineTo(shipX+42,shipY-10);ctx.lineTo(shipX-42,shipY-10);ctx.fill()}
+ if(!finished)drawRocket();
+ // cockpit-style overlay
+ rounded(18,18,245,78,10,'#061426bb','#31516e');ctx.fillStyle='#91b3d2';ctx.font='12px Arial';ctx.fillText('STARSHIP NAVIGATION',34,41);ctx.fillStyle='#eaf8ff';ctx.font='bold 17px Arial';ctx.fillText(activeEncounter?'ALIEN INTERCEPT':'MARS TRANSIT',34,67);ctx.fillStyle='#78dff5';ctx.font='11px Arial';ctx.fillText('SOL SYSTEM  /  HUMAN MISSION 01',34,84);
+ rounded(1010,20,250,65,10,'#061426bb','#31516e');ctx.fillStyle='#91b3d2';ctx.font='11px Arial';ctx.fillText('ALIEN TECHNOLOGY',1028,42);ctx.fillStyle='#fff';ctx.font='bold 16px Arial';ctx.fillText(`${encounterIndex} / 3 SYSTEMS INTEGRATED`,1028,66);
+ if(finished){ctx.fillStyle='#020612aa';ctx.fillRect(0,0,W,H);ctx.textAlign='center';ctx.fillStyle='#fff';ctx.font='bold 48px Arial';ctx.fillText('MARS: A NEW BEGINNING',640,300);ctx.fillStyle='#8deaff';ctx.font='22px Arial';ctx.fillText('Humanity has become a multi-planetary civilisation.',640,345);ctx.font='17px Arial';ctx.fillStyle='#d6e8f5';ctx.fillText('Three civilisations. One shared future.',640,385);ctx.textAlign='left'}
+}
+function updateHud(){$('progress').textContent=Math.min(100,Math.round(progress))+'%';$('velocity').textContent=velocity.toFixed(1)+'×';$('energy').textContent=Math.round(energy)+'%';$('mission').textContent=finished?'Mars colony':activeEncounter?`Encounter ${encounterIndex+1}/3`:'Mars transit'}
+function notify(s){$('toast').textContent=s;$('toast').style.opacity=1;toastTimer=180}
+function showEncounter(){activeEncounter=true;translated=false;let a=aliens[encounterIndex];$('alienType').textContent=a.type;$('alienName').textContent=a.name;$('alienLang').textContent=a.lang;$('alienText').textContent='A strange vessel surrounds the Starship in a harmless field. The crew receives an unfamiliar signal. Choose TRANSLATE SIGNAL to understand it, then accept the technology.';$('encounter').style.display='block';notify('NON-HOSTILE CONTACT · COMMUNICATION CHANNEL OPEN');updateHud()}
+function acceptTechnology(){if(!activeEncounter)return;let a=aliens[encounterIndex];activeEncounter=false;$('encounter').style.display='none';encounterIndex++;velocity=encounterIndex===1?1.8:encounterIndex===2?3.2:5;energy=Math.min(100,energy+20);progress+=encounterIndex===3?35:10;notify(`${a.short.toUpperCase()} INTEGRATED · VELOCITY ${velocity.toFixed(1)}×`);if(encounterIndex===3){progress=85;setTimeout(()=>{progress=100;finished=true;notify('MARS LANDING COMPLETE');updateHud()},5500)}updateHud()}
+function translate(){translated=true;$('alienText').textContent=aliens[encounterIndex].translation;$('translateBtn').textContent='SIGNAL TRANSLATED';notify('ALIEN LANGUAGE TRANSLATED')}
+function start(){if(started)return;started=true;$('startScreen').style.display='none';notify('LAUNCH CONFIRMED · LEAVING EARTH ORBIT');updateHud();setTimeout(()=>{if(started&&!activeEncounter&&encounterIndex===0)showEncounter()},9000)}
+function tick(){time+=.016;if(started&&!finished){if(keys.ArrowLeft||keys.a)shipX-=3.8;if(keys.ArrowRight||keys.d)shipX+=3.8;if(keys.ArrowUp||keys.w)shipY-=2.5;if(keys.ArrowDown||keys.s)shipY+=2.5;shipX=Math.max(470,Math.min(810,shipX));shipY=Math.max(390,Math.min(590,shipY));progress=Math.min(99,progress+.035);if(keys[' ']){energy=Math.max(0,energy-.09);progress=Math.min(99,progress+.018)}else energy=Math.min(100,energy+.012);if(!activeEncounter&&encounterIndex<3&&progress>=(encounterIndex+1)*20+4)showEncounter();if(encounterIndex===3&&!finished)progress=Math.min(99,progress+.004)}if(toastTimer>0){toastTimer--;if(toastTimer===0)$('toast').style.opacity=0}updateHud();draw();requestAnimationFrame(tick)}
+$('startBtn').addEventListener('click',start);
+$('storyBtn').addEventListener('click',()=>alert('MISSION BRIEFING\\n\\nA human Starship leaves Earth for Mars. Three non-hostile alien civilisations intercept the vessel. Each offers a different breakthrough: quantum solar energy, biological fuel and self-repair, then gravitational navigation. Combine all three to reach Mars at five times the original journey speed and establish a sustainable colony.'));
+$('instructionsBtn').addEventListener('click',()=>alert('HOW TO PLAY\\n\\nDESKTOP\\nArrow keys or WASD: steer the rocket.\\nSPACE: solar boost (uses a little energy).\\nE: accept alien technology when an encounter is open.\\n\\nMOBILE\\nUse the on-screen arrow buttons to steer, BOOST for extra thrust and E to accept technology.\\n\\nMISSION\\nTranslate each alien signal, accept all three upgrades, reach 5× velocity and complete the Mars landing. The aliens are allies — no combat is required.'));
+$('acceptBtn').addEventListener('click',acceptTechnology);$('translateBtn').addEventListener('click',translate);
+document.addEventListener('keydown',e=>{keys[e.key]=true;if(e.key===' '||e.key.startsWith('Arrow'))e.preventDefault();if((e.key==='e'||e.key==='E')&&activeEncounter)acceptTechnology()});
+document.addEventListener('keyup',e=>keys[e.key]=false);
+document.querySelectorAll('[data-key]').forEach(b=>{let k=b.dataset.key;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true});['pointerup','pointerleave','pointercancel'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
+$('mobileInteract').addEventListener('click',()=>{if(activeEncounter)acceptTechnology()});
+let last=0;canvas.addEventListener('pointermove',e=>{if(e.pointerType==='touch'&&started&&!activeEncounter){let r=canvas.getBoundingClientRect();shipX=470+(e.clientX-r.left)/r.width*340;shipY=390+(e.clientY-r.top)/r.height*200}});
+updateHud();tick();
+})();
+</script>
+</body>
+</html>
