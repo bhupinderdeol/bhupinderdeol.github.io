@@ -1,0 +1,1841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>RED MERIDIAN</title>
+<style>
+  :root{
+    --cyan:#5ff2ff; --amber:#ffb347; --violet:#a06bff; --green:#6bff9e;
+    --red:#ff6b4a; --ink:#cfe9ff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    user-select:none;-webkit-user-select:none;cursor:default;
+  }
+  canvas#c{position:fixed;inset:0;display:block;}
+
+  /* ---------- COCKPIT FRAME ---------- */
+  #cockpit{position:fixed;inset:0;pointer-events:none;z-index:5;
+    box-shadow:inset 0 0 260px 70px rgba(0,0,0,.92), inset 0 0 90px 0 rgba(30,90,160,.22);
+    transition:opacity .6s;}
+  #cockpit.hidden{opacity:0;}
+  .strut{position:absolute;background:linear-gradient(180deg,#0b1220,#05080f);}
+  #strutTop{top:0;left:0;right:0;height:14vh;
+    clip-path:polygon(0 0,100% 0,100% 42%,78% 100%,22% 100%,0 42%);
+    border-bottom:1px solid rgba(95,242,255,.16);}
+  #strutBot{bottom:0;left:0;right:0;height:16vh;
+    clip-path:polygon(0 58%,22% 0,78% 0,100% 58%,100% 100%,0 100%);
+    border-top:1px solid rgba(95,242,255,.16);}
+  #strutL{top:0;bottom:0;left:0;width:9vw;
+    clip-path:polygon(0 0,58% 20%,58% 80%,0 100%);}
+  #strutR{top:0;bottom:0;right:0;width:9vw;
+    clip-path:polygon(100% 0,42% 20%,42% 80%,100% 100%);}
+  #glare{position:absolute;inset:0;
+    background:linear-gradient(115deg,rgba(120,200,255,.10) 0%,rgba(120,200,255,0) 26%,
+      rgba(255,255,255,0) 68%,rgba(160,120,255,.07) 100%);
+    mix-blend-mode:screen;}
+  #scan{position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,rgba(0,0,0,0) 1px 3px);
+    opacity:.30;}
+
+  /* ---------- HUD ---------- */
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:12;display:flex;gap:8px;
+    padding:10px 14px;justify-content:center;flex-wrap:wrap;pointer-events:none;
+    font-variant-numeric:tabular-nums;transition:opacity .4s;}
+  #topbar.hidden{opacity:0;}
+  .chip{display:flex;align-items:center;gap:8px;padding:5px 13px;border-radius:99px;
+    background:rgba(8,18,32,.72);border:1px solid rgba(95,242,255,.28);
+    backdrop-filter:blur(6px);font-size:11px;letter-spacing:.16em;font-weight:700;}
+  .chip span{opacity:.55;font-weight:600;}
+  .chip b{color:var(--cyan);font-size:13px;letter-spacing:.06em;}
+  .chip.warn b{color:var(--amber);}
+  .chip.bad b{color:var(--red);}
+
+  #objective{position:fixed;left:50%;bottom:5.5vh;transform:translateX(-50%);z-index:12;
+    padding:9px 24px;border-radius:99px;background:rgba(8,18,32,.66);
+    border:1px solid rgba(95,242,255,.22);backdrop-filter:blur(6px);
+    font-size:12px;letter-spacing:.20em;font-weight:700;text-transform:uppercase;
+    color:var(--cyan);white-space:nowrap;pointer-events:none;
+    opacity:0;transition:opacity .35s,color .3s;max-width:92vw;overflow:hidden;text-overflow:ellipsis;}
+  #objective.show{opacity:1;}
+
+  /* ---------- STAGE (puzzles) ---------- */
+  #stage{position:fixed;inset:0;z-index:11;pointer-events:none;}
+  #stage > *{pointer-events:auto;}
+
+  /* reticle + tractor ring */
+  #reticle{position:absolute;left:50%;top:50%;width:46px;height:46px;
+    transform:translate(-50%,-50%);will-change:transform;}
+  #reticle::before,#reticle::after{content:'';position:absolute;background:var(--cyan);
+    box-shadow:0 0 12px var(--cyan);}
+  #reticle::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%);}
+  #reticle::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%);}
+  #reticle i{position:absolute;left:50%;top:50%;width:10px;height:10px;
+    border:2px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);
+    box-shadow:0 0 14px var(--cyan);}
+  #tractorRing{position:absolute;left:50%;top:50%;width:200px;height:200px;
+    margin:-100px 0 0 -100px;border-radius:50%;
+    border:2px dashed rgba(95,242,255,.85);
+    box-shadow:0 0 30px rgba(95,242,255,.35), inset 0 0 30px rgba(95,242,255,.16);
+    will-change:transform;transition:border-color .2s,box-shadow .2s;}
+  #tractorRing.locked{border-color:var(--green);
+    box-shadow:0 0 46px rgba(107,255,158,.55), inset 0 0 34px rgba(107,255,158,.25);}
+
+  /* kethri light nodes */
+  .node{position:absolute;left:50%;top:50%;width:76px;height:76px;border-radius:50%;
+    transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.03);transition:box-shadow .10s,background .10s,border-color .10s;
+    cursor:pointer;}
+  .node .lbl{position:absolute;left:50%;bottom:-26px;transform:translateX(-50%);
+    font-size:11px;letter-spacing:.2em;opacity:.45;font-weight:700;}
+  .node.on{background:var(--c);border-color:#fff;
+    box-shadow:0 0 46px 12px var(--c), inset 0 0 34px rgba(255,255,255,.85);}
+
+  /* rhythm meter */
+  #rhythm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    display:flex;gap:14px;align-items:center;justify-content:center;}
+  .beatdot{width:16px;height:16px;border-radius:50%;background:rgba(95,242,255,.18);
+    border:1px solid rgba(95,242,255,.5);transition:transform .08s,background .08s,box-shadow .08s;}
+  .beatdot.hit{background:var(--cyan);box-shadow:0 0 22px var(--cyan);transform:scale(1.5);}
+  #rhythmPulse{position:absolute;left:50%;top:50%;width:180px;height:180px;
+    margin:-90px 0 0 -90px;border-radius:50%;border:1px solid rgba(95,242,255,.35);
+    transition:transform .18s ease-out,opacity .18s;}
+
+  /* ---------- MODAL ---------- */
+  #modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%,rgba(6,14,26,.80),rgba(0,0,0,.94));
+    backdrop-filter:blur(4px);padding:20px;}
+  #modal.show{display:flex;}
+  #modalInner{width:min(760px,94vw);max-height:86vh;overflow-y:auto;padding:30px 32px;
+    border-radius:18px;background:linear-gradient(160deg,rgba(14,26,44,.97),rgba(6,12,22,.99));
+    border:1px solid rgba(95,242,255,.30);
+    box-shadow:0 0 90px rgba(95,242,255,.18), inset 0 1px 0 rgba(255,255,255,.08);
+    animation:pop .35s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  #modalInner::-webkit-scrollbar{width:8px}
+  #modalInner::-webkit-scrollbar-thumb{background:rgba(95,242,255,.3);border-radius:9px}
+  #modalInner h1{margin:0 0 6px;font-size:28px;letter-spacing:.10em;color:#fff;}
+  #modalInner h2{margin:22px 0 10px;font-size:13px;letter-spacing:.24em;color:var(--cyan);
+    text-transform:uppercase;font-weight:800;}
+  #modalInner p{margin:9px 0;line-height:1.65;font-size:14.5px;color:#b9d6ee;}
+  #modalInner .small{font-size:12.5px;color:#7fa4c4;line-height:1.6;}
+  #modalInner em{color:var(--amber);font-style:normal;font-weight:600;}
+  .kicker{font-size:11px;letter-spacing:.34em;color:var(--amber);text-transform:uppercase;
+    font-weight:800;margin-bottom:8px;}
+
+  .btn{display:inline-block;margin-top:20px;padding:13px 30px;border-radius:99px;cursor:pointer;
+    background:linear-gradient(120deg,rgba(95,242,255,.20),rgba(160,107,255,.20));
+    border:1px solid rgba(95,242,255,.6);color:#eafcff;font-weight:800;
+    letter-spacing:.20em;font-size:12.5px;text-transform:uppercase;
+    transition:transform .15s,box-shadow .2s,background .2s;}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(95,242,255,.5);
+    background:linear-gradient(120deg,rgba(95,242,255,.34),rgba(160,107,255,.34));}
+  .btn:active{transform:translateY(0);}
+
+  .cards{display:grid;gap:12px;grid-template-columns:1fr;margin-top:16px;}
+  @media(min-width:680px){.cards{grid-template-columns:1fr 1fr 1fr;}}
+  .card{padding:16px;border-radius:13px;cursor:pointer;transition:transform .15s,box-shadow .2s,border-color .2s;
+    background:rgba(95,242,255,.045);border:1px solid rgba(95,242,255,.20);}
+  .card:hover{transform:translateY(-3px);border-color:rgba(95,242,255,.65);
+    box-shadow:0 0 34px rgba(95,242,255,.22);background:rgba(95,242,255,.09);}
+  .card b{display:block;font-size:13.5px;letter-spacing:.10em;color:#eafcff;margin-bottom:7px;}
+  .card span{font-size:12.5px;line-height:1.55;color:#8fb3d1;}
+  .card .eff{margin-top:9px;font-size:11px;letter-spacing:.12em;color:var(--green);font-weight:700;}
+
+  /* equation steppers */
+  .eqrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+    margin:22px 0;font-size:20px;font-weight:700;color:#dff4ff;}
+  .species{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:11px;
+    background:rgba(95,242,255,.07);border:1px solid rgba(95,242,255,.25);}
+  .step{width:26px;height:26px;line-height:22px;text-align:center;border-radius:7px;cursor:pointer;
+    background:rgba(255,255,255,.07);border:1px solid rgba(95,242,255,.4);
+    color:var(--cyan);font-weight:900;font-size:15px;user-select:none;}
+  .step:hover{background:rgba(95,242,255,.25);}
+  .coef{min-width:22px;text-align:center;color:var(--amber);font-size:19px;}
+  .eqplus{opacity:.55;}
+  .eqarrow{color:var(--violet);font-size:24px;}
+
+  /* title */
+  #title{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:radial-gradient(circle at 50% 42%,rgba(8,18,34,.42),rgba(0,0,0,.90));
+    transition:opacity .8s;}
+  #title.gone{opacity:0;pointer-events:none;}
+  #title h1{margin:0;font-size:clamp(38px,8.5vw,84px);letter-spacing:.20em;font-weight:900;
+    color:#fff;text-shadow:0 0 46px rgba(95,242,255,.85),0 0 110px rgba(160,107,255,.55);}
+  #title .sub{margin-top:14px;font-size:clamp(11px,2.1vw,14px);letter-spacing:.42em;
+    color:var(--cyan);text-transform:uppercase;font-weight:700;}
+  #title .tag{margin-top:26px;max-width:520px;font-size:13.5px;line-height:1.75;color:#8fb3d1;}
+  #title .foot{margin-top:36px;font-size:10.5px;letter-spacing:.28em;color:#4d6b85;}
+
+  /* fade overlay */
+  #fade{position:fixed;inset:0;background:#000;z-index:25;opacity:0;pointer-events:none;
+    transition:opacity .5s;}
+
+  /* mission log */
+  .logitem{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(95,242,255,.10);
+    font-size:13px;line-height:1.55;}
+  .logitem .yr{min-width:74px;color:var(--amber);font-weight:800;letter-spacing:.06em;}
+  .logitem .ok{color:var(--green);}
+  .logitem .no{color:var(--red);}
+  .lesson{margin:9px 0;padding-left:16px;border-left:2px solid rgba(95,242,255,.35);
+    font-size:13px;line-height:1.65;color:#a8c8e2;}
+  .lesson b{color:#fff;}
+
+  .toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);
+    z-index:22;padding:14px 34px;border-radius:14px;pointer-events:none;
+    background:rgba(8,20,36,.92);border:1px solid rgba(95,242,255,.5);
+    color:#eafcff;font-weight:800;letter-spacing:.18em;font-size:13px;
+    opacity:0;transition:opacity .25s,transform .25s;}
+  .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="cockpit" class="hidden">
+  <div class="strut" id="strutTop"></div>
+  <div class="strut" id="strutBot"></div>
+  <div class="strut" id="strutL"></div>
+  <div class="strut" id="strutR"></div>
+  <div id="glare"></div>
+  <div id="scan"></div>
+</div>
+
+<div id="topbar" class="hidden">
+  <div class="chip"><span>SOL</span><b id="stDay">01</b></div>
+  <div class="chip" id="chipHull"><span>HULL</span><b id="stHull">100%</b></div>
+  <div class="chip"><span>TRUST</span><b id="stTrust">0</b></div>
+  <div class="chip"><span>THRUST</span><b id="stThrust">1.0x</b></div>
+</div>
+
+<div id="objective"></div>
+<div id="stage"></div>
+<div id="modal"><div id="modalInner"></div></div>
+<div class="toast" id="toast"></div>
+
+<div id="title">
+  <h1>RED MERIDIAN</h1>
+  <div class="sub">Earth &nbsp;→&nbsp; Mars</div>
+  <div class="tag">
+    Three strangers. Three languages. One crossing.
+    Your rocket is about to be taken — not by an enemy, but by three civilisations
+    who each know a different way to make it fly.
+  </div>
+  <div class="btn" id="startBtn">Begin the Crossing</div>
+  <div class="foot">A GAME BY BHUPINDER DEOL</div>
+</div>
+
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ═══════════════════════════════════════════════════════════════
+   RED MERIDIAN  —  single-file prototype
+   Chapters: Capture → Kethri → Vorasi → Oom'tal → Transit → Mars
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ---------------- tiny helpers ---------------- */
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const $=(id)=>document.getElementById(id);
+function makeCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ---------------- audio (WebAudio, zero assets) ---------------- */
+let actx=null;
+function audioOn(){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
+  if(actx.state==='suspended')actx.resume();
+}
+function tone(freq,dur=0.20,type='sine',vol=0.14,when=0){
+  if(!actx)return;
+  const t0=actx.currentTime+when;
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t0);
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol,t0+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g);g.connect(actx.destination);
+  o.start(t0);o.stop(t0+dur+0.06);
+}
+function thud(vol=0.30){
+  if(!actx)return;
+  const t0=actx.currentTime;
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type='sawtooth';o.frequency.setValueAtTime(140,t0);
+  o.frequency.exponentialRampToValueAtTime(40,t0+0.25);
+  g.gain.setValueAtTime(vol,t0);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+0.28);
+  o.connect(g);g.connect(actx.destination);
+  o.start(t0);o.stop(t0+0.3);
+}
+
+/* ---------------- global state ---------------- */
+const state={
+  day:1, hull:100, trust:0,
+  thrustMul:1.0,
+  gifts:{fusion:false, solar:false, fuel:false},
+  words:[],
+  colony:{power:2,water:2,fuel:2,food:2,knowledge:1},
+  specialists:0,
+  encountersDone:0
+};
+
+/* ---------------- DOM refs ---------------- */
+const el={
+  canvas:$('c'), cockpit:$('cockpit'), topbar:$('topbar'), objective:$('objective'),
+  stage:$('stage'), modal:$('modal'), modalInner:$('modalInner'),
+  title:$('title'), fade:$('fade'), toast:$('toast'),
+  stDay:$('stDay'), stHull:$('stHull'), stTrust:$('stTrust'), stThrust:$('stThrust'),
+  chipHull:$('chipHull')
+};
+
+/* ---------------- HUD ---------------- */
+function updateHUD(){
+  el.stDay.textContent=String(Math.floor(state.day)).padStart(2,'0');
+  const h=Math.max(0,Math.round(state.hull));
+  el.stHull.textContent=h+'%';
+  el.chipHull.classList.toggle('warn',h<=60&&h>30);
+  el.chipHull.classList.toggle('bad',h<=30);
+  el.stTrust.textContent=Math.round(state.trust);
+  el.stThrust.textContent=state.thrustMul.toFixed(1)+'x';
+}
+function setObjective(txt){
+  el.objective.textContent=txt||'';
+  el.objective.classList.toggle('show',!!txt);
+}
+let toastTimer=null;
+function toast(msg,ms=1500){
+  el.toast.textContent=msg;el.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.toast.classList.remove('show'),ms);
+}
+function fadeTo(black,ms=500){
+  el.fade.style.transitionDuration=ms+'ms';
+  el.fade.style.opacity=black?'1':'0';
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   THREE.JS WORLD
+   ═══════════════════════════════════════════════════════════════ */
+const renderer=new THREE.WebGLRenderer({canvas:el.canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+if(THREE.sRGBEncoding)renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.08;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.5,12000);
+camera.position.set(0,0,0);
+
+const starsGroup=new THREE.Group(); scene.add(starsGroup);
+const world=new THREE.Group(); scene.add(world);
+
+scene.add(new THREE.AmbientLight(0x4466aa,0.55));
+const sunLight=new THREE.DirectionalLight(0xfff0d0,1.35);
+sunLight.position.set(600,420,-1800);
+scene.add(sunLight);
+
+/* ---------- procedural textures ---------- */
+function glowTex(r,g,b,pow){
+  pow=pow||2.2;
+  const s=128,c=makeCanvas(s,s),ctx=c.getContext('2d');
+  const grd=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  for(let i=0;i<=12;i++){
+    const t=i/12;
+    grd.addColorStop(t,'rgba('+r+','+g+','+b+','+Math.pow(1-t,pow).toFixed(3)+')');
+  }
+  ctx.fillStyle=grd;ctx.fillRect(0,0,s,s);
+  const tex=new THREE.CanvasTexture(c);
+  return tex;
+}
+const TEX_GLOW_WHITE=glowTex(255,255,255,2.4);
+const TEX_GLOW_CYAN =glowTex(95,242,255,2.2);
+const TEX_GLOW_AMBER=glowTex(255,179,71,2.2);
+const TEX_GLOW_VIOLET=glowTex(160,107,255,2.2);
+const TEX_GLOW_SUN  =glowTex(255,246,220,2.8);
+
+function planetTex(cfg){
+  const W=1024,H=512,c=makeCanvas(W,H),ctx=c.getContext('2d');
+  const rnd=mulberry32(cfg.seed||1);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  cfg.base.forEach((col,i)=>g.addColorStop(i/(cfg.base.length-1),col));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+
+  const blobs=cfg.blobs||140;
+  for(let i=0;i<blobs;i++){
+    const x=rnd()*W, y=H*0.06+rnd()*H*0.88;
+    const rad=(cfg.blobMin||18)+rnd()*(cfg.blobMax||80);
+    const col=cfg.land[(rnd()*cfg.land.length)|0];
+    ctx.globalAlpha=0.10+rnd()*0.30;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    const pts=9;
+    for(let k=0;k<pts;k++){
+      const a=k/pts*Math.PI*2;
+      const rr=rad*(0.55+rnd()*0.75);
+      const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr*0.72;
+      if(k)ctx.lineTo(px,py);else ctx.moveTo(px,py);
+    }
+    ctx.closePath();ctx.fill();
+  }
+  ctx.globalAlpha=1;
+
+  if(cfg.ice){
+    let ig=ctx.createLinearGradient(0,0,0,H*0.14);
+    ig.addColorStop(0,'rgba(255,255,255,0.95)');ig.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=ig;ctx.fillRect(0,0,W,H*0.14);
+    ig=ctx.createLinearGradient(0,H,0,H*0.86);
+    ig.addColorStop(0,'rgba(255,255,255,0.95)');ig.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=ig;ctx.fillRect(0,H*0.86,W,H*0.14);
+  }
+  if(cfg.clouds){
+    for(let i=0;i<cfg.clouds;i++){
+      const x=rnd()*W,y=rnd()*H,rad=28+rnd()*120;
+      ctx.globalAlpha=0.04+rnd()*0.13;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath();ctx.ellipse(x,y,rad,rad*0.45,rnd()*3,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.anisotropy=4;
+  return t;
+}
+
+const EARTH_TEX=planetTex({
+  seed:7,
+  base:['#071a3a','#0f3f7a','#0a2a55'],
+  land:['#2f6b34','#3d7a3a','#5b6b3a','#8a7a4a','#245a2b'],
+  blobs:130, blobMin:14, blobMax:72, ice:true, clouds:70
+});
+const MARS_TEX=planetTex({
+  seed:42,
+  base:['#7a3116','#b0502a','#6b2a12'],
+  land:['#8a3a1a','#c46a3a','#4a1c0c','#a04a22'],
+  blobs:170, blobMin:16, blobMax:90, ice:true, clouds:14
+});
+
+/* ---------- starfield ---------- */
+(function buildStars(){
+  const N=4200;
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(N*3);
+  const col=new Float32Array(N*3);
+  const c=new THREE.Color();
+  for(let i=0;i<N;i++){
+    const r=1400+Math.random()*2600;
+    const th=Math.random()*Math.PI*2;
+    const ph=Math.acos(2*Math.random()-1);
+    pos[i*3]  =r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.cos(ph)*0.65;
+    pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+    const t=Math.random();
+    if(t<0.12)c.setHSL(0.58,0.85,0.78);
+    else if(t<0.24)c.setHSL(0.08,0.85,0.76);
+    else if(t<0.32)c.setHSL(0.76,0.80,0.80);
+    else c.setHSL(0.58,0.10,0.62+Math.random()*0.36);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const mat=new THREE.PointsMaterial({
+    size:7,map:TEX_GLOW_WHITE,vertexColors:true,transparent:true,
+    depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true
+  });
+  starsGroup.add(new THREE.Points(geo,mat));
+})();
+
+/* ---------- nebula backdrop (big inverted sphere w/ canvas texture) ---------- */
+function nebulaSphere(){
+  const W=1024,H=512,c=makeCanvas(W,H),ctx=c.getContext('2d');
+  ctx.fillStyle='#02030a';ctx.fillRect(0,0,W,H);
+  const rnd=mulberry32(99);
+  const palettes=[[60,40,160],[20,90,160],[120,30,140],[10,120,140],[70,20,90]];
+  for(let i=0;i<180;i++){
+    const x=rnd()*W,y=rnd()*H,rad=40+rnd()*260;
+    const p=palettes[(rnd()*palettes.length)|0];
+    const grd=ctx.createRadialGradient(x,y,0,x,y,rad);
+    const a=0.03+rnd()*0.10;
+    grd.addColorStop(0,'rgba('+p[0]+','+p[1]+','+p[2]+','+a+')');
+    grd.addColorStop(1,'rgba('+p[0]+','+p[1]+','+p[2]+',0)');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill();
+  }
+  for(let i=0;i<2600;i++){
+    const x=rnd()*W,y=rnd()*H;
+    ctx.fillStyle='rgba(255,255,255,'+(0.1+rnd()*0.6)+')';
+    ctx.fillRect(x,y,1.1,1.1);
+  }
+  const tex=new THREE.CanvasTexture(c);
+  const mat=new THREE.MeshBasicMaterial({map:tex,side:THREE.BackSide,depthWrite:false});
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(6000,32,24),mat);
+  return mesh;
+}
+const NEBULA=nebulaSphere(); scene.add(NEBULA);
+
+/* ---------- reusable builders ---------- */
+function makeSprite(tex,size,color){
+  const m=new THREE.SpriteMaterial({map:tex,blending:THREE.AdditiveBlending,
+    transparent:true,depthWrite:false,color:color||0xffffff});
+  const s=new THREE.Sprite(m); s.scale.set(size,size,1); return s;
+}
+function makeSun(){
+  const g=new THREE.Group();
+  const core=makeSprite(TEX_GLOW_SUN,900);
+  const halo=makeSprite(TEX_GLOW_AMBER,1900);
+  halo.material.opacity=0.45;
+  g.add(halo);g.add(core);
+  g.position.set(1100,760,-3000);
+  return g;
+}
+const SUN=makeSun(); scene.add(SUN);
+
+function makePlanet(tex,radius,atmoColor){
+  const g=new THREE.Group();
+  const mat=new THREE.MeshStandardMaterial({map:tex,roughness:0.95,metalness:0.02});
+  const mesh=new THREE.Mesh(new THREE.SphereGeometry(radius,64,48),mat);
+  g.add(mesh);
+  const atmo=makeSprite(atmoColor||TEX_GLOW_CYAN,radius*2.9);
+  atmo.material.opacity=0.42;
+  g.add(atmo);
+  g.userData.mesh=mesh;
+  return g;
+}
+
+/* =========================================================
+   PHASE MANAGER
+   ========================================================= */
+let currentPhase=null;
+let timers=[];
+function after(ms,fn){const t=setTimeout(fn,ms);timers.push(t);return t;}
+function clearTimers(){timers.forEach(clearTimeout);timers=[];}
+function setPhase(p){
+  if(currentPhase&&currentPhase.exit)currentPhase.exit();
+  clearTimers();
+  currentPhase=p;
+  el.stage.innerHTML='';
+  if(p.enter)p.enter();
+}
+function clearWorld(){
+  while(world.children.length){
+    const c=world.children.pop();
+    world.remove(c);
+    c.traverse&&c.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material){ if(Array.isArray(o.material))o.material.forEach(m=>m.dispose()); else o.material.dispose(); }
+    });
+  }
+}
+
+/* =========================================================
+   PHASE 0 — TITLE
+   ========================================================= */
+const titlePhase={
+  enter(){
+    el.cockpit.classList.add('hidden');
+    el.topbar.classList.add('hidden');
+    setObjective('');
+    clearWorld();
+    const earth=makePlanet(EARTH_TEX,150,TEX_GLOW_CYAN);
+    earth.position.set(-230,-130,-620);
+    world.add(earth);
+    this.earth=earth;
+    el.title.classList.remove('gone');
+  },
+  update(dt){
+    if(this.earth){
+      this.earth.userData.mesh.rotation.y+=dt*0.045;
+      this.earth.position.y=-130+Math.sin(performance.now()*0.0004)*6;
+    }
+  },
+  exit(){ el.title.classList.add('gone'); }
+};
+
+/* =========================================================
+   PHASE 1 — TRACTOR LOCK (Kethri capture)
+   ========================================================= */
+const capturePhase={
+  enter(){
+    el.cockpit.classList.remove('hidden');
+    el.topbar.classList.remove('hidden');
+    updateHUD();
+    setObjective('CHAPTER 1 — TRACTOR LOCK · KEEP THE RETICLE IN THE RING');
+
+    clearWorld();
+
+    /* Earth behind us */
+    const earth=makePlanet(EARTH_TEX,170,TEX_GLOW_CYAN);
+    earth.position.set(-330,-190,-980);
+    world.add(earth);
+    this.earth=earth;
+
+    /* The Kethri crystal ship */
+    const ship=new THREE.Group();
+    const shardMat=new THREE.MeshStandardMaterial({
+      color:0x9be8ff,emissive:0x2fd0ff,emissiveIntensity:1.6,
+      roughness:0.15,metalness:0.55,transparent:true,opacity:0.88
+    });
+    const core=new THREE.Mesh(new THREE.IcosahedronGeometry(14,0),shardMat);
+    ship.add(core);
+    for(let i=0;i<9;i++){
+      const s=new THREE.Mesh(new THREE.OctahedronGeometry(rand(3,9),0),shardMat.clone());
+      const a=Math.random()*Math.PI*2, r=rand(16,34);
+      s.position.set(Math.cos(a)*r,rand(-16,16),Math.sin(a)*r*0.7);
+      s.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+      ship.add(s);
+      s.userData.spin=new THREE.Vector3(rand(-.6,.6),rand(-.6,.6),rand(-.6,.6));
+      s.userData.orbit=a;
+    }
+    const glow=makeSprite(TEX_GLOW_CYAN,190);
+    ship.add(glow);
+    ship.position.set(0,0,-560);
+    world.add(ship);
+    this.ship=ship;
+
+    /* DOM reticle + ring */
+    const ret=document.createElement('div'); ret.id='reticle';
+    ret.innerHTML='<i></i>';
+    el.stage.appendChild(ret);
+    const ring=document.createElement('div'); ring.id='tractorRing';
+    el.stage.appendChild(ring);
+    this.ret=ret; this.ring=ring;
+
+    this.rx=innerWidth/2; this.ry=innerHeight/2;
+    this.tx=innerWidth/2; this.ty=innerHeight/2;
+    this.ringX=innerWidth/2; this.ringY=innerHeight/2;
+    this.ringR=Math.min(innerWidth,innerHeight)*0.115;
+    this.progress=0; this.t=0; this.done=false;
+
+    /* progress bar */
+    const bar=document.createElement('div');
+    bar.style.cssText='position:absolute;left:50%;bottom:14vh;transform:translateX(-50%);'+
+      'width:min(360px,70vw);height:8px;border-radius:99px;background:rgba(95,242,255,.13);'+
+      'border:1px solid rgba(95,242,255,.35);overflow:hidden;';
+    const fill=document.createElement('div');
+    fill.style.cssText='height:100%;width:0%;border-radius:99px;'+
+      'background:linear-gradient(90deg,#5ff2ff,#6bff9e);box-shadow:0 0 18px #5ff2ff;'+
+      'transition:width .1s linear;';
+    bar.appendChild(fill); el.stage.appendChild(bar);
+    this.barFill=fill;
+
+    this._mm=(e)=>{
+      const p=e.touches?e.touches[0]:e;
+      this.tx=p.clientX; this.ty=p.clientY;
+    };
+    addEventListener('mousemove',this._mm);
+    addEventListener('touchmove',this._mm,{passive:true});
+  },
+
+  update(dt){
+    if(this.done)return;
+    this.t+=dt;
+
+    const W=innerWidth,H=innerHeight,cx=W/2,cy=H/2;
+
+    /* keyboard steering adds to target */
+    const spd=620*dt;
+    if(keys['KeyA']||keys['ArrowLeft'])this.tx-=spd;
+    if(keys['KeyD']||keys['ArrowRight'])this.tx+=spd;
+    if(keys['KeyW']||keys['ArrowUp'])this.ty-=spd;
+    if(keys['KeyS']||keys['ArrowDown'])this.ty+=spd;
+
+    /* clamp target inside the window */
+    const maxR=Math.min(W,H)*0.34;
+    let dx=this.tx-cx, dy=this.ty-cy;
+    const d=Math.hypot(dx,dy);
+    if(d>maxR){dx=dx/d*maxR;dy=dy/d*maxR;this.tx=cx+dx;this.ty=cy+dy;}
+
+    /* smooth follow */
+    this.rx=lerp(this.rx,this.tx,clamp(dt*11,0,1));
+    this.ry=lerp(this.ry,this.ty,clamp(dt*11,0,1));
+
+    /* ring drifts on a lissajous path, faster as time goes on */
+    const speed=0.85+this.t*0.045;
+    const R=Math.min(W,H)*0.20;
+    this.ringX=cx+Math.cos(this.t*speed*0.9)*R+Math.cos(this.t*2.1)*R*0.28;
+    this.ringY=cy+Math.sin(this.t*speed*1.25)*R*0.68+Math.sin(this.t*2.9)*R*0.20;
+
+    const shrink=clamp(1-this.t*0.012,0.62,1);
+    this.ringR=Math.min(W,H)*0.115*shrink;
+
+    this.ret.style.transform='translate('+(this.rx-23)+'px,'+(this.ry-23)+'px)';
+    this.ring.style.transform='translate('+(this.ringX-cx)+'px,'+(this.ringY-cy)+'px) '+
+      'scale('+(this.ringR/(Math.min(W,H)*0.115))+')';
+
+    const inside=Math.hypot(this.rx-this.ringX,this.ry-this.ringY)<this.ringR*0.92;
+    this.ring.classList.toggle('locked',inside);
+
+    if(inside)this.progress+=dt/7.0;
+    else this.progress-=dt/4.5;
+    this.progress=clamp(this.progress,0,1);
+    this.barFill.style.width=(this.progress*100)+'%';
+
+    /* the ship closes in */
+    if(this.ship){
+      this.ship.position.z=lerp(-560,-150,this.progress);
+      this.ship.position.x=Math.sin(this.t*0.7)*22;
+      this.ship.position.y=Math.cos(this.t*0.9)*14;
+      this.ship.rotation.y+=dt*0.22;
+      this.ship.children.forEach(ch=>{
+        if(ch.userData.spin){
+          ch.rotation.x+=ch.userData.spin.x*dt;
+          ch.rotation.y+=ch.userData.spin.y*dt;
+          ch.rotation.z+=ch.userData.spin.z*dt;
+          ch.userData.orbit+=dt*0.4;
+        }
+      });
+    }
+    if(this.earth)this.earth.userData.mesh.rotation.y+=dt*0.05;
+
+    if(this.progress>=1){
+      this.done=true;
+      state.trust+=6; updateHUD();
+      tone(660,0.18,'sine',0.16);
+      tone(990,0.32,'sine',0.13,0.12);
+      setPhase(kethriPhase);
+    }
+  },
+
+  exit(){
+    removeEventListener('mousemove',this._mm);
+    removeEventListener('touchmove',this._mm);
+  }
+};
+
+/* =========================================================
+   PHASE 2 — KETHRI LANGUAGE (light & music)
+   ========================================================= */
+const KETHRI_COLORS=['#5ff2ff','#ffb347','#a06bff','#6bff9e'];
+const KETHRI_FREQS=[523.25,659.25,783.99,1046.50];
+const KETHRI_WORDS=[
+  {w:'LIGHT', t:'“We are seen. That is enough.”'},
+  {w:'BRIDGE',t:'“A bridge is not built. It is agreed.”'},
+  {w:'LISTEN',t:'“The quiet part of a signal is the message.”'},
+  {w:'SAIL',  t:'“Push against nothing and you will still move.”'}
+];
+
+const kethriPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); updateHUD();
+    setObjective('CHAPTER 2 — KETHRI · REPEAT THE LIGHT');
+    clearWorld();
+
+    const earth=makePlanet(EARTH_TEX,170,TEX_GLOW_CYAN);
+    earth.position.set(-360,-230,-1100);
+    world.add(earth); this.earth=earth;
+
+    /* big crystal ship close by */
+    const ship=new THREE.Group();
+    const mat=new THREE.MeshStandardMaterial({
+      color:0xbfefff,emissive:0x35d4ff,emissiveIntensity:2.0,
+      roughness:0.1,metalness:0.7,transparent:true,opacity:0.9
+    });
+    const core=new THREE.Mesh(new THREE.IcosahedronGeometry(30,0),mat);
+    ship.add(core);
+    for(let i=0;i<14;i++){
+      const s=new THREE.Mesh(new THREE.OctahedronGeometry(rand(5,16),0),mat.clone());
+      const a=Math.random()*Math.PI*2,r=rand(36,76);
+      s.position.set(Math.cos(a)*r,rand(-40,40),Math.sin(a)*r*0.6);
+      s.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+      s.userData.spin=new THREE.Vector3(rand(-.5,.5),rand(-.5,.5),rand(-.5,.5));
+      ship.add(s);
+    }
+    ship.add(makeSprite(TEX_GLOW_CYAN,340));
+    ship.position.set(0,0,-330);
+    world.add(ship);
+    this.ship=ship;
+
+    /* DOM nodes */
+    const R=Math.min(innerWidth,innerHeight)*0.185;
+    const pos=[[0,-R],[R,0],[0,R],[-R,0]];
+    this.nodes=[];
+    for(let i=0;i<4;i++){
+      const n=document.createElement('div');
+      n.className='node';
+      n.style.setProperty('--c',KETHRI_COLORS[i]);
+      n.style.transform='translate(-50%,-50%) translate('+pos[i][0]+'px,'+pos[i][1]+'px)';
+      n.innerHTML='<span class="lbl">'+(i+1)+'</span>';
+      n.addEventListener('click',()=>this.press(i));
+      el.stage.appendChild(n);
+      this.nodes.push(n);
+    }
+
+    /* transcript panel */
+    const tr=document.createElement('div');
+    tr.style.cssText='position:absolute;left:50%;bottom:13vh;transform:translateX(-50%);'+
+      'width:min(560px,86vw);text-align:center;font-size:13px;letter-spacing:.12em;'+
+      'color:#7fa4c4;line-height:1.7;min-height:52px;';
+    el.stage.appendChild(tr);
+    this.transcript=tr;
+
+    this.round=0;
+    this.seq=[];
+    this.input=[];
+    this.locked=true;
+
+    after(900,()=>this.startRound());
+  },
+
+  startRound(){
+    const lens=[3,4,4,5];
+    const len=lens[this.round];
+    this.seq=[];
+    for(let i=0;i<len;i++)this.seq.push((Math.random()*4)|0);
+    /* avoid identical neighbours (reads better) */
+    for(let i=1;i<this.seq.length;i++){
+      if(this.seq[i]===this.seq[i-1]&&Math.random()<0.85)this.seq[i]=(this.seq[i]+1+((Math.random()*3)|0))%4;
+    }
+    this.input=[];
+    this.locked=true;
+    this.transcript.textContent='KETHRI SPEAKS…';
+    setObjective('WATCH THE LIGHT');
+
+    let t=0;
+    this.seq.forEach((n,i)=>{
+      after(t,()=>this.flash(n,320));
+      t+=560;
+    });
+    after(t+380,()=>{
+      this.locked=false;
+      this.transcript.textContent='YOUR TURN — KEYS 1-4 OR TAP THE LIGHTS';
+      setObjective('REPEAT THE SEQUENCE');
+    });
+  },
+
+  flash(i,ms){
+    const n=this.nodes[i];
+    if(!n)return;
+    n.classList.add('on');
+    tone(KETHRI_FREQS[i],0.20,'sine',0.16);
+    setTimeout(()=>n.classList.remove('on'),ms||300);
+  },
+
+  press(i){
+    if(this.locked)return;
+    this.flash(i,260);
+    this.input.push(i);
+    const idx=this.input.length-1;
+    if(this.input[idx]!==this.seq[idx]){
+      this.locked=true;
+      this.transcript.textContent='MISUNDERSTOOD. LISTEN AGAIN.';
+      setObjective('TRY AGAIN');
+      tone(180,0.35,'sawtooth',0.10);
+      state.trust=Math.max(0,state.trust-1); updateHUD();
+      after(1100,()=>this.startRound());
+      return;
+    }
+    if(this.input.length===this.seq.length){
+      this.locked=true;
+      const w=KETHRI_WORDS[this.round];
+      this.transcript.innerHTML='<span style="color:#6bff9e">'+w.w+'</span> &nbsp;—&nbsp; '+
+        '<span style="color:#9fc4de">'+w.t+'</span>';
+      state.words.push(w.w);
+      state.trust+=10; updateHUD();
+      tone(880,0.16,'sine',0.16); tone(1320,0.3,'sine',0.12,0.1);
+      this.round++;
+      if(this.round>=KETHRI_WORDS.length){ after(1500,()=>this.complete()); }
+      else { after(1600,()=>this.startRound()); }
+    }
+  },
+
+  onKey(e){
+    const k=e.code;
+    let i=-1;
+    if(k==='Digit1'||k==='Numpad1')i=0;
+    if(k==='Digit2'||k==='Numpad2')i=1;
+    if(k==='Digit3'||k==='Numpad3')i=2;
+    if(k==='Digit4'||k==='Numpad4')i=3;
+    if(i>=0){ e.preventDefault(); this.press(i); }
+  },
+
+  complete(){
+    state.gifts.fusion=true;
+    state.thrustMul=2.0;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received</div>'+
+      '<h1>THE FUSION CATALYST</h1>'+
+      '<p>The Kethri fold a sliver of their own star into your engine bell. '+
+      'It is not fuel. It is <em>permission</em> — a catalyst that lets your plasma '+
+      'burn hotter than it has any right to.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 2.0x</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">LIGHT · BRIDGE · LISTEN · SAIL</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(vorasiPhase);
+    });
+  },
+
+  update(dt){
+    if(this.ship){
+      this.ship.rotation.y+=dt*0.18;
+      this.ship.rotation.x=Math.sin(performance.now()*0.0004)*0.10;
+      this.ship.children.forEach(ch=>{
+        if(ch.userData.spin){
+          ch.rotation.x+=ch.userData.spin.x*dt;
+          ch.rotation.y+=ch.userData.spin.y*dt;
+          ch.rotation.z+=ch.userData.spin.z*dt;
+        }
+      });
+    }
+    if(this.earth)this.earth.userData.mesh.rotation.y+=dt*0.05;
+  }
+};
+
+/* =========================================================
+   PHASE 3 — VORASI (rhythm / solar)
+   ========================================================= */
+const vorasiPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); updateHUD();
+    setObjective('CHAPTER 3 — VORASI · ANSWER IN RHYTHM');
+    clearWorld();
+
+    /* Dark nebula mood */
+    NEBULA.material.opacity=1;
+
+    /* Hive ship: many small drones around a dark core */
+    const hive=new THREE.Group();
+    const coreMat=new THREE.MeshStandardMaterial({
+      color:0x0a1420,emissive:0x0a3a4a,emissiveIntensity:0.9,
+      roughness:0.5,metalness:0.8
+    });
+    hive.add(new THREE.Mesh(new THREE.IcosahedronGeometry(26,1),coreMat));
+
+    const droneMat=new THREE.MeshStandardMaterial({
+      color:0x8ff8ff,emissive:0x22e0ff,emissiveIntensity:2.2,
+      roughness:0.3,metalness:0.6
+    });
+    this.drones=[];
+    for(let i=0;i<64;i++){
+      const d=new THREE.Mesh(new THREE.BoxGeometry(rand(1.6,4.2),rand(1.6,4.2),rand(3,9)),droneMat.clone());
+      const a=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), r=rand(45,120);
+      d.position.set(
+        r*Math.sin(ph)*Math.cos(a),
+        r*Math.cos(ph)*0.7,
+        r*Math.sin(ph)*Math.sin(a)
+      );
+      d.userData={a:a,ph:ph,r:r,sp:rand(0.10,0.40),spin:new THREE.Vector3(rand(-1,1),rand(-1,1),rand(-1,1))};
+      hive.add(d); this.drones.push(d);
+    }
+
+    /* solar collector sail */
+    const sailMat=new THREE.MeshStandardMaterial({
+      color:0x1a3a4a,emissive:0xffa030,emissiveIntensity:0.55,
+      roughness:0.25,metalness:0.9,side:THREE.DoubleSide,transparent:true,opacity:0.85
+    });
+    const sail=new THREE.Mesh(new THREE.CircleGeometry(90,48),sailMat);
+    sail.position.set(0,0,-40);
+    sail.rotation.x=0.4;
+    hive.add(sail);
+    this.sail=sail;
+
+    hive.add(makeSprite(TEX_GLOW_CYAN,420));
+    hive.position.set(0,0,-420);
+    world.add(hive);
+    this.hive=hive;
+
+    /* ---------- DOM rhythm UI ---------- */
+    const wrap=document.createElement('div'); wrap.id='rhythm';
+    const pulse=document.createElement('div'); pulse.id='rhythmPulse';
+    el.stage.appendChild(pulse);
+    el.stage.appendChild(wrap);
+    this.wrap=wrap; this.pulseEl=pulse;
+
+    const info=document.createElement('div');
+    info.style.cssText='position:absolute;left:50%;bottom:13vh;transform:translateX(-50%);'+
+      'width:min(560px,86vw);text-align:center;font-size:13px;letter-spacing:.12em;'+
+      'color:#7fa4c4;line-height:1.7;min-height:56px;';
+    el.stage.appendChild(info);
+    this.info=info;
+
+    this.beat=0.5;              /* 120 BPM */
+    this.patterns=[[0,1,2],[0,1,3,4],[0,1,2,4,5]];
+    this.round=0;
+    this.mode='idle';
+    this.taps=[];
+    this.t0=null;
+
+    after(900,()=>this.call());
+  },
+
+  call(){
+    this.mode='calling';
+    this.wrap.innerHTML='';
+    const beats=this.patterns[this.round];
+    this.info.textContent='VORASI CALL — LISTEN';
+    setObjective('LISTEN TO THE VORASI');
+
+    /* build the dots */
+    this.dots=[];
+    beats.forEach((b,i)=>{
+      const d=document.createElement('div');
+      d.className='beatdot';
+      this.wrap.appendChild(d);
+      this.dots.push(d);
+    });
+
+    beats.forEach((b,i)=>{
+      const ms=b*this.beat*1000;
+      after(ms,()=>{
+        if(this.dots[i])this.dots[i].classList.add('hit');
+        tone(480+ (i%3)*90, 0.075,'square',0.15);
+        this.pulse();
+        setTimeout(()=>{if(this.dots[i])this.dots[i].classList.remove('hit');},170);
+      });
+    });
+
+    const total=(beats[beats.length-1]+1.0)*this.beat*1000;
+    after(total,()=>{
+      this.mode='recording';
+      this.taps=[]; this.t0=null;
+      this.info.textContent='YOUR ANSWER — TAP SPACE';
+      setObjective('TAP SPACE IN THE SAME RHYTHM');
+      if(this.dots)this.dots.forEach(d=>d.classList.remove('hit'));
+    });
+  },
+
+  pulse(){
+    const p=this.pulseEl;
+    if(!p)return;
+    p.style.transform='scale(1.35)';
+    p.style.opacity='1';
+    setTimeout(()=>{p.style.transform='scale(1)';p.style.opacity='0.35';},140);
+  },
+
+  onKey(e){
+    if(e.code!=='Space')return;
+    e.preventDefault();
+    if(this.mode!=='recording')return;
+    const now=performance.now();
+    if(this.t0===null)this.t0=now;
+    this.taps.push((now-this.t0)/1000);
+    this.pulse();
+    tone(300,0.07,'square',0.15);
+    /* mark dots as feedback */
+    if(this.dots&&this.dots[this.taps.length-1]){
+      const d=this.dots[this.taps.length-1];
+      d.classList.add('hit');
+      setTimeout(()=>d.classList.remove('hit'),150);
+    }
+    clearTimeout(this._evalT);
+    this._evalT=setTimeout(()=>this.evaluate(),1500);
+  },
+
+  evaluate(){
+    if(this.mode!=='recording')return;
+    this.mode='idle';
+    const beats=this.patterns[this.round];
+    const want=beats.map(b=>(b-beats[0])*this.beat);
+    const got=this.taps;
+
+    let ok = got.length===want.length;
+    if(ok){
+      for(let i=0;i<want.length;i++){
+        if(Math.abs(got[i]-want[i])>0.26){ok=false;break;}
+      }
+    }
+
+    if(ok){
+      state.trust+=9; updateHUD();
+      tone(720,0.14,'sine',0.15);tone(1080,0.26,'sine',0.12,0.09);
+      this.info.innerHTML='<span style="color:#6bff9e">MATCHED.</span> THE HIVE OPENS A CHANNEL.';
+      this.round++;
+      if(this.round>=this.patterns.length){ after(1400,()=>this.complete()); }
+      else { after(1500,()=>this.call()); }
+    }else{
+      this.info.innerHTML='<span style="color:#ffb347">NOT QUITE.</span> THEY REPEAT THEMSELVES, PATIENTLY.';
+      tone(200,0.3,'sawtooth',0.09);
+      after(1500,()=>this.call());
+    }
+  },
+
+  complete(){
+    state.gifts.solar=true;
+    state.thrustMul=3.5;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received</div>'+
+      '<h1>THE SOLAR COLLECTOR</h1>'+
+      '<p>The Vorasi never learned to carry power. They learned to <em>borrow</em> it. '+
+      'Their collector unfolds like a flower that has been waiting its whole life for a sunrise, '+
+      'and it drinks light the way a lung drinks air.</p>'+
+      '<p>It does not add fuel. It removes the need for it.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 3.5x</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">RHYTHM · PATIENCE · BORROW · RETURN</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(oomtalPhase);
+    });
+  },
+
+  update(dt){
+    const t=performance.now()*0.001;
+    if(this.drones){
+      this.drones.forEach(d=>{
+        const u=d.userData;
+        u.a+=u.sp*dt*0.35;
+        d.position.set(
+          u.r*Math.sin(u.ph)*Math.cos(u.a),
+          u.r*Math.cos(u.ph)*0.7+Math.sin(t*0.6+u.ph*3)*3,
+          u.r*Math.sin(u.ph)*Math.sin(u.a)
+        );
+        d.rotation.x+=u.spin.x*dt;
+        d.rotation.y+=u.spin.y*dt;
+      });
+    }
+    if(this.sail)this.sail.rotation.z+=dt*0.06;
+    if(this.hive)this.hive.rotation.y+=dt*0.03;
+  }
+};
+
+/* =========================================================
+   PHASE 4 — OOM'TAL (fuel synthesis / balanced equations)
+   ========================================================= */
+const OOM_EQS=[
+  {
+    name:'WATER — for the air you will breathe',
+    left:[{f:'H₂',a:{H:2}},{f:'O₂',a:{O:2}}],
+    right:[{f:'H₂O',a:{H:2,O:1}}],
+    hint:'Two hydrogen molecules and one oxygen molecule make two waters.'
+  },
+  {
+    name:'SABATIER — the reaction Mars gives you for free',
+    left:[{f:'CO₂',a:{C:1,O:2}},{f:'H₂',a:{H:2}}],
+    right:[{f:'CH₄',a:{C:1,H:4}},{f:'H₂O',a:{H:2,O:1}}],
+    hint:'One carbon dioxide plus four hydrogens yields one methane and two waters.'
+  },
+  {
+    name:'COMBUSTION — the burn that takes you home',
+    left:[{f:'CH₄',a:{C:1,H:4}},{f:'O₂',a:{O:2}}],
+    right:[{f:'CO₂',a:{C:1,O:2}},{f:'H₂O',a:{H:2,O:1}}],
+    hint:'One methane plus two oxygens burns to one carbon dioxide and two waters.'
+  }
+];
+
+const oomtalPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); updateHUD();
+    setObjective("CHAPTER 4 — OOM'TAL · BALANCE WHAT YOU BURN");
+    clearWorld();
+
+    /* Silent, nearly invisible hull */
+    const g=new THREE.Group();
+    const mat=new THREE.MeshStandardMaterial({
+      color:0xdfeaff,emissive:0x224466,emissiveIntensity:0.7,
+      roughness:0.08,metalness:1.0,transparent:true,opacity:0.10,
+      side:THREE.DoubleSide,depthWrite:false
+    });
+    const knot=new THREE.Mesh(new THREE.TorusKnotGeometry(70,16,180,24,2,3),mat);
+    g.add(knot);
+    const wire=new THREE.Mesh(
+      new THREE.TorusKnotGeometry(70,16,80,12,2,3),
+      new THREE.MeshBasicMaterial({color:0x5ff2ff,wireframe:true,transparent:true,opacity:0.16})
+    );
+    g.add(wire);
+    g.add(makeSprite(TEX_GLOW_VIOLET,420));
+    g.position.set(0,0,-460);
+    world.add(g);
+    this.ship=g; this.knot=knot; this.wire=wire;
+
+    this.round=0;
+    this.coefs=[];
+    this.solved=false;
+    this.buildRound();
+  },
+
+  buildRound(){
+    const eq=OOM_EQS[this.round];
+    const nL=eq.left.length, nR=eq.right.length;
+    this.coefs=new Array(nL+nR).fill(0);
+
+    const panel=document.createElement('div');
+    panel.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'+
+      'width:min(660px,92vw);padding:22px 20px;border-radius:16px;'+
+      'background:rgba(6,14,26,.86);border:1px solid rgba(160,107,255,.35);'+
+      'box-shadow:0 0 60px rgba(160,107,255,.20);backdrop-filter:blur(6px);text-align:center;';
+    panel.innerHTML=
+      '<div style="font-size:11px;letter-spacing:.30em;color:#a06bff;font-weight:800;'+
+      'text-transform:uppercase;margin-bottom:6px">OOM\u2019TAL TEACHES · '+(this.round+1)+' / 3</div>'+
+      '<div style="font-size:13px;color:#9fc4de;letter-spacing:.08em;margin-bottom:4px">'+eq.name+'</div>'+
+      '<div class="eqrow" id="eqRow"></div>'+
+      '<div id="eqStatus" style="font-size:12.5px;letter-spacing:.14em;color:#7fa4c4;min-height:22px"></div>'+
+      '<div style="margin-top:14px;font-size:11.5px;color:#5f7f9c;letter-spacing:.06em">'+
+      'Adjust the coefficients until every element is conserved.</div>';
+    el.stage.appendChild(panel);
+    this.panel=panel;
+
+    const row=panel.querySelector('#eqRow');
+    const buildSpecies=(sp,side,idx)=>{
+      const wrap=document.createElement('div');
+      wrap.className='species';
+      const minus=document.createElement('div'); minus.className='step'; minus.textContent='−';
+      const val=document.createElement('div'); val.className='coef'; val.textContent='0';
+      const plus=document.createElement('div'); plus.className='step'; plus.textContent='+';
+      const f=document.createElement('div'); f.textContent=sp.f;
+      wrap.appendChild(minus);wrap.appendChild(val);wrap.appendChild(plus);wrap.appendChild(f);
+      const key=idx;
+      minus.addEventListener('click',()=>{ if(this.coefs[key]>0){this.coefs[key]--;val.textContent=this.coefs[key];this.check();tone(260,0.06,'square',0.10);} });
+      plus.addEventListener('click',()=>{ if(this.coefs[key]<9){this.coefs[key]++;val.textContent=this.coefs[key];this.check();tone(340,0.06,'square',0.10);} });
+      val.dataset.key=key;
+      return wrap;
+    };
+
+    let k=0;
+    eq.left.forEach(sp=>{ row.appendChild(buildSpecies(sp,'L',k++)); 
+      if(k<eq.left.length){const p=document.createElement('div');p.className='eqplus';p.textContent='+';row.appendChild(p);} });
+    const arrow=document.createElement('div'); arrow.className='eqarrow'; arrow.textContent='⟶';
+    row.appendChild(arrow);
+    let kk=eq.left.length;
+    eq.right.forEach((sp,i)=>{ row.appendChild(buildSpecies(sp,'R',kk++)); 
+      if(i<eq.right.length-1){const p=document.createElement('div');p.className='eqplus';p.textContent='+';row.appendChild(p);} });
+
+    this.vals=Array.from(panel.querySelectorAll('.coef'));
+    this.check();
+  },
+
+  check(){
+    const eq=OOM_EQS[this.round];
+    const totals={};
+    const add=(sp,c)=>{ for(const el in sp.a){ totals[el]=(totals[el]||0)+sp.a[el]*c; } };
+    const sub=(sp,c)=>{ for(const el in sp.a){ totals[el]=(totals[el]||0)-sp.a[el]*c; } };
+    eq.left.forEach((sp,i)=>add(sp,this.coefs[i]));
+    eq.right.forEach((sp,i)=>sub(sp,this.coefs[eq.left.length+i]));
+
+    let balanced=true, anyZero=false;
+    for(const el in totals){ if(totals[el]!==0)balanced=false; }
+
+    /* require all coefficients >= 1 so the equation is meaningful */
+    for(let i=0;i<this.coefs.length;i++) if(this.coefs[i]<1) anyZero=true;
+    balanced = balanced && !anyZero;
+
+    const st=this.panel.querySelector('#eqStatus');
+    if(balanced){
+      st.innerHTML='<span style="color:#6bff9e">✓ CONSERVED — THE GLYPHS RESOLVE</span>';
+      if(!this.solved){
+        this.solved=true;
+        tone(700,0.16,'sine',0.16);tone(1050,0.30,'sine',0.12,0.10);
+        after(1150,()=>this.nextRound());
+      }
+    }else{
+      this.solved=false;
+      let diff=0;
+      for(const el in totals)diff+=Math.abs(totals[el]);
+      st.innerHTML='<span style="opacity:.6">unbalanced · '+diff+' atom'+(diff===1?'':'s')+' adrift</span>';
+    }
+  },
+
+  nextRound(){
+    this.round++;
+    this.panel.remove();
+    if(this.round>=OOM_EQS.length){ this.complete(); return; }
+    this.buildRound();
+  },
+
+  complete(){
+    state.gifts.fuel=true;
+    state.thrustMul=5.0;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received</div>'+
+      '<h1>THE FUEL SYNTHESIS MATRIX</h1>'+
+      '<p>The Oom\u2019tal do not mine. They do not drill. They <em>rearrange</em>. '+
+      'Give them ice and an atmosphere and they will hand you propellant, oxygen and drinking water '+
+      'from the same pile of dust.</p>'+
+      '<p>It works on Mars. It works on the Moon. It works anywhere there is something to take apart.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 5.0x</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">BALANCE · PATTERN · EXCHANGE · RETURN</p>'+
+      '<div class="btn" id="mNext">Begin the Crossing</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(transitPhase);
+    });
+  },
+
+  update(dt){
+    const t=performance.now()*0.001;
+    if(this.knot){
+      this.knot.rotation.x+=dt*0.16;
+      this.knot.rotation.y+=dt*0.22;
+      this.wire.rotation.x+=dt*0.16;
+      this.wire.rotation.y+=dt*0.22;
+      this.ship.position.y=Math.sin(t*0.5)*10;
+    }
+  }
+};
+
+/* =========================================================
+   PHASE 5 — THE CROSSING (transit, debris, Mars approach)
+   ========================================================= */
+const transitPhase={
+  enter(){
+    el.topbar.classList.remove('hidden');
+    state.hull=100; state.day=1; updateHUD();
+    setObjective('THE CROSSING · THROTTLE Q / E · STEER W A S D');
+    clearWorld();
+
+    /* Mars ahead */
+    const mars=makePlanet(MARS_TEX,260,TEX_GLOW_AMBER);
+    mars.position.set(0,-30,-3200);
+    world.add(mars);
+    this.mars=mars;
+
+    /* debris pool */
+    this.debris=[];
+    const dMat=new THREE.MeshStandardMaterial({
+      color:0x8a8f96,roughness:0.9,metalness:0.3,
+      emissive:0x221100,emissiveIntensity:1.0
+    });
+    for(let i=0;i<44;i++){
+      const geo=[
+        new THREE.DodecahedronGeometry(rand(2.2,5.5),0),
+        new THREE.BoxGeometry(rand(3,8),rand(2,6),rand(3,9)),
+        new THREE.IcosahedronGeometry(rand(2,5),0)
+      ][(Math.random()*3)|0];
+      const m=new THREE.Mesh(geo,dMat.clone());
+      m.visible=false;
+      m.userData={active:false,vx:0,vy:0,vz:0,r:3};
+      world.add(m);
+      this.debris.push(m);
+    }
+
+    this.throttle=0.35;
+    this.progress=0;
+    this.camX=0; this.camY=0;
+    this.vx=0; this.vy=0;
+    this.spawnT=0;
+    this.dead=false;
+    this.hitFlash=0;
+
+    this._hullBar=null;
+  },
+
+  spawnDebris(){
+    const d=this.debris.find(x=>!x.userData.active);
+    if(!d)return;
+    d.visible=true;
+    d.userData.active=true;
+    d.position.set(rand(-34,34),rand(-24,24),-620);
+    const spd=110+this.throttle*230;
+    d.userData.vz=spd;
+    d.userData.vx=rand(-8,8);
+    d.userData.vy=rand(-8,8);
+    d.userData.r=d.geometry.boundingSphere?d.geometry.boundingSphere.radius:4;
+    if(!d.geometry.boundingSphere)d.geometry.computeBoundingSphere();
+    d.userData.r=d.geometry.boundingSphere.radius;
+    d.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+  },
+
+  update(dt){
+    if(this.dead)return;
+
+    const t=performance.now()*0.001;
+
+    /* ---- throttle ---- */
+    if(keys['KeyQ']||keys['ArrowDown'])this.throttle-=dt*0.75;
+    if(keys['KeyE']||keys['ArrowUp'])  this.throttle+=dt*0.75;
+    this.throttle=clamp(this.throttle,0,1);
+
+    /* ---- steering ---- */
+    const acc=42;
+    if(keys['KeyA'])this.vx-=acc*dt;
+    if(keys['KeyD'])this.vx+=acc*dt;
+    if(keys['KeyW'])this.vy+=acc*dt;
+    if(keys['KeyS'])this.vy-=acc*dt;
+    this.vx*=Math.pow(0.02,dt);
+    this.vy*=Math.pow(0.02,dt);
+    this.camX=clamp(this.camX+this.vx*dt,-26,26);
+    this.camY=clamp(this.camY+this.vy*dt,-18,18);
+    camera.position.x=lerp(camera.position.x,this.camX,clamp(dt*10,0,1));
+    camera.position.y=lerp(camera.position.y,this.camY,clamp(dt*10,0,1));
+    camera.rotation.z=lerp(camera.rotation.z,-this.vx*0.004,clamp(dt*5,0,1));
+
+    /* ---- progress ---- */
+    const rate=(0.10+this.throttle*0.90)*(state.thrustMul/5.0)*0.0286;
+    this.progress=clamp(this.progress+dt*rate,0,1);
+
+    /* ---- day / supplies ---- */
+    state.day+=dt*1.0;
+    updateHUD();
+
+    /* ---- Mars approach ---- */
+    if(this.mars){
+      const p=this.progress;
+      this.mars.position.z=lerp(-3400,-760,p);
+      this.mars.position.x=Math.sin(p*2.4)*90*(1-p);
+      this.mars.position.y=lerp(-30,-70,p);
+      this.mars.userData.mesh.rotation.y+=dt*0.05;
+      const sc=lerp(0.85,1.25,p);
+      this.mars.scale.setScalar(sc);
+    }
+
+    /* ---- debris ---- */
+    this.spawnT-=dt;
+    const interval=Math.max(0.22,1.45-this.throttle*0.85);
+    if(this.spawnT<=0){ this.spawnT=interval; this.spawnDebris(); }
+
+    for(const d of this.debris){
+      if(!d.userData.active)continue;
+      d.position.z+=d.userData.vz*dt;
+      d.position.x+=d.userData.vx*dt;
+      d.position.y+=d.userData.vy*dt;
+      d.rotation.x+=dt*1.2;
+      d.rotation.y+=dt*0.9;
+
+      if(Math.abs(d.position.z)<16){
+        const dx=d.position.x-camera.position.x;
+        const dy=d.position.y-camera.position.y;
+        if(Math.hypot(dx,dy)<d.userData.r+4.5){
+          /* hit */
+          d.visible=false; d.userData.active=false;
+          state.hull-=9;
+          this.hitFlash=1;
+          thud(0.34);
+          updateHUD();
+          if(state.hull<=0){ this.fail(); return; }
+        }
+      }
+      if(d.position.z>60){
+        d.visible=false; d.userData.active=false;
+      }
+    }
+
+    /* hit flash */
+    if(this.hitFlash>0){
+      this.hitFlash=Math.max(0,this.hitFlash-dt*2.2);
+      el.cockpit.style.boxShadow=
+        'inset 0 0 260px 70px rgba(0,0,0,.92), inset 0 0 '+(120*this.hitFlash)+'px '+
+        (40*this.hitFlash)+'px rgba(255,80,50,'+(0.55*this.hitFlash)+')';
+    }
+
+    /* ---- readouts ---- */
+    setObjective(
+      'CROSSING · '+
+      Math.round(this.progress*100)+'% TO MARS · '+
+      'THROTTLE '+Math.round(this.throttle*100)+'% · '+
+      (state.day>52?'SUPPLIES LOW':'SUPPLIES OK')
+    );
+
+    /* ---- win / lose ---- */
+    if(this.progress>=1){ this.arrive(); return; }
+    if(state.day>60){ this.timeout(); return; }
+  },
+
+  fail(){
+    this.dead=true;
+    el.modalInner.innerHTML=
+      '<div class="kicker" style="color:#ff6b4a">Hull Breach</div>'+
+      '<h1>THE MERIDIAN IS LOST</h1>'+
+      '<p>The debris field did what debris fields do. Your crew is safe in the '+
+      'forward capsule, but the crossing is over.</p>'+
+      '<p class="small">Tip: keep the throttle around 55–70% in the dense belt, and '+
+      'use W A S D to drift out of the lane of anything big and bright.</p>'+
+      '<div class="btn" id="mRetry">Try the Crossing Again</div>';
+    el.modal.classList.add('show');
+    $('mRetry').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(transitPhase);
+    });
+  },
+
+  timeout(){
+    this.dead=true;
+    el.modalInner.innerHTML=
+      '<div class="kicker" style="color:#ff6b4a">Supplies Exhausted</div>'+
+      '<h1>TOO SLOW</h1>'+
+      '<p>Sol 61. The water reclaimer has been running on fumes for a week. '+
+      'Mars is still a bright dot ahead of you, and it will stay that way.</p>'+
+      '<p class="small">Tip: you do not have to cross at full throttle, but you cannot crawl. '+
+      'Find a balance you can survive.</p>'+
+      '<div class="btn" id="mRetry">Try the Crossing Again</div>';
+    el.modal.classList.add('show');
+    $('mRetry').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(transitPhase);
+    });
+  },
+
+  arrive(){
+    this.dead=true;
+    camera.position.set(0,0,0);camera.rotation.z=0;
+    tone(523,0.3,'sine',0.14);tone(659,0.3,'sine',0.12,0.15);
+    tone(784,0.5,'sine',0.12,0.30);
+    state.trust+=8; updateHUD();
+    after(700,()=>setPhase(marsPhase));
+  }
+};
+
+/* =========================================================
+   PHASE 6 — MARS ORBIT (mission log + lessons)
+   ========================================================= */
+const MARS_LOG=[
+  {yr:'1971',txt:'Mars 2 & Mars 3 (USSR) — first human-made objects on Mars. Mars 3 returned 20 seconds of data before falling silent.',ok:false},
+  {yr:'1976',txt:'Viking 1 & 2 (NASA) — first successful landings; first life-detection experiments, results still debated.',ok:true},
+  {yr:'1997',txt:'Mars Pathfinder & Sojourner (NASA) — first rover on Mars, airbag landing worked first time.',ok:true},
+  {yr:'1999',txt:'Mars Climate Orbiter (NASA) — lost on arrival. Root cause: metric/imperial unit mismatch between two teams.',ok:false},
+  {yr:'2003',txt:'Beagle 2 (ESA) — reached Mars but did not fully deploy; found intact on the surface in 2015.',ok:false},
+  {yr:'2004',txt:'Mars Express (ESA) & MER rovers Spirit and Opportunity (NASA) — orbiter and twin rovers arrive within weeks.',ok:true},
+  {yr:'2012',txt:'Curiosity (NASA) — sky-crane landing, the most complex entry sequence ever flown.',ok:true},
+  {yr:'2014',txt:'Mangalyaan / Mars Orbiter Mission (ISRO) — India reaches Mars orbit on its first attempt, at record low cost.',ok:true},
+  {yr:'2016',txt:'ExoMars Trace Gas Orbiter (ESA/Roscosmos) — orbiter succeeds; Schiaparelli lander is lost during descent.',ok:false},
+  {yr:'2021',txt:'Tianwen-1 & Zhurong (CNSA) — China lands and drives on Mars on its first attempt.',ok:true},
+  {yr:'2021',txt:'Mars 2020 / Perseverance & Ingenuity (NASA) — first powered flight on another planet.',ok:true},
+  {yr:'2022',txt:'JAXA & ESA — Martian Moons eXploration (MMX) enters development for a Phobos sample return.',ok:true}
+];
+
+const MARS_LESSONS=[
+  {t:'Units kill missions', d:'Mars Climate Orbiter was lost because one team used newton-seconds and another used pound-seconds. On the Meridian, every system speaks SI. Forever.'},
+  {t:'Arrival is harder than the journey', d:'Mars 3, Beagle 2 and Schiaparelli all failed at the last seven minutes. Budget your margin for entry, descent and landing, not for cruise.'},
+  {t:'Redundancy beats brilliance', d:'Viking carried two identical landers. ExoMars lost one lander and kept the orbiter. Design so a single failure is survivable.'},
+  {t:'Cheap does not mean careless', d:'Mangalyaan reached Mars on a first attempt at a fraction of typical cost by being ruthlessly disciplined about scope.'},
+  {t:'Test the whole chain, not the parts', d:'Beagle 2\u2019s subsystems were fine; the deployment sequence was not. Integration testing is where missions live or die.'}
+];
+
+const marsPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); updateHUD();
+    setObjective('MARS ORBIT · THE MERIDIAN HAS ARRIVED');
+    clearWorld();
+
+    const mars=makePlanet(MARS_TEX,260,TEX_GLOW_AMBER);
+    mars.position.set(0,-90,-760);
+    world.add(mars);
+    this.mars=mars;
+
+    const moon=new THREE.Mesh(
+      new THREE.IcosahedronGeometry(14,1),
+      new THREE.MeshStandardMaterial({color:0x6b5a4a,roughness:1,metalness:0})
+    );
+    moon.position.set(-260,60,-620);
+    world.add(moon);
+    this.moon=moon;
+
+    after(600,()=>this.showLog());
+  },
+
+  showLog(){
+    let logHTML='';
+    MARS_LOG.forEach(l=>{
+      logHTML+='<div class="logitem"><div class="yr">'+l.yr+'</div>'+
+        '<div><span class="'+(l.ok?'ok':'no')+'">'+(l.ok?'✓':'✕')+'</span> '+l.txt+'</div></div>';
+    });
+    let lesHTML='';
+    MARS_LESSONS.forEach(l=>{
+      lesHTML+='<div class="lesson"><b>'+l.t+'.</b> '+l.d+'</div>';
+    });
+
+    el.modalInner.innerHTML=
+      '<div class="kicker">Sol '+Math.floor(state.day)+' · Mars Orbit</div>'+
+      '<h1>THE MERIDIAN ARRIVES</h1>'+
+      '<p>You crossed in <em>'+Math.floor(state.day)+' sols</em> instead of the usual 210. '+
+      'The three gifts are humming in the engine bay, the sail is folded, and Mars fills '+
+      'the whole forward window like a wound that has been open for four billion years.</p>'+
+      '<h2>What humanity already learned here</h2>'+
+      '<p class="small">Public mission records, successes and failures both. '+
+      'Nothing here is classified — it is simply what the agencies published.</p>'+
+      logHTML+
+      '<h2>Five engineering lessons carried forward</h2>'+
+      lesHTML+
+      '<div class="btn" id="mNext">Begin the Settlement</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(settlementPhase);
+    });
+  },
+
+  update(dt){
+    if(this.mars)this.mars.userData.mesh.rotation.y+=dt*0.04;
+    if(this.moon){
+      this.moon.rotation.y+=dt*0.6;
+      this.moon.position.x=-260+Math.sin(performance.now()*0.0002)*40;
+    }
+  }
+};
+
+/* =========================================================
+   PHASE 7 — SETTLEMENT (five decisions)
+   ========================================================= */
+const SETTLE_ROUNDS=[
+  {
+    title:'SOL 1 — THE LANDING SITE',
+    sub:'Three candidate sites. Each one commits you to something.',
+    options:[
+      {b:'JEZERO CRATER', s:'Ancient river delta. Clay and carbonates — and a dry lakebed that may hide ice.',
+       e:{water:2,knowledge:1,fuel:1}, trust:1, out:'The drill bites into clay on the second attempt. The cores are beautiful.'},
+      {b:'UTOPIA PLANITIA', s:'Vast northern plain. Shallow, accessible ground ice. Easy terrain for heavy landers.',
+       e:{water:3,fuel:1}, trust:0, out:'Ice at 1.2 metres. The crew laughs out loud when the first litre melts.'},
+      {b:'VALLES MARINERIS RIM', s:'Sheltered canyon walls. Geothermal gradient. But the terrain is brutal for landing.',
+       e:{power:2,knowledge:2}, trust:2, out:'The canyon gives you a windbreak and a heat gradient. Also two broken legs.'}
+    ]
+  },
+  {
+    title:'SOL 9 — POWER',
+    sub:'You have three ways to keep the lights on. Pick one to scale first.',
+    options:[
+      {b:'SOLAR FARM', s:'Fold out the Vorasi collector design. Light and repairable, useless in a dust storm.',
+       e:{power:3}, trust:1, out:'The collectors drink Mars-light all day. You learn to sleep when the batteries say so.'},
+      {b:'KILOPOWER REACTOR', s:'A small fission unit. Heavy, but it does not care about dust or night.',
+       e:{power:2,fuel:2}, trust:0, out:'The reactor hums at 10 kWe. For the first time, the habitat is warm at night.'},
+      {b:'HYBRID + STORAGE', s:'Smaller solar plus a big battery bank and a reactor backup. Slower to build.',
+       e:{power:2,knowledge:2}, trust:2, out:'Nothing is optimal. Everything is survivable. That is the point.'}
+    ]
+  },
+  {
+    title:'SOL 17 — WATER AND AIR',
+    sub:'The Oom\'tal matrix can crack ice. The question is what you spend the hydrogen on.',
+    options:[
+      {b:'LIFE SUPPORT FIRST', s:'All water to drinking, crops and oxygen. Propellant waits.',
+       e:{water:3,food:2}, trust:1, out:'The greenhouse smells like wet earth for the first time. Nobody wants to leave it.'},
+      {b:'PROPELLANT FIRST', s:'Split the water. Fuel the return vehicle before anything else.',
+       e:{fuel:3,water:1}, trust:0, out:'The ascent stage is fuelled by sol 30. It is the most expensive safety net ever built.'},
+      {b:'BALANCED SPLIT', s:'Half to life support, half to propellant, with strict rationing.',
+       e:{water:2,fuel:2,knowledge:1}, trust:2, out:'Rationing is unpopular. Rationing works.'}
+    ]
+  },
+  {
+    title:'SOL 31 — THE CREW',
+    sub:'Most of your colonists are not specialists. That can change.',
+    options:[
+      {b:'ON-THE-JOB TRAINING', s:'Everyone learns a second role while doing their first. Slow, brutal, effective.',
+       e:{knowledge:3,power:1}, trust:1, out:'By sol 60, four colonists can run the reactor, the greenhouse and the clinic.'},
+      {b:'ALIEN TUTORING', s:'Let the Kethri and the Vorasi teach. Fast, but the crew must learn to think in alien grammar.',
+       e:{knowledge:4}, trust:3, out:'The lectures are light and rhythm. Retention is astonishing.'},
+      {b:'SPECIALIST FIRST', s:'Train three people deeply. Everyone else keeps hauling rocks.',
+       e:{knowledge:2,power:2}, trust:0, out:'Deep expertise in three people. Fragility in everyone else.'}
+    ]
+  },
+  {
+    title:'SOL 44 — THE LONG PLAN',
+    sub:'You are not a camp any more. Decide what the colony is for.',
+    options:[
+      {b:'PROPELLANT DEPOT', s:'Become the refuelling stop for everything humanity sends outward.',
+       e:{fuel:3,knowledge:1}, trust:2, out:'Tankers begin arriving. Mars stops being a destination and becomes a road.'},
+      {b:'SCIENCE STATION', s:'Become the place where the question of ancient life gets answered.',
+       e:{knowledge:3,power:1}, trust:1, out:'The first paper is published. It is careful, boring, and enormous.'},
+      {b:'SELF-SUFFICIENT TOWN', s:'Food, water, air, power — all closed loops. No dependence on Earth.',
+       e:{food:3,water:2}, trust:1, out:'On sol 400 the colony goes seven days without needing a resupply. Nobody notices until later.'}
+    ]
+  }
+];
+
+const settlementPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); updateHUD();
+    setObjective('SETTLEMENT · DECIDE');
+    clearWorld();
+
+    const mars=makePlanet(MARS_TEX,300,TEX_GLOW_AMBER);
+    mars.position.set(0,-200,-780);
+    world.add(mars);
+    this.mars=mars;
+
+    state.colony={power:2,water:2,fuel:2,food:2,knowledge:1};
+    this.round=0;
+    after(500,()=>this.showRound());
+  },
+
+  showRound(){
+    const r=SETTLE_ROUNDS[this.round];
+    let cards='';
+    r.options.forEach((o,i)=>{
+      const eff=Object.keys(o.e).map(k=>'+'+o.e[k]+' '+k.toUpperCase()).join(' · ');
+      cards+='<div class="card" data-i="'+i+'">'+
+        '<b>'+o.b+'</b><span>'+o.s+'</span>'+
+        '<div class="eff">'+eff+(o.trust?(' · +'+o.trust+' TRUST'):'')+'</div></div>';
+    });
+    const c=state.colony;
+    el.modalInner.innerHTML=
+      '<div class="kicker">'+r.title+'</div>'+
+      '<p class="small" style="margin-top:0">'+r.sub+'</p>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 6px;font-size:11px;'+
+      'letter-spacing:.14em;color:#7fa4c4;font-weight:700">'+
+      '<span>POWER '+c.power+'</span><span>WATER '+c.water+'</span>'+
+      '<span>FUEL '+c.fuel+'</span><span>FOOD '+c.food+'</span>'+
+      '<span>KNOWLEDGE '+c.knowledge+'</span><span style="color:#5ff2ff">TRUST '+Math.round(state.trust)+'</span>'+
+      '</div>'+
+      '<div class="cards">'+cards+'</div>';
+    el.modal.classList.add('show');
+
+    el.modalInner.querySelectorAll('.card').forEach(card=>{
+      card.addEventListener('click',()=>{
+        const o=r.options[+card.dataset.i];
+        for(const k in o.e)state.colony[k]=(state.colony[k]||0)+o.e[k];
+        state.trust+=o.trust||0;
+        updateHUD();
+        el.modalInner.innerHTML=
+          '<div class="kicker">'+r.title+'</div>'+
+          '<h1 style="font-size:22px">'+o.b+'</h1>'+
+          '<p>'+o.out+'</p>'+
+          '<div class="btn" id="mNext">Continue</div>';
+        $('mNext').addEventListener('click',()=>{
+          el.modal.classList.remove('show');
+          this.round++;
+          if(this.round>=SETTLE_ROUNDS.length)this.finish();
+          else after(320,()=>this.showRound());
+        });
+      });
+    });
+  },
+
+  finish(){
+    const c=state.colony;
+    const score=c.power+c.water+c.fuel+c.food+c.knowledge+state.trust*0.12;
+    let tier,title,body;
+
+    if(score>=26){
+      tier='THE RED MERIDIAN';
+      title='A CITY, NOT A CAMP';
+      body='By sol 500 the colony is self-sufficient in water and food, exports propellant, '+
+        'and has published three papers on the ancient delta. The Kethri send a bridge. '+
+        'The Vorasi send a song. The Oom\u2019tal send nothing at all, which they consider a compliment. '+
+        'Humanity is a two-planet species, and it happened because three strangers decided '+
+        'your rocket was worth making faster instead of breaking.';
+    }else if(score>=20){
+      tier='THE HOLDING PATTERN';
+      title='A COLONY THAT HOLDS';
+      body='The colony survives its first year, then its second. There are lean sols, '+
+        'a dust storm that nearly ends everything, and one very bad night with the reactor. '+
+        'But the greenhouses hold and the ice keeps melting. You are not a city yet. '+
+        'You are a place people will still be living in ten years from now.';
+    }else if(score>=14){
+      tier='THE FOOTHOLD';
+      title='A FOOTHOLD, BARELY';
+      body='The colony lives, but it lives on rations and borrowed margins. Every system '+
+        'is one failure away from a very bad sol. It will need Earth for a long time yet. '+
+        'Still — nobody has gone home. That counts for something.';
+    }else{
+      tier='THE FRAGILE CAMP';
+      title='A CAMP ON THE EDGE';
+      body='The Meridian sits on the surface with half its systems dark and the crew '+
+        'rationing water by the mouthful. It is not a failure. It is not a success either. '+
+        'It is a beginning that will need a great deal of help.';
+    }
+
+    el.modalInner.innerHTML=
+      '<div class="kicker">Final Report · '+tier+'</div>'+
+      '<h1>'+title+'</h1>'+
+      '<p>'+body+'</p>'+
+      '<h2>Colony at sol 500</h2>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin:14px 0;font-size:12px;'+
+      'letter-spacing:.14em;font-weight:800;color:#9fc4de">'+
+      '<span>POWER '+c.power+'</span><span>WATER '+c.water+'</span><span>FUEL '+c.fuel+'</span>'+
+      '<span>FOOD '+c.food+'</span><span>KNOWLEDGE '+c.knowledge+'</span>'+
+      '<span style="color:#5ff2ff">TRUST '+Math.round(state.trust)+'</span>'+
+      '</div>'+
+      '<h2>Technology carried</h2>'+
+      '<p class="small">Fusion catalyst (Kethri) · Solar collector (Vorasi) · '+
+      'Fuel synthesis matrix (Oom\u2019tal) — combined thrust multiplier '+
+      state.thrustMul.toFixed(1)+'x.</p>'+
+      '<p class="small" style="margin-top:16px;opacity:.6">RED MERIDIAN — a game by Bhupinder Deol.</p>'+
+      '<div class="btn" id="mNext">Play Again</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      state.day=1; state.hull=100; state.trust=0; state.thrustMul=1.0;
+      state.gifts={fusion:false,solar:false,fuel:false};
+      state.words=[]; state.encountersDone=0;
+      state.colony={power:2,water:2,fuel:2,food:2,knowledge:1};
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(titlePhase);
+    });
+  },
+
+  update(dt){
+    if(this.mars)this.mars.userData.mesh.rotation.y+=dt*0.03;
+  }
+};
+
+/* =========================================================
+   INPUT
+   ========================================================= */
+const keys={};
+addEventListener('keydown',(e)=>{
+  keys[e.code]=true;
+  if(e.code==='Space')e.preventDefault();
+  if(currentPhase&&currentPhase.onKey)currentPhase.onKey(e);
+});
+addEventListener('keyup',(e)=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys)keys[k]=false; });
+
+/* =========================================================
+   RESIZE
+   ========================================================= */
+function onResize(){
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+}
+addEventListener('resize',onResize);
+
+/* =========================================================
+   MAIN LOOP
+   ========================================================= */
+let last=performance.now();
+let elapsed=0;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(now-last)/1000);
+  last=now; elapsed+=dt;
+
+  /* ambient motion */
+  starsGroup.rotation.y+=dt*0.006;
+  starsGroup.rotation.x=Math.sin(elapsed*0.02)*0.02;
+  NEBULA.rotation.y+=dt*0.002;
+  SUN.position.x=1100+Math.sin(elapsed*0.05)*40;
+  const pulse=1+Math.sin(elapsed*1.2)*0.03;
+  SUN.children[0].scale.set(1900*pulse,1900*pulse,1);
+
+  if(currentPhase&&currentPhase.update)currentPhase.update(dt);
+  renderer.render(scene,camera);
+}
+
+/* =========================================================
+   BOOT
+   ========================================================= */
+function boot(){
+  updateHUD();
+  setPhase(titlePhase);
+  requestAnimationFrame(loop);
+
+  $('startBtn').addEventListener('click',async ()=>{
+    audioOn();
+    await fadeTo(true,420);
+    el.title.classList.add('gone');
+    state.day=1;state.hull=100;state.trust=0;state.thrustMul=1.0;
+    setPhase(capturePhase);
+    await fadeTo(false,600);
+  });
+}
+
+boot();
+
+})();
+</script>
+</body>
+  </html>
