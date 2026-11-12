@@ -1,0 +1,2324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<title>RED MERIDIAN</title>
+<style>
+  :root{
+    --cyan:#5ff2ff; --amber:#ffb347; --violet:#a06bff; --green:#6bff9e;
+    --red:#ff6b4a; --ink:#cfe9ff;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0;height:100%;overflow:hidden;background:#000;color:var(--ink);
+    font-family:"Segoe UI",system-ui,-apple-system,sans-serif;
+    user-select:none;-webkit-user-select:none;cursor:default;
+  }
+  canvas#c{position:fixed;inset:0;display:block;}
+
+  #cockpit{position:fixed;inset:0;pointer-events:none;z-index:5;
+    box-shadow:inset 0 0 260px 70px rgba(0,0,0,.92), inset 0 0 90px 0 rgba(30,90,160,.22);
+    transition:box-shadow .3s;}
+  #cockpit.hidden{opacity:0;}
+  .strut{position:absolute;background:linear-gradient(180deg,#0b1220,#05080f);}
+  #strutTop{top:0;left:0;right:0;height:14vh;
+    clip-path:polygon(0 0,100% 0,100% 42%,78% 100%,22% 100%,0 42%);
+    border-bottom:1px solid rgba(95,242,255,.16);}
+  #strutBot{bottom:0;left:0;right:0;height:16vh;
+    clip-path:polygon(0 58%,22% 0,78% 0,100% 58%,100% 100%,0 100%);
+    border-top:1px solid rgba(95,242,255,.16);}
+  #strutL{top:0;bottom:0;left:0;width:9vw;
+    clip-path:polygon(0 0,58% 20%,58% 80%,0 100%);}
+  #strutR{top:0;bottom:0;right:0;width:9vw;
+    clip-path:polygon(100% 0,42% 20%,42% 80%,100% 100%);}
+  #glare{position:absolute;inset:0;
+    background:linear-gradient(115deg,rgba(120,200,255,.10) 0%,rgba(120,200,255,0) 26%,
+      rgba(255,255,255,0) 68%,rgba(160,120,255,.07) 100%);
+    mix-blend-mode:screen;}
+  #scan{position:absolute;inset:0;
+    background:repeating-linear-gradient(0deg,rgba(0,0,0,.18) 0 1px,rgba(0,0,0,0) 1px 3px);
+    opacity:.30;}
+
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:12;display:flex;gap:8px;
+    padding:10px 14px;justify-content:center;flex-wrap:wrap;pointer-events:none;
+    font-variant-numeric:tabular-nums;transition:opacity .4s;}
+  #topbar.hidden{opacity:0;}
+  .chip{display:flex;align-items:center;gap:8px;padding:5px 13px;border-radius:99px;
+    background:rgba(8,18,32,.72);border:1px solid rgba(95,242,255,.28);
+    backdrop-filter:blur(6px);font-size:11px;letter-spacing:.16em;font-weight:700;}
+  .chip span{opacity:.55;font-weight:600;}
+  .chip b{color:var(--cyan);font-size:13px;letter-spacing:.06em;}
+  .chip.warn b{color:var(--amber);}
+  .chip.bad b{color:var(--red);}
+
+  #resbar{position:fixed;top:52px;left:0;right:0;z-index:12;display:none;gap:8px;
+    padding:0 14px;justify-content:center;flex-wrap:wrap;pointer-events:none;
+    font-variant-numeric:tabular-nums;}
+  #resbar.show{display:flex;}
+  .rchip{display:flex;align-items:center;gap:7px;padding:4px 12px;border-radius:99px;
+    background:rgba(8,18,32,.66);border:1px solid rgba(95,242,255,.20);
+    backdrop-filter:blur(6px);font-size:10px;letter-spacing:.14em;font-weight:700;}
+  .rchip span{opacity:.55;font-weight:600;}
+  .rchip b{color:var(--ink);font-size:12px;letter-spacing:.05em;}
+  .rbar{width:54px;height:6px;border-radius:99px;background:rgba(255,255,255,.10);overflow:hidden;}
+  .rbar i{display:block;height:100%;border-radius:99px;background:var(--cyan);transition:width .3s;}
+
+  #objective{position:fixed;left:50%;bottom:5.5vh;transform:translateX(-50%);z-index:12;
+    padding:9px 24px;border-radius:99px;background:rgba(8,18,32,.66);
+    border:1px solid rgba(95,242,255,.22);backdrop-filter:blur(6px);
+    font-size:12px;letter-spacing:.20em;font-weight:700;text-transform:uppercase;
+    color:var(--cyan);white-space:nowrap;pointer-events:none;
+    opacity:0;transition:opacity .35s,color .3s;max-width:94vw;overflow:hidden;text-overflow:ellipsis;}
+  #objective.show{opacity:1;}
+
+  #stage{position:fixed;inset:0;z-index:11;pointer-events:none;}
+  #stage > *{pointer-events:auto;}
+
+  #reticle{position:absolute;left:50%;top:50%;width:46px;height:46px;
+    transform:translate(-50%,-50%);will-change:transform;}
+  #reticle::before,#reticle::after{content:'';position:absolute;background:var(--cyan);
+    box-shadow:0 0 12px var(--cyan);}
+  #reticle::before{left:50%;top:0;width:2px;height:100%;transform:translateX(-50%);}
+  #reticle::after{top:50%;left:0;height:2px;width:100%;transform:translateY(-50%);}
+  #reticle i{position:absolute;left:50%;top:50%;width:10px;height:10px;
+    border:2px solid var(--cyan);border-radius:50%;transform:translate(-50%,-50%);
+    box-shadow:0 0 14px var(--cyan);}
+  #tractorRing{position:absolute;left:50%;top:50%;width:200px;height:200px;
+    margin:-100px 0 0 -100px;border-radius:50%;
+    border:2px dashed rgba(95,242,255,.85);
+    box-shadow:0 0 30px rgba(95,242,255,.35), inset 0 0 30px rgba(95,242,255,.16);
+    will-change:transform;transition:border-color .2s,box-shadow .2s;}
+  #tractorRing.locked{border-color:var(--green);
+    box-shadow:0 0 46px rgba(107,255,158,.55), inset 0 0 34px rgba(107,255,158,.25);}
+
+  .node{position:absolute;left:50%;top:50%;width:76px;height:76px;border-radius:50%;
+    transform:translate(-50%,-50%);border:2px solid rgba(255,255,255,.16);
+    background:rgba(255,255,255,.03);transition:box-shadow .10s,background .10s,border-color .10s;
+    cursor:pointer;}
+  .node .lbl{position:absolute;left:50%;bottom:-26px;transform:translateX(-50%);
+    font-size:11px;letter-spacing:.2em;opacity:.45;font-weight:700;}
+  .node.on{background:var(--c);border-color:#fff;
+    box-shadow:0 0 46px 12px var(--c), inset 0 0 34px rgba(255,255,255,.85);}
+
+  #rhythm{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+    display:flex;gap:14px;align-items:center;justify-content:center;}
+  .beatdot{width:16px;height:16px;border-radius:50%;background:rgba(95,242,255,.18);
+    border:1px solid rgba(95,242,255,.5);transition:transform .08s,background .08s,box-shadow .08s;}
+  .beatdot.hit{background:var(--cyan);box-shadow:0 0 22px var(--cyan);transform:scale(1.5);}
+  #rhythmPulse{position:absolute;left:50%;top:50%;width:180px;height:180px;
+    margin:-90px 0 0 -90px;border-radius:50%;border:1px solid rgba(95,242,255,.35);
+    transition:transform .18s ease-out,opacity .18s;}
+
+  #modal{position:fixed;inset:0;z-index:20;display:none;align-items:center;justify-content:center;
+    background:radial-gradient(circle at 50% 45%,rgba(6,14,26,.80),rgba(0,0,0,.94));
+    backdrop-filter:blur(4px);padding:20px;}
+  #modal.show{display:flex;}
+  #modalInner{width:min(760px,94vw);max-height:86vh;overflow-y:auto;padding:30px 32px;
+    border-radius:18px;background:linear-gradient(160deg,rgba(14,26,44,.97),rgba(6,12,22,.99));
+    border:1px solid rgba(95,242,255,.30);
+    box-shadow:0 0 90px rgba(95,242,255,.18), inset 0 1px 0 rgba(255,255,255,.08);
+    animation:pop .35s cubic-bezier(.2,.9,.3,1.2);}
+  @keyframes pop{from{transform:scale(.94);opacity:0}to{transform:scale(1);opacity:1}}
+  #modalInner::-webkit-scrollbar{width:8px}
+  #modalInner::-webkit-scrollbar-thumb{background:rgba(95,242,255,.3);border-radius:9px}
+  #modalInner h1{margin:0 0 6px;font-size:28px;letter-spacing:.10em;color:#fff;}
+  #modalInner h2{margin:22px 0 10px;font-size:13px;letter-spacing:.24em;color:var(--cyan);
+    text-transform:uppercase;font-weight:800;}
+  #modalInner p{margin:9px 0;line-height:1.65;font-size:14.5px;color:#b9d6ee;}
+  #modalInner .small{font-size:12.5px;color:#7fa4c4;line-height:1.6;}
+  #modalInner em{color:var(--amber);font-style:normal;font-weight:600;}
+  .kicker{font-size:11px;letter-spacing:.34em;color:var(--amber);text-transform:uppercase;
+    font-weight:800;margin-bottom:8px;}
+
+  .btn{display:inline-block;margin-top:20px;padding:13px 30px;border-radius:99px;cursor:pointer;
+    background:linear-gradient(120deg,rgba(95,242,255,.20),rgba(160,107,255,.20));
+    border:1px solid rgba(95,242,255,.6);color:#eafcff;font-weight:800;
+    letter-spacing:.20em;font-size:12.5px;text-transform:uppercase;
+    transition:transform .15s,box-shadow .2s,background .2s;}
+  .btn:hover{transform:translateY(-2px);box-shadow:0 0 36px rgba(95,242,255,.5);
+    background:linear-gradient(120deg,rgba(95,242,255,.34),rgba(160,107,255,.34));}
+  .btn:active{transform:translateY(0);}
+
+  .cards{display:grid;gap:12px;grid-template-columns:1fr;margin-top:16px;}
+  @media(min-width:680px){.cards{grid-template-columns:1fr 1fr 1fr;}}
+  .card{padding:16px;border-radius:13px;cursor:pointer;transition:transform .15s,box-shadow .2s,border-color .2s;
+    background:rgba(95,242,255,.045);border:1px solid rgba(95,242,255,.20);}
+  .card:hover{transform:translateY(-3px);border-color:rgba(95,242,255,.65);
+    box-shadow:0 0 34px rgba(95,242,255,.22);background:rgba(95,242,255,.09);}
+  .card b{display:block;font-size:13.5px;letter-spacing:.10em;color:#eafcff;margin-bottom:7px;}
+  .card span{font-size:12.5px;line-height:1.55;color:#8fb3d1;}
+  .card .eff{margin-top:9px;font-size:11px;letter-spacing:.12em;color:var(--green);font-weight:700;}
+
+  .eqrow{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px;
+    margin:22px 0;font-size:20px;font-weight:700;color:#dff4ff;}
+  .species{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;border-radius:11px;
+    background:rgba(95,242,255,.07);border:1px solid rgba(95,242,255,.25);}
+  .step{width:26px;height:26px;line-height:22px;text-align:center;border-radius:7px;cursor:pointer;
+    background:rgba(255,255,255,.07);border:1px solid rgba(95,242,255,.4);
+    color:var(--cyan);font-weight:900;font-size:15px;user-select:none;}
+  .step:hover{background:rgba(95,242,255,.25);}
+  .coef{min-width:22px;text-align:center;color:var(--amber);font-size:19px;}
+  .eqplus{opacity:.55;}
+  .eqarrow{color:var(--violet);font-size:24px;}
+
+  #title{position:fixed;inset:0;z-index:30;display:flex;flex-direction:column;
+    align-items:center;justify-content:center;text-align:center;padding:24px;
+    background:radial-gradient(circle at 50% 42%,rgba(8,18,34,.42),rgba(0,0,0,.90));
+    transition:opacity .8s;}
+  #title.gone{opacity:0;pointer-events:none;}
+  #title h1{margin:0;font-size:clamp(38px,8.5vw,84px);letter-spacing:.20em;font-weight:900;
+    color:#fff;text-shadow:0 0 46px rgba(95,242,255,.85),0 0 110px rgba(160,107,255,.55);}
+  #title .sub{margin-top:14px;font-size:clamp(11px,2.1vw,14px);letter-spacing:.42em;
+    color:var(--cyan);text-transform:uppercase;font-weight:700;}
+  #title .tag{margin-top:26px;max-width:560px;font-size:13.5px;line-height:1.75;color:#8fb3d1;}
+  #title .foot{margin-top:36px;font-size:10.5px;letter-spacing:.28em;color:#4d6b85;}
+
+  #fade{position:fixed;inset:0;background:#000;z-index:25;opacity:0;pointer-events:none;
+    transition:opacity .5s;}
+
+  .logitem{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid rgba(95,242,255,.10);
+    font-size:13px;line-height:1.55;}
+  .logitem .yr{min-width:74px;color:var(--amber);font-weight:800;letter-spacing:.06em;}
+  .logitem .ok{color:var(--green);}
+  .logitem .no{color:var(--red);}
+  .lesson{margin:9px 0;padding-left:16px;border-left:2px solid rgba(95,242,255,.35);
+    font-size:13px;line-height:1.65;color:#a8c8e2;}
+  .lesson b{color:#fff;}
+
+  .toast{position:fixed;left:50%;top:22%;transform:translate(-50%,-50%) scale(.9);
+    z-index:22;padding:14px 34px;border-radius:14px;pointer-events:none;
+    background:rgba(8,20,36,.92);border:1px solid rgba(95,242,255,.5);
+    color:#eafcff;font-weight:800;letter-spacing:.18em;font-size:13px;
+    opacity:0;transition:opacity .25s,transform .25s;max-width:88vw;text-align:center;}
+  .toast.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="cockpit" class="hidden">
+  <div class="strut" id="strutTop"></div>
+  <div class="strut" id="strutBot"></div>
+  <div class="strut" id="strutL"></div>
+  <div class="strut" id="strutR"></div>
+  <div id="glare"></div>
+  <div id="scan"></div>
+</div>
+
+<div id="topbar" class="hidden">
+  <div class="chip"><span>SOL</span><b id="stDay">01</b></div>
+  <div class="chip" id="chipHull"><span>HULL</span><b id="stHull">100%</b></div>
+  <div class="chip"><span>TRUST</span><b id="stTrust">0</b></div>
+  <div class="chip"><span>THRUST</span><b id="stThrust">1.0x</b></div>
+</div>
+
+<div id="resbar">
+  <div class="rchip"><span>FUEL</span><div class="rbar"><i id="rbFuel"></i></div><b id="stFuel">100</b></div>
+  <div class="rchip"><span>PWR</span><div class="rbar"><i id="rbPower"></i></div><b id="stPower">100</b></div>
+  <div class="rchip"><span>MORALE</span><div class="rbar"><i id="rbMorale" style="background:var(--amber)"></i></div><b id="stMorale">70</b></div>
+  <div class="rchip"><span>RAD</span><div class="rbar"><i id="rbRad" style="background:var(--red)"></i></div><b id="stRad">0</b></div>
+  <div class="rchip"><span>LIFE</span><div class="rbar"><i id="rbLS" style="background:var(--green)"></i></div><b id="stLS">100</b></div>
+</div>
+
+<div id="objective"></div>
+<div id="stage"></div>
+<div id="modal"><div id="modalInner"></div></div>
+<div class="toast" id="toast"></div>
+
+<div id="title">
+  <h1>RED MERIDIAN</h1>
+  <div class="sub">Earth &nbsp;&rarr;&nbsp; Mars &nbsp;&middot;&nbsp; 2048</div>
+  <div class="tag">
+    The Meridian carries teachers, welders, nurses and dreamers &mdash; not superhumans.
+    Three weeks out, the ship disappears. Then humanity receives a message.
+    Not a threat. An invitation.
+  </div>
+  <div class="btn" id="startBtn">Begin the Crossing</div>
+  <div class="foot">A GAME BY BHUPINDER DEOL</div>
+</div>
+
+<div id="fade"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+'use strict';
+
+/* ================= tiny helpers ================= */
+const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
+const lerp=(a,b,t)=>a+(b-a)*t;
+const rand=(a,b)=>a+Math.random()*(b-a);
+const $=(id)=>document.getElementById(id);
+function makeCanvas(w,h){const c=document.createElement('canvas');c.width=w;c.height=h;return c;}
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);
+  t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
+
+/* ================= audio ================= */
+let actx=null;
+function audioOn(){
+  if(!actx){try{actx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return;}}
+  if(actx.state==='suspended')actx.resume();
+}
+function tone(freq,dur,type,vol,when){
+  dur=dur||0.20;type=type||'sine';vol=vol||0.14;when=when||0;
+  if(!actx)return;
+  const t0=actx.currentTime+when;
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type=type;o.frequency.setValueAtTime(freq,t0);
+  g.gain.setValueAtTime(0.0001,t0);
+  g.gain.exponentialRampToValueAtTime(vol,t0+0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+  o.connect(g);g.connect(actx.destination);
+  o.start(t0);o.stop(t0+dur+0.06);
+}
+function thud(vol){
+  vol=vol||0.30;
+  if(!actx)return;
+  const t0=actx.currentTime;
+  const o=actx.createOscillator(),g=actx.createGain();
+  o.type='sawtooth';o.frequency.setValueAtTime(140,t0);
+  o.frequency.exponentialRampToValueAtTime(40,t0+0.25);
+  g.gain.setValueAtTime(vol,t0);
+  g.gain.exponentialRampToValueAtTime(0.0001,t0+0.28);
+  o.connect(g);g.connect(actx.destination);
+  o.start(t0);o.stop(t0+0.3);
+}
+
+/* ================= global state ================= */
+const state={
+  day:1, hull:100, trust:0, thrustMul:1.0,
+  fuel:100, power:100, morale:70, radiation:0, ls:100,
+  gifts:{fusion:false,solar:false,fuel:false},
+  words:[], encountersDone:0, population:50,
+  colony:{power:2,water:2,fuel:2,food:2,knowledge:1}
+};
+
+/* ================= DOM refs ================= */
+const el={
+  canvas:$('c'), cockpit:$('cockpit'), topbar:$('topbar'), resbar:$('resbar'),
+  objective:$('objective'), stage:$('stage'), modal:$('modal'), modalInner:$('modalInner'),
+  title:$('title'), fade:$('fade'), toast:$('toast'),
+  stDay:$('stDay'), stHull:$('stHull'), stTrust:$('stTrust'), stThrust:$('stThrust'),
+  chipHull:$('chipHull'),
+  stFuel:$('stFuel'), stPower:$('stPower'), stMorale:$('stMorale'), stRad:$('stRad'), stLS:$('stLS'),
+  rbFuel:$('rbFuel'), rbPower:$('rbPower'), rbMorale:$('rbMorale'), rbRad:$('rbRad'), rbLS:$('rbLS')
+};
+
+function barColor(v,good){
+  return v>60?'var(--cyan)':(v>30?'var(--amber)':'var(--red)');
+}
+
+function updateHUD(){
+  el.stDay.textContent=String(Math.floor(state.day)).padStart(2,'0');
+  const h=Math.max(0,Math.round(state.hull));
+  el.stHull.textContent=h+'%';
+  el.chipHull.classList.toggle('warn',h<=60&&h>30);
+  el.chipHull.classList.toggle('bad',h<=30);
+  el.stTrust.textContent=Math.round(state.trust);
+  el.stThrust.textContent=state.thrustMul.toFixed(1)+'x';
+  el.stFuel.textContent=Math.round(state.fuel);
+  el.stPower.textContent=Math.round(state.power);
+  el.stMorale.textContent=Math.round(state.morale);
+  el.stRad.textContent=Math.round(state.radiation);
+  el.stLS.textContent=Math.round(state.ls);
+  el.rbFuel.style.width=clamp(state.fuel,0,100)+'%';
+  el.rbPower.style.width=clamp(state.power,0,100)+'%';
+  el.rbMorale.style.width=clamp(state.morale,0,100)+'%';
+  el.rbRad.style.width=clamp(state.radiation,0,100)+'%';
+  el.rbLS.style.width=clamp(state.ls,0,100)+'%';
+}
+function setObjective(txt){
+  el.objective.textContent=txt||'';
+  el.objective.classList.toggle('show',!!txt);
+}
+let toastTimer=null;
+function toast(msg,ms){
+  ms=ms||1500;
+  el.toast.textContent=msg;el.toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>el.toast.classList.remove('show'),ms);
+}
+function fadeTo(black,ms){
+  ms=ms||500;
+  el.fade.style.transitionDuration=ms+'ms';
+  el.fade.style.opacity=black?'1':'0';
+  return new Promise(r=>setTimeout(r,ms));
+}
+
+/* ================= phase manager ================= */
+let currentPhase=null;
+let timers=[];
+function after(ms,fn){const t=setTimeout(fn,ms);timers.push(t);return t;}
+function clearTimers(){timers.forEach(clearTimeout);timers=[];}
+function setPhase(p){
+  if(currentPhase&&currentPhase.exit)currentPhase.exit();
+  clearTimers();
+  currentPhase=p;
+  el.stage.innerHTML='';
+  if(p.enter)p.enter();
+}
+function clearWorld(){
+  while(world.children.length){
+    const c=world.children.pop();
+    world.remove(c);
+    c.traverse&&c.traverse(o=>{
+      if(o.geometry)o.geometry.dispose();
+      if(o.material){ if(Array.isArray(o.material))o.material.forEach(m=>m.dispose()); else o.material.dispose(); }
+    });
+  }
+}
+
+/* ================= THREE world ================= */
+const renderer=new THREE.WebGLRenderer({canvas:el.canvas,antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+renderer.setSize(innerWidth,innerHeight);
+if(THREE.sRGBEncoding)renderer.outputEncoding=THREE.sRGBEncoding;
+renderer.toneMapping=THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure=1.08;
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(72,innerWidth/innerHeight,0.5,12000);
+camera.position.set(0,0,0);
+
+const starsGroup=new THREE.Group(); scene.add(starsGroup);
+const world=new THREE.Group(); scene.add(world);
+
+scene.add(new THREE.AmbientLight(0x4466aa,0.55));
+const sunLight=new THREE.DirectionalLight(0xfff0d0,1.35);
+sunLight.position.set(600,420,-1800);
+scene.add(sunLight);
+
+/* ---------- procedural textures ---------- */
+function glowTex(r,g,b,pow){
+  pow=pow||2.2;
+  const s=128,c=makeCanvas(s,s),ctx=c.getContext('2d');
+  const grd=ctx.createRadialGradient(s/2,s/2,0,s/2,s/2,s/2);
+  for(let i=0;i<=12;i++){
+    const t=i/12;
+    grd.addColorStop(t,'rgba('+r+','+g+','+b+','+Math.pow(1-t,pow).toFixed(3)+')');
+  }
+  ctx.fillStyle=grd;ctx.fillRect(0,0,s,s);
+  return new THREE.CanvasTexture(c);
+}
+const TEX_GLOW_WHITE=glowTex(255,255,255,2.4);
+const TEX_GLOW_CYAN =glowTex(95,242,255,2.2);
+const TEX_GLOW_AMBER=glowTex(255,179,71,2.2);
+const TEX_GLOW_VIOLET=glowTex(160,107,255,2.2);
+const TEX_GLOW_SUN  =glowTex(255,246,220,2.8);
+const TEX_GLOW_RED  =glowTex(255,90,50,2.2);
+
+function planetTex(cfg){
+  const W=1024,H=512,c=makeCanvas(W,H),ctx=c.getContext('2d');
+  const rnd=mulberry32(cfg.seed||1);
+  const g=ctx.createLinearGradient(0,0,0,H);
+  cfg.base.forEach((col,i)=>g.addColorStop(i/(cfg.base.length-1),col));
+  ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+  const blobs=cfg.blobs||140;
+  for(let i=0;i<blobs;i++){
+    const x=rnd()*W, y=H*0.06+rnd()*H*0.88;
+    const rad=(cfg.blobMin||18)+rnd()*(cfg.blobMax||80);
+    const col=cfg.land[(rnd()*cfg.land.length)|0];
+    ctx.globalAlpha=0.10+rnd()*0.30;
+    ctx.fillStyle=col;
+    ctx.beginPath();
+    const pts=9;
+    for(let k=0;k<pts;k++){
+      const a=k/pts*Math.PI*2;
+      const rr=rad*(0.55+rnd()*0.75);
+      const px=x+Math.cos(a)*rr, py=y+Math.sin(a)*rr*0.72;
+      if(k)ctx.lineTo(px,py);else ctx.moveTo(px,py);
+    }
+    ctx.closePath();ctx.fill();
+  }
+  ctx.globalAlpha=1;
+  if(cfg.ice){
+    let ig=ctx.createLinearGradient(0,0,0,H*0.14);
+    ig.addColorStop(0,'rgba(255,255,255,0.95)');ig.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=ig;ctx.fillRect(0,0,W,H*0.14);
+    ig=ctx.createLinearGradient(0,H,0,H*0.86);
+    ig.addColorStop(0,'rgba(255,255,255,0.95)');ig.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=ig;ctx.fillRect(0,H*0.86,W,H*0.14);
+  }
+  if(cfg.clouds){
+    for(let i=0;i<cfg.clouds;i++){
+      const x=rnd()*W,y=rnd()*H,rad=28+rnd()*120;
+      ctx.globalAlpha=0.04+rnd()*0.13;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath();ctx.ellipse(x,y,rad,rad*0.45,rnd()*3,0,7);ctx.fill();
+    }
+    ctx.globalAlpha=1;
+  }
+  const t=new THREE.CanvasTexture(c);
+  t.anisotropy=4;
+  return t;
+}
+
+const EARTH_TEX=planetTex({seed:7,base:['#071a3a','#0f3f7a','#0a2a55'],
+  land:['#2f6b34','#3d7a3a','#5b6b3a','#8a7a4a','#245a2b'],
+  blobs:130, blobMin:14, blobMax:72, ice:true, clouds:70});
+const MARS_TEX=planetTex({seed:42,base:['#7a3116','#b0502a','#6b2a12'],
+  land:['#8a3a1a','#c46a3a','#4a1c0c','#a04a22'],
+  blobs:170, blobMin:16, blobMax:90, ice:true, clouds:14});
+
+/* ---------- starfield ---------- */
+(function buildStars(){
+  const N=4200;
+  const geo=new THREE.BufferGeometry();
+  const pos=new Float32Array(N*3);
+  const col=new Float32Array(N*3);
+  const c=new THREE.Color();
+  for(let i=0;i<N;i++){
+    const r=1400+Math.random()*2600;
+    const th=Math.random()*Math.PI*2;
+    const ph=Math.acos(2*Math.random()-1);
+    pos[i*3]  =r*Math.sin(ph)*Math.cos(th);
+    pos[i*3+1]=r*Math.cos(ph)*0.65;
+    pos[i*3+2]=r*Math.sin(ph)*Math.sin(th);
+    const t=Math.random();
+    if(t<0.12)c.setHSL(0.58,0.85,0.78);
+    else if(t<0.24)c.setHSL(0.08,0.85,0.76);
+    else if(t<0.32)c.setHSL(0.76,0.80,0.80);
+    else c.setHSL(0.58,0.10,0.62+Math.random()*0.36);
+    col[i*3]=c.r;col[i*3+1]=c.g;col[i*3+2]=c.b;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  starsGroup.add(new THREE.Points(geo,new THREE.PointsMaterial({
+    size:7,map:TEX_GLOW_WHITE,vertexColors:true,transparent:true,
+    depthWrite:false,blending:THREE.AdditiveBlending,sizeAttenuation:true
+  })));
+})();
+
+/* ---------- nebula backdrop ---------- */
+const NEBULA=(function(){
+  const W=1024,H=512,c=makeCanvas(W,H),ctx=c.getContext('2d');
+  ctx.fillStyle='#02030a';ctx.fillRect(0,0,W,H);
+  const rnd=mulberry32(99);
+  const palettes=[[60,40,160],[20,90,160],[120,30,140],[10,120,140],[70,20,90]];
+  for(let i=0;i<180;i++){
+    const x=rnd()*W,y=rnd()*H,rad=40+rnd()*260;
+    const p=palettes[(rnd()*palettes.length)|0];
+    const grd=ctx.createRadialGradient(x,y,0,x,y,rad);
+    const a=0.03+rnd()*0.10;
+    grd.addColorStop(0,'rgba('+p[0]+','+p[1]+','+p[2]+','+a+')');
+    grd.addColorStop(1,'rgba('+p[0]+','+p[1]+','+p[2]+',0)');
+    ctx.fillStyle=grd;ctx.beginPath();ctx.arc(x,y,rad,0,7);ctx.fill();
+  }
+  for(let i=0;i<2600;i++){
+    const x=rnd()*W,y=rnd()*H;
+    ctx.fillStyle='rgba(255,255,255,'+(0.1+rnd()*0.6)+')';
+    ctx.fillRect(x,y,1.1,1.1);
+  }
+  const mesh=new THREE.Mesh(
+    new THREE.SphereGeometry(6000,32,24),
+    new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(c),side:THREE.BackSide,depthWrite:false})
+  );
+  scene.add(mesh);
+  return mesh;
+})();
+
+/* ---------- builders ---------- */
+function makeSprite(tex,size,color){
+  const m=new THREE.SpriteMaterial({map:tex,blending:THREE.AdditiveBlending,
+    transparent:true,depthWrite:false,color:color||0xffffff});
+  const s=new THREE.Sprite(m); s.scale.set(size,size,1); return s;
+}
+const SUN=(function(){
+  const g=new THREE.Group();
+  const core=makeSprite(TEX_GLOW_SUN,900);
+  const halo=makeSprite(TEX_GLOW_AMBER,1900);
+  halo.material.opacity=0.45;
+  g.add(halo);g.add(core);
+  g.position.set(1100,760,-3000);
+  scene.add(g);
+  return g;
+})();
+
+function makePlanet(tex,radius,atmoColor){
+  const g=new THREE.Group();
+  g.add(new THREE.Mesh(new THREE.SphereGeometry(radius,64,48),
+    new THREE.MeshStandardMaterial({map:tex,roughness:0.95,metalness:0.02})));
+  const atmo=makeSprite(atmoColor||TEX_GLOW_CYAN,radius*2.9);
+  atmo.material.opacity=0.42;
+  g.add(atmo);
+  g.userData.mesh=g.children[0];
+  return g;
+}
+
+/* =========================================================
+   PHASE 0 — TITLE
+   ========================================================= */
+const titlePhase={
+  enter(){
+    el.cockpit.classList.add('hidden');
+    el.topbar.classList.add('hidden');
+    el.resbar.classList.remove('show');
+    setObjective('');
+    clearWorld();
+    const earth=makePlanet(EARTH_TEX,150,TEX_GLOW_CYAN);
+    earth.position.set(-230,-130,-620);
+    world.add(earth);
+    this.earth=earth;
+    el.title.classList.remove('gone');
+  },
+  update(dt){
+    if(this.earth){
+      this.earth.userData.mesh.rotation.y+=dt*0.045;
+      this.earth.position.y=-130+Math.sin(performance.now()*0.0004)*6;
+    }
+  },
+  exit(){ el.title.classList.add('gone'); }
+};
+
+/* =========================================================
+   PHASE 1 — EARTH LAUNCH (three-stage ascent)
+   ========================================================= */
+const launchPhase={
+  enter(){
+    el.cockpit.classList.remove('hidden');
+    el.topbar.classList.remove('hidden');
+    el.resbar.classList.add('show');
+    updateHUD();
+    clearWorld();
+    setObjective('LAUNCH · HOLD SPACE TO FIRE THE STAGE');
+
+    const earth=makePlanet(EARTH_TEX,320,TEX_GLOW_CYAN);
+    earth.position.set(0,-120,-420);
+    world.add(earth);
+    this.earth=earth;
+
+    /* launch HUD */
+    const wrap=document.createElement('div');
+    wrap.style.cssText='position:absolute;left:50%;top:58%;transform:translateX(-50%);'+
+      'text-align:center;width:min(460px,86vw);';
+    wrap.innerHTML=
+      '<div id="lpStage" style="font-size:13px;letter-spacing:.30em;color:#ffb347;font-weight:800">STAGE 1 · LIFTOFF</div>'+
+      '<div style="margin:14px auto 8px;width:100%;height:12px;border-radius:99px;'+
+      'background:rgba(95,242,255,.12);border:1px solid rgba(95,242,255,.35);overflow:hidden">'+
+      '<div id="lpFill" style="height:100%;width:0%;background:linear-gradient(90deg,#ffb347,#5ff2ff);box-shadow:0 0 18px #5ff2ff"></div></div>'+
+      '<div id="lpHint" style="font-size:12px;letter-spacing:.18em;color:#7fa4c4">HOLD SPACE</div>';
+    el.stage.appendChild(wrap);
+    this.fill=$('lpFill'); this.stageEl=$('lpStage'); this.hint=$('lpHint');
+
+    this.stage=0;
+    this.progress=0;
+    this.alt=0;
+    this.done=false;
+    this.stageNames=['STAGE 1 · LIFTOFF','STAGE 2 · MAX-Q','STAGE 3 · ORBIT INSERTION'];
+  },
+
+  update(dt){
+    if(this.done)return;
+    const holding=!!keys['Space'];
+    const rate=holding?0.55:0;
+    this.progress=clamp(this.progress+dt*rate,0,1);
+    this.alt+=dt*(this.progress*4+0.4);
+
+    this.fill.style.width=(this.progress*100)+'%';
+    this.earth.position.z=lerp(-420,-1300,this.alt/22);
+    this.earth.position.y=lerp(-120,-430,this.alt/22);
+    this.earth.userData.mesh.rotation.y+=dt*0.03;
+
+    /* vibration while thrusting */
+    if(holding){
+      camera.position.x=Math.sin(performance.now()*0.11)*0.35;
+      camera.position.y=Math.cos(performance.now()*0.13)*0.3;
+      if(Math.random()<dt*8)tone(rand(70,120),0.06,'sawtooth',0.05);
+    }else{
+      camera.position.x=lerp(camera.position.x,0,dt*4);
+      camera.position.y=lerp(camera.position.y,0,dt*4);
+    }
+
+    if(this.progress>=1){
+      this.done=true;
+      this.stage++;
+      thud(0.25);
+      tone(300,0.15,'sine',0.14);tone(450,0.25,'sine',0.12,0.1);
+      if(this.stage>=3){ this.finish(); return; }
+      this.progress=0;
+      this.stageEl.textContent=this.stageNames[this.stage];
+      this.hint.textContent='STAGE SEPARATION · HOLD SPACE';
+      toast('STAGE '+(this.stage)+' SEPARATED',1100);
+    }
+    setObjective('LAUNCH · STAGE '+(this.stage+1)+'/3 · ALT '+(this.alt*11).toFixed(0)+' KM');
+  },
+
+  finish(){
+    el.modalInner.innerHTML=
+      '<div class="kicker">LEO · 400 km</div>'+
+      '<h1>ORBIT ACHIEVED</h1>'+
+      '<p>The Meridian sheds her boosters and slides into low Earth orbit. Below, the planet '+
+      'does what it always does: burns blue, spins on, ignores you.</p>'+
+      '<p>Forty-eight crew. Teachers, welders, nurses, engineers, mechanics, dreamers. '+
+      'Trans-Mars injection burns in twenty minutes. Then a message none of them expect.</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(capturePhase);
+    });
+  }
+};
+
+/* =========================================================
+   PHASE 2 — TRACTOR LOCK (Kethri capture)
+   ========================================================= */
+const capturePhase={
+  enter(){
+    el.cockpit.classList.remove('hidden');
+    el.topbar.classList.remove('hidden');
+    el.resbar.classList.add('show');
+    updateHUD();
+    setObjective('CHAPTER 1 \u00b7 TRACTOR LOCK \u00b7 KEEP THE RETICLE IN THE RING');
+    clearWorld();
+
+    const earth=makePlanet(EARTH_TEX,170,TEX_GLOW_CYAN);
+    earth.position.set(-330,-190,-980);
+    world.add(earth);
+    this.earth=earth;
+
+    /* Kethri crystal ship — The Cathedral of Dawn */
+    const ship=new THREE.Group();
+    const shardMat=new THREE.MeshStandardMaterial({
+      color:0x9be8ff,emissive:0x2fd0ff,emissiveIntensity:1.6,
+      roughness:0.15,metalness:0.55,transparent:true,opacity:0.88
+    });
+    ship.add(new THREE.Mesh(new THREE.IcosahedronGeometry(14,0),shardMat));
+    for(let i=0;i<9;i++){
+      const s=new THREE.Mesh(new THREE.OctahedronGeometry(rand(3,9),0),shardMat.clone());
+      const a=Math.random()*Math.PI*2, r=rand(16,34);
+      s.position.set(Math.cos(a)*r,rand(-16,16),Math.sin(a)*r*0.7);
+      s.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+      ship.add(s);
+      s.userData.spin=new THREE.Vector3(rand(-.6,.6),rand(-.6,.6),rand(-.6,.6));
+    }
+    ship.add(makeSprite(TEX_GLOW_CYAN,190));
+    ship.position.set(0,0,-560);
+    world.add(ship);
+    this.ship=ship;
+
+    const ret=document.createElement('div'); ret.id='reticle'; ret.innerHTML='<i></i>';
+    el.stage.appendChild(ret);
+    const ring=document.createElement('div'); ring.id='tractorRing';
+    el.stage.appendChild(ring);
+    this.ret=ret; this.ring=ring;
+
+    this.rx=innerWidth/2; this.ry=innerHeight/2;
+    this.tx=innerWidth/2; this.ty=innerHeight/2;
+    this.ringX=innerWidth/2; this.ringY=innerHeight/2;
+    this.progress=0; this.t=0; this.done=false;
+
+    const bar=document.createElement('div');
+    bar.style.cssText='position:absolute;left:50%;bottom:14vh;transform:translateX(-50%);'+
+      'width:min(360px,70vw);height:8px;border-radius:99px;background:rgba(95,242,255,.13);'+
+      'border:1px solid rgba(95,242,255,.35);overflow:hidden;';
+    const fill=document.createElement('div');
+    fill.style.cssText='height:100%;width:0%;border-radius:99px;'+
+      'background:linear-gradient(90deg,#5ff2ff,#6bff9e);box-shadow:0 0 18px #5ff2ff;';
+    bar.appendChild(fill); el.stage.appendChild(bar);
+    this.barFill=fill;
+
+    this._mm=(e)=>{
+      const p=e.touches?e.touches[0]:e;
+      this.tx=p.clientX; this.ty=p.clientY;
+    };
+    addEventListener('mousemove',this._mm);
+    addEventListener('touchmove',this._mm,{passive:true});
+  },
+
+  update(dt){
+    if(this.done)return;
+    this.t+=dt;
+    const W=innerWidth,H=innerHeight,cx=W/2,cy=H/2;
+
+    const spd=620*dt;
+    if(keys['KeyA']||keys['ArrowLeft'])this.tx-=spd;
+    if(keys['KeyD']||keys['ArrowRight'])this.tx+=spd;
+    if(keys['KeyW']||keys['ArrowUp'])this.ty-=spd;
+    if(keys['KeyS']||keys['ArrowDown'])this.ty+=spd;
+
+    const maxR=Math.min(W,H)*0.34;
+    let dx=this.tx-cx, dy=this.ty-cy;
+    const d=Math.hypot(dx,dy);
+    if(d>maxR){dx=dx/d*maxR;dy=dy/d*maxR;this.tx=cx+dx;this.ty=cy+dy;}
+
+    this.rx=lerp(this.rx,this.tx,clamp(dt*11,0,1));
+    this.ry=lerp(this.ry,this.ty,clamp(dt*11,0,1));
+
+    const speed=0.85+this.t*0.045;
+    const R=Math.min(W,H)*0.20;
+    this.ringX=cx+Math.cos(this.t*speed*0.9)*R+Math.cos(this.t*2.1)*R*0.28;
+    this.ringY=cy+Math.sin(this.t*speed*1.25)*R*0.68+Math.sin(this.t*2.9)*R*0.20;
+    const shrink=clamp(1-this.t*0.012,0.62,1);
+    this.ringR=Math.min(W,H)*0.115*shrink;
+
+    this.ret.style.transform='translate('+(this.rx-23)+'px,'+(this.ry-23)+'px)';
+    this.ring.style.transform='translate('+(this.ringX-cx)+'px,'+(this.ringY-cy)+'px) '+
+      'scale('+(this.ringR/(Math.min(W,H)*0.115))+')';
+
+    const inside=Math.hypot(this.rx-this.ringX,this.ry-this.ringY)<this.ringR*0.92;
+    this.ring.classList.toggle('locked',inside);
+    if(inside)this.progress+=dt/7.0;
+    else this.progress-=dt/4.5;
+    this.progress=clamp(this.progress,0,1);
+    this.barFill.style.width=(this.progress*100)+'%';
+
+    if(this.ship){
+      this.ship.position.z=lerp(-560,-150,this.progress);
+      this.ship.position.x=Math.sin(this.t*0.7)*22;
+      this.ship.position.y=Math.cos(this.t*0.9)*14;
+      this.ship.rotation.y+=dt*0.22;
+      this.ship.children.forEach(ch=>{
+        if(ch.userData.spin){
+          ch.rotation.x+=ch.userData.spin.x*dt;
+          ch.rotation.y+=ch.userData.spin.y*dt;
+          ch.rotation.z+=ch.userData.spin.z*dt;
+        }
+      });
+    }
+    if(this.earth)this.earth.userData.mesh.rotation.y+=dt*0.05;
+
+    if(this.progress>=1){
+      this.done=true;
+      state.trust+=6; updateHUD();
+      tone(660,0.18,'sine',0.16);
+      tone(990,0.32,'sine',0.13,0.12);
+      after(600,()=>{
+        el.modalInner.innerHTML=
+          '<div class="kicker">Mission Day 21 · 02:14 UTC</div>'+
+          '<h1>THE MERIDIAN IS TAKEN</h1>'+
+          '<p>Telemetry dies. Every screen on Earth shows the same thing: a structure of '+
+          'living crystal, ten kilometres long, unfolding around the ship like a hand closing '+
+          'around a seed.</p>'+
+          '<p>Mission Control calls it an abduction. The crew, weightless and terrified, '+
+          'watch light move across the crystal walls in patterns too deliberate to be random.</p>'+
+          '<p>It is not an attack. It is an <em>invitation</em>.</p>'+
+          '<div class="btn" id="mNext">Answer It</div>';
+        el.modal.classList.add('show');
+        $('mNext').addEventListener('click',()=>{
+          el.modal.classList.remove('show');
+          setPhase(kethriPhase);
+        });
+      });
+    }
+  },
+
+  exit(){
+    removeEventListener('mousemove',this._mm);
+    removeEventListener('touchmove',this._mm);
+  }
+};
+
+/* =========================================================
+   PHASE 3 — KETHRI LANGUAGE (light & music) + alignment finale
+   ========================================================= */
+const KETHRI_COLORS=['#5ff2ff','#ffb347','#a06bff','#6bff9e'];
+const KETHRI_FREQS=[523.25,659.25,783.99,1046.50];
+const KETHRI_WORDS=[
+  {w:'LIGHT', t:'&ldquo;We are seen. That is enough.&rdquo;'},
+  {w:'BRIDGE',t:'&ldquo;A bridge is not built. It is agreed.&rdquo;'},
+  {w:'LISTEN',t:'&ldquo;The quiet part of a signal is the message.&rdquo;'},
+  {w:'SAIL',  t:'&ldquo;Push against nothing and you will still move.&rdquo;'}
+];
+
+const kethriPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    setObjective('CHAPTER 2 \u00b7 KETHRI \u00b7 REPEAT THE LIGHT');
+    clearWorld();
+
+    const earth=makePlanet(EARTH_TEX,170,TEX_GLOW_CYAN);
+    earth.position.set(-360,-230,-1100);
+    world.add(earth); this.earth=earth;
+
+    /* the Cathedral of Dawn, close by */
+    const ship=new THREE.Group();
+    const mat=new THREE.MeshStandardMaterial({
+      color:0xbfefff,emissive:0x35d4ff,emissiveIntensity:2.0,
+      roughness:0.1,metalness:0.7,transparent:true,opacity:0.9
+    });
+    ship.add(new THREE.Mesh(new THREE.IcosahedronGeometry(30,0),mat));
+    for(let i=0;i<14;i++){
+      const s=new THREE.Mesh(new THREE.OctahedronGeometry(rand(5,16),0),mat.clone());
+      const a=Math.random()*Math.PI*2,r=rand(36,76);
+      s.position.set(Math.cos(a)*r,rand(-40,40),Math.sin(a)*r*0.6);
+      s.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+      s.userData.spin=new THREE.Vector3(rand(-.5,.5),rand(-.5,.5),rand(-.5,.5));
+      ship.add(s);
+    }
+    ship.add(makeSprite(TEX_GLOW_CYAN,340));
+    ship.position.set(0,0,-330);
+    world.add(ship);
+    this.ship=ship;
+
+    const R=Math.min(innerWidth,innerHeight)*0.185;
+    const pos=[[0,-R],[R,0],[0,R],[-R,0]];
+    this.nodes=[];
+    for(let i=0;i<4;i++){
+      const n=document.createElement('div');
+      n.className='node';
+      n.style.setProperty('--c',KETHRI_COLORS[i]);
+      n.style.transform='translate(-50%,-50%) translate('+pos[i][0]+'px,'+pos[i][1]+'px)';
+      n.innerHTML='<span class="lbl">'+(i+1)+'</span>';
+      n.addEventListener('click',()=>this.press(i));
+      el.stage.appendChild(n);
+      this.nodes.push(n);
+    }
+
+    const tr=document.createElement('div');
+    tr.style.cssText='position:absolute;left:50%;bottom:13vh;transform:translateX(-50%);'+
+      'width:min(560px,86vw);text-align:center;font-size:13px;letter-spacing:.12em;'+
+      'color:#7fa4c4;line-height:1.7;min-height:52px;';
+    el.stage.appendChild(tr);
+    this.transcript=tr;
+
+    this.round=0; this.seq=[]; this.input=[]; this.locked=true;
+    after(900,()=>this.startRound());
+  },
+
+  startRound(){
+    const lens=[3,4,4,5];
+    const len=lens[this.round];
+    this.seq=[];
+    for(let i=0;i<len;i++)this.seq.push((Math.random()*4)|0);
+    for(let i=1;i<this.seq.length;i++){
+      if(this.seq[i]===this.seq[i-1]&&Math.random()<0.85)this.seq[i]=(this.seq[i]+1+((Math.random()*3)|0))%4;
+    }
+    this.input=[]; this.locked=true;
+    this.transcript.textContent='KETHRI SPEAKS&hellip;';
+    setObjective('WATCH THE LIGHT');
+    let t=0;
+    this.seq.forEach((n)=>{ after(t,()=>this.flash(n,320)); t+=560; });
+    after(t+380,()=>{
+      this.locked=false;
+      this.transcript.textContent='YOUR TURN &mdash; KEYS 1-4 OR TAP THE LIGHTS';
+      setObjective('REPEAT THE SEQUENCE');
+    });
+  },
+
+  flash(i,ms){
+    const n=this.nodes[i];
+    if(!n)return;
+    n.classList.add('on');
+    tone(KETHRI_FREQS[i],0.20,'sine',0.16);
+    setTimeout(()=>n.classList.remove('on'),ms||300);
+  },
+
+  press(i){
+    if(this.locked)return;
+    this.flash(i,260);
+    this.input.push(i);
+    const idx=this.input.length-1;
+    if(this.input[idx]!==this.seq[idx]){
+      this.locked=true;
+      this.transcript.textContent='MISUNDERSTOOD. LISTEN AGAIN.';
+      setObjective('TRY AGAIN');
+      tone(180,0.35,'sawtooth',0.10);
+      state.trust=Math.max(0,state.trust-1); updateHUD();
+      after(1100,()=>this.startRound());
+      return;
+    }
+    if(this.input.length===this.seq.length){
+      this.locked=true;
+      const w=KETHRI_WORDS[this.round];
+      this.transcript.innerHTML='<span style="color:#6bff9e">'+w.w+'</span> &nbsp;&mdash;&nbsp; '+
+        '<span style="color:#9fc4de">'+w.t+'</span>';
+      state.words.push(w.w);
+      state.trust+=10; updateHUD();
+      tone(880,0.16,'sine',0.16); tone(1320,0.3,'sine',0.12,0.1);
+      this.round++;
+      if(this.round>=KETHRI_WORDS.length){ after(1500,()=>this.cinematic()); }
+      else { after(1600,()=>this.startRound()); }
+    }
+  },
+
+  onKey(e){
+    const k=e.code;
+    let i=-1;
+    if(k==='Digit1'||k==='Numpad1')i=0;
+    if(k==='Digit2'||k==='Numpad2')i=1;
+    if(k==='Digit3'||k==='Numpad3')i=2;
+    if(k==='Digit4'||k==='Numpad4')i=3;
+    if(i>=0){ e.preventDefault(); this.press(i); }
+  },
+
+  /* non-combat "boss": align with the Cathedral's heart while it pulses */
+  cinematic(){
+    this.nodes.forEach(n=>n.remove());
+    this.transcript.remove();
+    setObjective('CHAPTER 2 \u00b7 THE CATHEDRAL OF DAWN \u00b7 ALIGN WITH THE HEART');
+
+    /* heart beacon */
+    const heart=makeSprite(TEX_GLOW_CYAN,120);
+    heart.position.set(0,10,-300);
+    world.add(heart);
+    this.heart=heart;
+
+    const ret=document.createElement('div'); ret.id='reticle'; ret.innerHTML='<i></i>';
+    el.stage.appendChild(ret);
+    this.ret=ret;
+    this.rx=innerWidth/2; this.ry=innerHeight/2;
+    this.tx=innerWidth/2; this.ty=innerHeight/2;
+    this.alignT=0; this.t=0; this.cine=true;
+
+    this._mm=(e)=>{
+      const p=e.touches?e.touches[0]:e;
+      this.tx=p.clientX; this.ty=p.clientY;
+    };
+    addEventListener('mousemove',this._mm);
+    addEventListener('touchmove',this._mm,{passive:true});
+  },
+
+  updateCinematic(dt){
+    this.t+=dt;
+    const W=innerWidth,H=innerHeight,cx=W/2,cy=H/2;
+    const spd=520*dt;
+    if(keys['KeyA'])this.tx-=spd;
+    if(keys['KeyD'])this.tx+=spd;
+    if(keys['KeyW'])this.ty-=spd;
+    if(keys['KeyS'])this.ty+=spd;
+    this.rx=lerp(this.rx,this.tx,clamp(dt*10,0,1));
+    this.ry=lerp(this.ry,this.ty,clamp(dt*10,0,1));
+    this.ret.style.transform='translate('+(this.rx-23)+'px,'+(this.ry-23)+'px)';
+
+    /* heart wanders gently */
+    if(this.heart){
+      this.heart.position.x=Math.sin(this.t*0.8)*60;
+      this.heart.position.y=10+Math.sin(this.t*1.15)*42;
+      const p2=new THREE.Vector3().copy(this.heart.position).project(camera);
+      this.hx=(p2.x*0.5+0.5)*W; this.hy=(-p2.y*0.5+0.5)*H;
+    }
+    const close=Math.hypot(this.rx-this.hx,this.ry-this.hy)<46;
+    if(close){
+      this.alignT+=dt;
+      if(Math.random()<dt*6)tone(rand(700,1000),0.08,'sine',0.08);
+    }else this.alignT=Math.max(0,this.alignT-dt*0.7);
+
+    setObjective('ALIGN WITH THE HEART · '+Math.round(clamp(this.alignT/4,0,1)*100)+'%');
+
+    if(this.alignT>=4){
+      this.cine=false;
+      state.trust+=6; updateHUD();
+      removeEventListener('mousemove',this._mm);
+      removeEventListener('touchmove',this._mm);
+      this.ret.remove();
+      tone(523,0.2,'sine',0.15);tone(784,0.3,'sine',0.13,0.12);tone(1046,0.5,'sine',0.11,0.25);
+      this.giftModal();
+    }
+  },
+
+  giftModal(){
+    state.gifts.fusion=true;
+    state.thrustMul=2.0;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received · Omega Lyrae</div>'+
+      '<h1>THE FUSION CATALYST</h1>'+
+      '<p>The Kethri are forty thousand years old, and they have never once dug anything out of the ground. '+
+      'They fold a sliver of their own star into your engine bell. It is not fuel. It is <em>permission</em> &mdash; '+
+      'a catalyst that lets your plasma burn hotter than it has any right to, and teaches it to heal itself.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 2.0x &middot; reactor can no longer overheat</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">LIGHT &middot; BRIDGE &middot; LISTEN &middot; SAIL</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(vorasiPhase);
+    });
+  },
+
+  update(dt){
+    if(this.cine){ this.updateCinematic(dt); }
+    if(this.ship){
+      this.ship.rotation.y+=dt*0.18;
+      this.ship.rotation.x=Math.sin(performance.now()*0.0004)*0.10;
+      this.ship.children.forEach(ch=>{
+        if(ch.userData.spin){
+          ch.rotation.x+=ch.userData.spin.x*dt;
+          ch.rotation.y+=ch.userData.spin.y*dt;
+          ch.rotation.z+=ch.userData.spin.z*dt;
+        }
+      });
+    }
+    if(this.earth)this.earth.userData.mesh.rotation.y+=dt*0.05;
+  },
+
+  exit(){
+    if(this._mm){
+      removeEventListener('mousemove',this._mm);
+      removeEventListener('touchmove',this._mm);
+    }
+  }
+};
+
+/* =========================================================
+   PHASE 4 — VORASI (rhythm / the Endless Hive)
+   ========================================================= */
+const vorasiPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    setObjective('CHAPTER 3 \u00b7 VORASI \u00b7 ANSWER IN RHYTHM');
+    clearWorld();
+
+    const hive=new THREE.Group();
+    const coreMat=new THREE.MeshStandardMaterial({
+      color:0x0a1420,emissive:0x0a3a4a,emissiveIntensity:0.9,
+      roughness:0.5,metalness:0.8
+    });
+    hive.add(new THREE.Mesh(new THREE.IcosahedronGeometry(26,1),coreMat));
+
+    const droneMat=new THREE.MeshStandardMaterial({
+      color:0x8ff8ff,emissive:0x22e0ff,emissiveIntensity:2.2,
+      roughness:0.3,metalness:0.6
+    });
+    this.drones=[];
+    for(let i=0;i<64;i++){
+      const d=new THREE.Mesh(new THREE.BoxGeometry(rand(1.6,4.2),rand(1.6,4.2),rand(3,9)),droneMat.clone());
+      const a=Math.random()*Math.PI*2, ph=Math.acos(2*Math.random()-1), r=rand(45,120);
+      d.position.set(r*Math.sin(ph)*Math.cos(a),r*Math.cos(ph)*0.7,r*Math.sin(ph)*Math.sin(a));
+      d.userData={a:a,ph:ph,r:r,sp:rand(0.10,0.40),spin:new THREE.Vector3(rand(-1,1),rand(-1,1),rand(-1,1))};
+      hive.add(d); this.drones.push(d);
+    }
+
+    const sail=new THREE.Mesh(new THREE.CircleGeometry(90,48),
+      new THREE.MeshStandardMaterial({
+        color:0x1a3a4a,emissive:0xffa030,emissiveIntensity:0.55,
+        roughness:0.25,metalness:0.9,side:THREE.DoubleSide,transparent:true,opacity:0.85
+      }));
+    sail.position.set(0,0,-40); sail.rotation.x=0.4;
+    hive.add(sail);
+    this.sail=sail;
+
+    hive.add(makeSprite(TEX_GLOW_CYAN,420));
+    hive.position.set(0,0,-420);
+    world.add(hive);
+    this.hive=hive;
+
+    const wrap=document.createElement('div'); wrap.id='rhythm';
+    const pulse=document.createElement('div'); pulse.id='rhythmPulse';
+    el.stage.appendChild(pulse);
+    el.stage.appendChild(wrap);
+    this.wrap=wrap; this.pulseEl=pulse;
+
+    const info=document.createElement('div');
+    info.style.cssText='position:absolute;left:50%;bottom:13vh;transform:translateX(-50%);'+
+      'width:min(560px,86vw);text-align:center;font-size:13px;letter-spacing:.12em;'+
+      'color:#7fa4c4;line-height:1.7;min-height:56px;';
+    el.stage.appendChild(info);
+    this.info=info;
+
+    this.beat=0.5;
+    this.patterns=[[0,1,2],[0,1,3,4],[0,1,2,4,5],[0,2,3,5,6,8]];
+    this.round=0; this.mode='idle'; this.taps=[]; this.t0=null;
+
+    after(900,()=>this.call());
+  },
+
+  call(){
+    this.mode='calling';
+    this.wrap.innerHTML='';
+    const beats=this.patterns[this.round];
+    this.info.textContent='THE HIVE CALLS &mdash; LISTEN';
+    setObjective('LISTEN TO THE VORASI');
+    this.dots=[];
+    beats.forEach(()=>{
+      const d=document.createElement('div');
+      d.className='beatdot';
+      this.wrap.appendChild(d);
+      this.dots.push(d);
+    });
+    beats.forEach((b,i)=>{
+      const ms=b*this.beat*1000;
+      after(ms,()=>{
+        if(this.dots[i])this.dots[i].classList.add('hit');
+        tone(480+(i%3)*90,0.075,'square',0.15);
+        this.pulse();
+        setTimeout(()=>{if(this.dots[i])this.dots[i].classList.remove('hit');},170);
+      });
+    });
+    const total=(beats[beats.length-1]+1.0)*this.beat*1000;
+    after(total,()=>{
+      this.mode='recording';
+      this.taps=[]; this.t0=null;
+      this.info.textContent='YOUR ANSWER &mdash; TAP SPACE';
+      setObjective('TAP SPACE IN THE SAME RHYTHM');
+      if(this.dots)this.dots.forEach(d=>d.classList.remove('hit'));
+    });
+  },
+
+  pulse(){
+    const p=this.pulseEl;
+    if(!p)return;
+    p.style.transform='scale(1.35)'; p.style.opacity='1';
+    setTimeout(()=>{p.style.transform='scale(1)';p.style.opacity='0.35';},140);
+  },
+
+  onKey(e){
+    if(e.code!=='Space')return;
+    e.preventDefault();
+    if(this.mode!=='recording')return;
+    const now=performance.now();
+    if(this.t0===null)this.t0=now;
+    this.taps.push((now-this.t0)/1000);
+    this.pulse();
+    tone(300,0.07,'square',0.15);
+    if(this.dots&&this.dots[this.taps.length-1]){
+      const d=this.dots[this.taps.length-1];
+      d.classList.add('hit');
+      setTimeout(()=>d.classList.remove('hit'),150);
+    }
+    clearTimeout(this._evalT);
+    this._evalT=setTimeout(()=>this.evaluate(),1500);
+  },
+
+  evaluate(){
+    if(this.mode!=='recording')return;
+    this.mode='idle';
+    const beats=this.patterns[this.round];
+    const want=beats.map(b=>(b-beats[0])*this.beat);
+    const got=this.taps;
+    let ok=got.length===want.length;
+    if(ok){ for(let i=0;i<want.length;i++){ if(Math.abs(got[i]-want[i])>0.26){ok=false;break;} } }
+    if(ok){
+      state.trust+=9; updateHUD();
+      tone(720,0.14,'sine',0.15);tone(1080,0.26,'sine',0.12,0.09);
+      this.info.innerHTML='<span style="color:#6bff9e">MATCHED.</span> THE HIVE OPENS A CHANNEL.';
+      this.round++;
+      if(this.round>=this.patterns.length){ after(1400,()=>this.complete()); }
+      else { after(1500,()=>this.call()); }
+    }else{
+      this.info.innerHTML='<span style="color:#ffb347">NOT QUITE.</span> THEY REPEAT THEMSELVES, PATIENTLY.';
+      tone(200,0.3,'sawtooth',0.09);
+      after(1500,()=>this.call());
+    }
+  },
+
+  complete(){
+    state.gifts.solar=true;
+    state.thrustMul=3.5;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received · Dark Nebula KR-77</div>'+
+      '<h1>THE SOLAR BLOOM</h1>'+
+      '<p>The Vorasi evolved in darkness, and so they never learned to make power. They learned to '+
+      'borrow it. Their collector unfolds like a flower that has been waiting its whole life for a '+
+      'sunrise, and it drinks light the way a lung drinks air.</p>'+
+      '<p>Wrapped around your hull it becomes something more: an anti-radiation field that will matter '+
+      'very much on Mars, where the sky gives no shelter and the dust gives no warning.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 3.5x &middot; unlimited solar charging &middot; radiation field &middot; dust-storm shielding</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">RHYTHM &middot; PATIENCE &middot; BORROW &middot; RETURN</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(oomtalPhase);
+    });
+  },
+
+  update(dt){
+    const t=performance.now()*0.001;
+    if(this.drones){
+      this.drones.forEach(d=>{
+        const u=d.userData;
+        u.a+=u.sp*dt*0.35;
+        d.position.set(
+          u.r*Math.sin(u.ph)*Math.cos(u.a),
+          u.r*Math.cos(u.ph)*0.7+Math.sin(t*0.6+u.ph*3)*3,
+          u.r*Math.sin(u.ph)*Math.sin(u.a)
+        );
+        d.rotation.x+=u.spin.x*dt;
+        d.rotation.y+=u.spin.y*dt;
+      });
+    }
+    if(this.sail)this.sail.rotation.z+=dt*0.06;
+    if(this.hive)this.hive.rotation.y+=dt*0.03;
+  }
+};
+
+/* =========================================================
+   PHASE 5 — OOM'TAL (fuel synthesis / balanced equations)
+   ========================================================= */
+const OOM_EQS=[
+  {
+    name:'WATER &mdash; for the air you will breathe',
+    left:[{f:'H&#8322;',a:{H:2}},{f:'O&#8322;',a:{O:2}}],
+    right:[{f:'H&#8322;O',a:{H:2,O:1}}],
+    hint:'Two hydrogen molecules and one oxygen molecule make two waters.'
+  },
+  {
+    name:'SABATIER &mdash; the reaction Mars gives you for free',
+    left:[{f:'CO&#8322;',a:{C:1,O:2}},{f:'H&#8322;',a:{H:2}}],
+    right:[{f:'CH&#8324;',a:{C:1,H:4}},{f:'H&#8322;O',a:{H:2,O:1}}],
+    hint:'One carbon dioxide plus four hydrogens yields one methane and two waters.'
+  },
+  {
+    name:'COMBUSTION &mdash; the burn that takes you home',
+    left:[{f:'CH&#8324;',a:{C:1,H:4}},{f:'O&#8322;',a:{O:2}}],
+    right:[{f:'CO&#8322;',a:{C:1,O:2}},{f:'H&#8322;O',a:{H:2,O:1}}],
+    hint:'One methane plus two oxygens burns to one carbon dioxide and two waters.'
+  }
+];
+
+const oomtalPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    setObjective('CHAPTER 4 \u00b7 OOM\u2019TAL \u00b7 BALANCE WHAT YOU BURN');
+    clearWorld();
+
+    const g=new THREE.Group();
+    const mat=new THREE.MeshStandardMaterial({
+      color:0xdfeaff,emissive:0x224466,emissiveIntensity:0.7,
+      roughness:0.08,metalness:1.0,transparent:true,opacity:0.10,
+      side:THREE.DoubleSide,depthWrite:false
+    });
+    this.knot=new THREE.Mesh(new THREE.TorusKnotGeometry(70,16,180,24,2,3),mat);
+    this.wire=new THREE.Mesh(
+      new THREE.TorusKnotGeometry(70,16,80,12,2,3),
+      new THREE.MeshBasicMaterial({color:0x5ff2ff,wireframe:true,transparent:true,opacity:0.16})
+    );
+    g.add(this.knot); g.add(this.wire);
+    g.add(makeSprite(TEX_GLOW_VIOLET,420));
+    g.position.set(0,0,-460);
+    world.add(g);
+    this.ship=g;
+
+    /* intro text */
+    const intro=document.createElement('div');
+    intro.style.cssText='position:absolute;left:50%;top:20%;transform:translateX(-50%);'+
+      'width:min(620px,90vw);text-align:center;font-size:13.5px;line-height:1.8;letter-spacing:.06em;'+
+      'color:#9fc4de;';
+    intro.innerHTML='The Silent Ocean does not appear on your sensors. Two million years of travel '+
+      'and they have forgotten how to be seen. What you feel instead is a hand on the equation of the '+
+      'universe &mdash; gently, patiently, correcting you.';
+    el.stage.appendChild(intro);
+    this.intro=intro;
+
+    this.round=0; this.coefs=[]; this.solved=false;
+    after(2600,()=>{ if(this.intro)this.intro.style.opacity='0'; this.buildRound(); });
+  },
+
+  buildRound(){
+    const eq=OOM_EQS[this.round];
+    const nL=eq.left.length, nR=eq.right.length;
+    this.coefs=new Array(nL+nR).fill(0);
+
+    const panel=document.createElement('div');
+    panel.style.cssText='position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);'+
+      'width:min(680px,92vw);padding:22px 20px;border-radius:16px;'+
+      'background:rgba(6,14,26,.86);border:1px solid rgba(160,107,255,.35);'+
+      'box-shadow:0 0 60px rgba(160,107,255,.20);backdrop-filter:blur(6px);text-align:center;';
+    panel.innerHTML=
+      '<div style="font-size:11px;letter-spacing:.30em;color:#a06bff;font-weight:800;'+
+      'text-transform:uppercase;margin-bottom:6px">OOM\u2019TAL TEACHES · '.replace('\u2019','\u2019')+(this.round+1)+' / 3</div>'+
+      '<div style="font-size:13px;color:#9fc4de;letter-spacing:.08em;margin-bottom:4px">'+eq.name+'</div>'+
+      '<div class="eqrow" id="eqRow"></div>'+
+      '<div id="eqStatus" style="font-size:12.5px;letter-spacing:.14em;color:#7fa4c4;min-height:22px"></div>'+
+      '<div style="margin-top:14px;font-size:11.5px;color:#5f7f9c;letter-spacing:.06em">'+
+      'Adjust the coefficients until every element is conserved.</div>';
+    el.stage.appendChild(panel);
+    this.panel=panel;
+
+    const row=panel.querySelector('#eqRow');
+    const self=this;
+    function buildSpecies(sp,idx){
+      const wrap=document.createElement('div');
+      wrap.className='species';
+      const minus=document.createElement('div'); minus.className='step'; minus.textContent='\u2212';
+      const val=document.createElement('div'); val.className='coef'; val.textContent='0';
+      const plus=document.createElement('div'); plus.className='step'; plus.textContent='+';
+      const f=document.createElement('div'); f.innerHTML=sp.f;
+      wrap.appendChild(minus);wrap.appendChild(val);wrap.appendChild(plus);wrap.appendChild(f);
+      minus.addEventListener('click',()=>{ if(self.coefs[idx]>0){self.coefs[idx]--;val.textContent=self.coefs[idx];self.check();tone(260,0.06,'square',0.10);} });
+      plus.addEventListener('click',()=>{ if(self.coefs[idx]<9){self.coefs[idx]++;val.textContent=self.coefs[idx];self.check();tone(340,0.06,'square',0.10);} });
+      return wrap;
+    }
+
+    let k=0;
+    eq.left.forEach((sp,i)=>{
+      row.appendChild(buildSpecies(sp,k++));
+      if(i<eq.left.length-1){const p=document.createElement('div');p.className='eqplus';p.textContent='+';row.appendChild(p);}
+    });
+    const arrow=document.createElement('div'); arrow.className='eqarrow'; arrow.textContent='\u27F6';
+    row.appendChild(arrow);
+    let kk=eq.left.length;
+    eq.right.forEach((sp,i)=>{
+      row.appendChild(buildSpecies(sp,kk++));
+      if(i<eq.right.length-1){const p=document.createElement('div');p.className='eqplus';p.textContent='+';row.appendChild(p);}
+    });
+    this.check();
+  },
+
+  check(){
+    const eq=OOM_EQS[this.round];
+    const totals={};
+    eq.left.forEach((sp,i)=>{ for(const e in sp.a){ totals[e]=(totals[e]||0)+sp.a[e]*this.coefs[i]; } });
+    eq.right.forEach((sp,i)=>{ for(const e in sp.a){ totals[e]=(totals[e]||0)-sp.a[e]*this.coefs[eq.left.length+i]; } });
+
+    let balanced=true, anyZero=false;
+    for(const e in totals){ if(totals[e]!==0)balanced=false; }
+    for(let i=0;i<this.coefs.length;i++) if(this.coefs[i]<1) anyZero=true;
+    balanced=balanced&&!anyZero;
+
+    const st=this.panel.querySelector('#eqStatus');
+    if(balanced){
+      st.innerHTML='<span style="color:#6bff9e">\u2713 CONSERVED &mdash; THE GLYPHS RESOLVE</span>';
+      if(!this.solved){
+        this.solved=true;
+        tone(700,0.16,'sine',0.16);tone(1050,0.30,'sine',0.12,0.10);
+        after(1150,()=>this.nextRound());
+      }
+    }else{
+      this.solved=false;
+      let diff=0;
+      for(const e in totals)diff+=Math.abs(totals[e]);
+      st.innerHTML='<span style="opacity:.6">unbalanced &middot; '+diff+' atom'+(diff===1?'':'s')+' adrift</span>';
+    }
+  },
+
+  nextRound(){
+    this.round++;
+    if(this.panel)this.panel.remove();
+    if(this.round>=OOM_EQS.length){ this.complete(); return; }
+    this.buildRound();
+  },
+
+  complete(){
+    state.gifts.fuel=true;
+    state.thrustMul=5.0;
+    state.encountersDone++;
+    updateHUD();
+    el.modalInner.innerHTML=
+      '<div class="kicker">Gift Received · The Intergalactic Void</div>'+
+      '<h1>THE RESOURCE SYNTHESIS MATRIX</h1>'+
+      '<p>The Oom\u2019tal do not mine. They do not drill. They rearrange. Give them ice and an atmosphere '+
+      'and they will hand you propellant, oxygen and drinking water from the same pile of dust.</p>'+
+      '<p>It works on Mars. It works on the Moon. It works anywhere there is something to take apart.</p>'+
+      '<p><b style="color:#6bff9e">Thrust multiplier: 5.0x &middot; fuel / oxygen / water from Martian ice &amp; CO&#8322;</b></p>'+
+      '<h2>Words learned</h2>'+
+      '<p class="small">BALANCE &middot; PATTERN &middot; EXCHANGE &middot; RETURN</p>'+
+      '<div class="btn" id="mNext">Begin the Crossing</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(transitPhase);
+    });
+  },
+
+  update(dt){
+    const t=performance.now()*0.001;
+    if(this.knot){
+      this.knot.rotation.x+=dt*0.16;
+      this.knot.rotation.y+=dt*0.22;
+      this.wire.rotation.x+=dt*0.16;
+      this.wire.rotation.y+=dt*0.22;
+      this.ship.position.y=Math.sin(t*0.5)*10;
+    }
+  }
+};
+
+/* =========================================================
+   PHASE 6 — THE CROSSING (transit + resource management)
+   ========================================================= */
+const TRANSIT_EVENTS=[
+  { at:0.18, title:'SOLAR FLARE',
+    txt:'A coronal mass ejection is sweeping the transit corridor. The storm front will reach the Meridian in minutes.',
+    opts:[
+      {b:'BURN HARD THROUGH IT', s:'Throttle up and outrun the particle front. Costs fuel, spares the crew.', fx:{fuel:-14,rad:6,morale:2}, ok:'The flare grazes your wake. The crew cheers.'},
+      {b:'RIDE IT OUT SHIELDED', s:'Drop the Vorasi bloom as a parasol and weather the storm in the shadow of the sail.', fx:{rad:stateRef=>state.gifts.solar?2:16, morale:-4}, ok:'The bloom drinks the storm light and hums like a struck bell.'}
+    ]},
+  { at:0.38, title:'COOLANT LEAK',
+    txt:'A micrometeorite has opened a hairline crack in the secondary coolant loop. Engineering wants a decision.',
+    opts:[
+      {b:'PATCH IT NOW', s:'EVA in hard vacuum. Fast, permanent, dangerous for the spacewalker.', fx:{ls:-4, morale:-5}, ok:'The patch holds. The spacewalker comes home shaking.'},
+      {b:'REROUTE THE LOOP', s:'Burns extra power for the rest of the crossing but keeps everyone inside.', fx:{power:-12}, ok:'The loop reroutes. The hum of the ship changes key, then settles.'}
+    ]},
+  { at:0.60, title:'THE LONG QUIET',
+    txt:'Day 25. Earth is a blue pixel. Mars is a red one. In between: nothing, for a hundred million kilometres.',
+    opts:[
+      {b:'LET THE CREW REST', s:'Half rations of work, double rations of music. Costs water recycling margin.', fx:{morale:9, ls:-5}, ok:'Somebody teaches the botanist to play the harmonica. It helps.'},
+      {b:'KEEP FULL SCHEDULE', s:'Drills and maintenance, every hour accounted for. The ship stays sharp. The people fray.', fx:{morale:-8, ls:2}, ok:'The ship gleams. The crew does not.'}
+    ]},
+  { at:0.80, title:'NAVIGATION ANOMALY',
+    txt:'The star tracker disagrees with the inertial platform by 0.4 arcminutes. Tiny. Everything on this ship is tiny, right up until it isn\u2019t.',
+    opts:[
+      {b:'TRUST THE STARS', s:'Recalibrate from first principles. Slow, careful, correct.', fx:{fuel:-6}, ok:'The tracker and the platform agree again. So do you.'},
+      {b:'AVERAGE THEM', s:'Split the difference and keep burning. Faster, sloppier.', fx:{fuel:-2, morale:-3}, ok:'The error compounds quietly for two days before you catch it.'}
+    ]}
+];
+
+function stateRef(){return 0;}
+
+const transitPhase={
+  enter(){
+    el.topbar.classList.remove('hidden');
+    el.resbar.classList.add('show');
+    state.hull=100; state.day=1; updateHUD();
+    setObjective('THE CROSSING · THROTTLE Q / E · STEER W A S D');
+    clearWorld();
+
+    const mars=makePlanet(MARS_TEX,260,TEX_GLOW_AMBER);
+    mars.position.set(0,-30,-3200);
+    world.add(mars);
+    this.mars=mars;
+
+    this.debris=[];
+    const dMat=new THREE.MeshStandardMaterial({
+      color:0x8a8f96,roughness:0.9,metalness:0.3,
+      emissive:0x221100,emissiveIntensity:1.0
+    });
+    for(let i=0;i<44;i++){
+      const geo=[
+        new THREE.DodecahedronGeometry(rand(2.2,5.5),0),
+        new THREE.BoxGeometry(rand(3,8),rand(2,6),rand(3,9)),
+        new THREE.IcosahedronGeometry(rand(2,5),0)
+      ][(Math.random()*3)|0];
+      const m=new THREE.Mesh(geo,dMat.clone());
+      m.visible=false;
+      m.userData={active:false,vx:0,vy:0,vz:0,r:3};
+      world.add(m);
+      this.debris.push(m);
+    }
+
+    this.throttle=0.5;
+    this.progress=0;
+    this.camX=0; this.camY=0; this.vx=0; this.vy=0;
+    this.spawnT=0;
+    this.dead=false;
+    this.hitFlash=0;
+    this.eventIdx=0;
+    this.paused=false;
+  },
+
+  spawnDebris(){
+    const d=this.debris.find(x=>!x.userData.active);
+    if(!d)return;
+    d.visible=true;
+    d.userData.active=true;
+    d.position.set(rand(-34,34),rand(-24,24),-620);
+    d.userData.vz=110+this.throttle*230;
+    d.userData.vx=rand(-8,8);
+    d.userData.vy=rand(-8,8);
+    if(!d.geometry.boundingSphere)d.geometry.computeBoundingSphere();
+    d.userData.r=d.geometry.boundingSphere.radius;
+    d.rotation.set(Math.random()*3,Math.random()*3,Math.random()*3);
+  },
+
+  fireEvent(ev){
+    this.paused=true;
+    let cards='';
+    ev.opts.forEach((o,i)=>{
+      cards+='<div class="card" data-i="'+i+'"><b>'+o.b+'</b><span>'+o.s+'</span></div>';
+    });
+    el.modalInner.innerHTML=
+      '<div class="kicker" style="color:#ffb347">Ship Event</div>'+
+      '<h1 style="font-size:22px">'+ev.title+'</h1>'+
+      '<p>'+ev.txt+'</p>'+
+      '<div class="cards">'+cards+'</div>';
+    el.modal.classList.add('show');
+    const self=this;
+    el.modalInner.querySelectorAll('.card').forEach(card=>{
+      card.addEventListener('click',()=>{
+        const o=ev.opts[+card.dataset.i];
+        for(const k in o.fx){
+          let v=o.fx[k];
+          if(typeof v==='function')v=v();
+          if(k==='rad')state.radiation=clamp(state.radiation+v,0,100);
+          else state[k]=clamp(state[k]+v,0,100);
+        }
+        updateHUD();
+        el.modalInner.innerHTML='<p style="margin-top:8px">'+o.ok+'</p>'+
+          '<div class="btn" id="mNext">Continue</div>';
+        $('mNext').addEventListener('click',()=>{
+          el.modal.classList.remove('show');
+          self.paused=false;
+        });
+      });
+    });
+  },
+
+  update(dt){
+    if(this.dead||this.paused)return;
+
+    if(keys['KeyQ'])this.throttle-=dt*0.75;
+    if(keys['KeyE'])this.throttle+=dt*0.75;
+    this.throttle=clamp(this.throttle,0,1);
+
+    const acc=42;
+    if(keys['KeyA'])this.vx-=acc*dt;
+    if(keys['KeyD'])this.vx+=acc*dt;
+    if(keys['KeyW'])this.vy+=acc*dt;
+    if(keys['KeyS'])this.vy-=acc*dt;
+    this.vx*=Math.pow(0.02,dt);
+    this.vy*=Math.pow(0.02,dt);
+    this.camX=clamp(this.camX+this.vx*dt,-26,26);
+    this.camY=clamp(this.camY+this.vy*dt,-18,18);
+    camera.position.x=lerp(camera.position.x,this.camX,clamp(dt*10,0,1));
+    camera.position.y=lerp(camera.position.y,this.camY,clamp(dt*10,0,1));
+    camera.rotation.z=lerp(camera.rotation.z,-this.vx*0.004,clamp(dt*5,0,1));
+
+    /* progress: baseline ~210 days at 1x -> thrustMul 5x => ~42 days */
+    const rate=(0.10+this.throttle*0.90)*(state.thrustMul/5.0)*0.0286;
+    this.progress=clamp(this.progress+dt*rate,0,1);
+    state.day=1+this.progress*Math.round(210/state.thrustMul);
+
+    /* resource ticks */
+    state.fuel=clamp(state.fuel-dt*this.throttle*0.55,0,100);
+    state.power=clamp(state.power+dt*((state.gifts.solar?0.9:0.4)-this.throttle*0.35),0,100);
+    state.morale=clamp(state.morale-dt*0.05+dt*0.02*state.trust/10,0,100);
+    state.radiation=clamp(state.radiation+dt*(state.gifts.solar?0.004:0.02),0,100);
+    state.ls=clamp(state.ls-dt*0.03,0,100);
+    updateHUD();
+
+    /* Mars approach */
+    if(this.mars){
+      const p=this.progress;
+      this.mars.position.z=lerp(-3400,-760,p);
+      this.mars.position.x=Math.sin(p*2.4)*90*(1-p);
+      this.mars.position.y=lerp(-30,-70,p);
+      this.mars.userData.mesh.rotation.y+=dt*0.05;
+      this.mars.scale.setScalar(lerp(0.85,1.25,p));
+    }
+
+    /* events */
+    if(this.eventIdx<TRANSIT_EVENTS.length&&this.progress>=TRANSIT_EVENTS[this.eventIdx].at){
+      this.fireEvent(TRANSIT_EVENTS[this.eventIdx]);
+      this.eventIdx++;
+    }
+
+    /* debris */
+    this.spawnT-=dt;
+    const interval=Math.max(0.22,1.45-this.throttle*0.85);
+    if(this.spawnT<=0){ this.spawnT=interval; this.spawnDebris(); }
+    for(const d of this.debris){
+      if(!d.userData.active)continue;
+      d.position.z+=d.userData.vz*dt;
+      d.position.x+=d.userData.vx*dt;
+      d.position.y+=d.userData.vy*dt;
+      d.rotation.x+=dt*1.2;
+      d.rotation.y+=dt*0.9;
+      if(Math.abs(d.position.z)<16){
+        const dx=d.position.x-camera.position.x;
+        const dy=d.position.y-camera.position.y;
+        if(Math.hypot(dx,dy)<d.userData.r+4.5){
+          d.visible=false; d.userData.active=false;
+          state.hull-=9;
+          this.hitFlash=1;
+          thud(0.34);
+          updateHUD();
+          if(state.hull<=0){ this.fail(); return; }
+        }
+      }
+      if(d.position.z>60){ d.visible=false; d.userData.active=false; }
+    }
+
+    if(this.hitFlash>0){
+      this.hitFlash=Math.max(0,this.hitFlash-dt*2.2);
+      el.cockpit.style.boxShadow=
+        'inset 0 0 260px 70px rgba(0,0,0,.92), inset 0 0 '+(120*this.hitFlash)+'px '+
+        (40*this.hitFlash)+'px rgba(255,80,50,'+(0.55*this.hitFlash)+')';
+    }
+
+    setObjective('CROSSING · '+Math.round(this.progress*100)+'% TO MARS · THROTTLE '+Math.round(this.throttle*100)+'%');
+
+    if(this.progress>=1){ this.arrive(); return; }
+    if(state.fuel<=0&&this.throttle>0.05){ this.outOfFuel(); return; }
+    if(state.ls<=0){ this.fail('LIFE SUPPORT'); return; }
+    if(state.radiation>=100){ this.fail('RADIATION'); return; }
+  },
+
+  fail(cause){
+    this.dead=true;
+    const msgs={
+      'default':['THE MERIDIAN IS LOST','The debris field did what debris fields do. Your crew is safe in the forward capsule, but the crossing is over.'],
+      'LIFE SUPPORT':['LIFE SUPPORT FAILURE','The loops are dry and the air tastes like a machine apologising. The crossing is over.'],
+      'RADIATION':['RADIATION OVERLOAD','The crew took too much. The ship is fine. Ships are always fine. The crossing is over.'],
+      'FUEL':['TANKS DRY','The Meridian drifts, silent, a third of the way to Mars. The crossing is over.']
+    };
+    const m=msgs[cause]||msgs['default'];
+    el.modalInner.innerHTML=
+      '<div class="kicker" style="color:#ff6b4a">'+cause+'</div>'+
+      '<h1>'+m[0]+'</h1>'+
+      '<p>'+m[1]+'</p>'+
+      '<p class="small">Tip: keep the throttle around 55&ndash;70% in the dense belt. Watch FUEL, RAD and LIFE &mdash; a fast ship you cannot breathe in is just a coffin with thrust.</p>'+
+      '<div class="btn" id="mRetry">Try the Crossing Again</div>';
+    el.modal.classList.add('show');
+    const self=this;
+    $('mRetry').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(transitPhase);
+    });
+  },
+
+  outOfFuel(){ this.fail('FUEL'); },
+
+  arrive(){
+    this.dead=true;
+    camera.position.set(0,0,0);camera.rotation.z=0;
+    tone(523,0.3,'sine',0.14);tone(659,0.3,'sine',0.12,0.15);
+    tone(784,0.5,'sine',0.12,0.30);
+    state.trust+=8; updateHUD();
+    after(700,()=>setPhase(landingPhase));
+  }
+};
+
+/* =========================================================
+   PHASE 7 — SEVEN MINUTES OF TERROR (Mars EDL)
+   ========================================================= */
+const landingPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    clearWorld();
+
+    /* Mars surface ground: rocky plane */
+    const groundTex=(function(){
+      const s=512,c=makeCanvas(s,s),ctx=c.getContext('2d');
+      const rnd=mulberry32(5);
+      ctx.fillStyle='#7a3418';ctx.fillRect(0,0,s,s);
+      for(let i=0;i<900;i++){
+        ctx.globalAlpha=0.05+rnd()*0.22;
+        ctx.fillStyle=['#8a3a1a','#5a2410','#9a4a24','#6b2c12'][(rnd()*4)|0];
+        const r=2+rnd()*22;
+        ctx.beginPath();ctx.arc(rnd()*s,rnd()*s,r,0,7);ctx.fill();
+      }
+      return new THREE.CanvasTexture(c);
+    })();
+    groundTex.wrapS=groundTex.wrapT=THREE.RepeatWrapping;
+    groundTex.repeat.set(30,30);
+    const ground=new THREE.Mesh(
+      new THREE.PlaneGeometry(6000,6000),
+      new THREE.MeshStandardMaterial({map:groundTex,roughness:1,metalness:0})
+    );
+    ground.rotation.x=-Math.PI/2;
+    ground.position.y=-160;
+    world.add(ground);
+    this.ground=ground;
+
+    /* Mars in the sky during entry */
+    const sky=makePlanet(MARS_TEX,260,TEX_GLOW_AMBER);
+    sky.position.set(0,240,-3400);
+    world.add(sky);
+    this.sky=sky;
+
+    /* boulders for final descent */
+    this.boulders=[];
+    const bMat=new THREE.MeshStandardMaterial({color:0x5a2410,roughness:1,metalness:0.05});
+    for(let i=0;i<26;i++){
+      const b=new THREE.Mesh(new THREE.DodecahedronGeometry(rand(6,16),0),bMat);
+      b.position.set(rand(-160,160),-160+rand(2,8),rand(-900,-100));
+      b.rotation.set(Math.random()*3,Math.random()*3,0);
+      world.add(b);
+      this.boulders.push(b);
+    }
+
+    this.stage=0;         /* 0 aero, 1 chute, 2 powered */
+    this.dead=false;
+    this.t=0;
+    this.angle=0;         /* entry angle */
+    this.heat=0;
+    this.alt=12000;       /* metres */
+    this.speed=0;
+    this.chuteDone=false;
+    this.camX=0; this.vx=0;
+
+    this.showIntro();
+  },
+
+  showIntro(){
+    this.paused=true;
+    el.modalInner.innerHTML=
+      '<div class="kicker">Entry · Descent · Landing</div>'+
+      '<h1>SEVEN MINUTES OF TERROR</h1>'+
+      '<p>From the top of the atmosphere to the surface: <em>seven minutes</em>. No human hand can help you. '+
+      'Viking rode parachutes. Curiosity flew a sky crane. Tianwen-1 used rockets and a hovering platform. '+
+      'Beagle 2 reached Mars and simply never phoned home.</p>'+
+      '<p class="small">PHASE 1 &mdash; Aerobrake: steer W/S, keep the entry angle inside the green corridor. '+
+      'PHASE 2 &mdash; Deploy the chute with SPACE between 7 and 9 km. '+
+      'PHASE 3 &mdash; Powered descent: throttle Q/E, dodge with A/D, touch down slower than 50.</p>'+
+      '<div class="btn" id="mNext">Begin EDL</div>';
+    el.modal.classList.add('show');
+    const self=this;
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      self.paused=false;
+    });
+  },
+
+  hud(txt){
+    setObjective(txt);
+  },
+
+  update(dt){
+    if(this.dead||this.paused)return;
+    this.t+=dt;
+
+    if(this.stage===0){ this.aero(dt); }
+    else if(this.stage===1){ this.chute(dt); }
+    else if(this.stage===2){ this.powered(dt); }
+  },
+
+  aero(dt){
+    /* steer angle */
+    const acc=1.6;
+    if(keys['KeyW']||keys['ArrowUp'])this.angle+=acc*dt;
+    if(keys['KeyS']||keys['ArrowDown'])this.angle-=acc*dt;
+    this.angle=clamp(this.angle,-1.6,1.6);
+
+    const inCorridor=Math.abs(this.angle)<0.55;
+    this.heat=clamp(this.heat+(inCorridor?-6:9)*dt,0,100);
+
+    /* plasma glow */
+    const intensity=inCorridor?0.08:0.30+this.heat/200;
+    el.cockpit.style.boxShadow=
+      'inset 0 0 260px 70px rgba(0,0,0,.92), inset 0 0 160px 60px rgba(255,'+
+      Math.round(140-this.heat)+',40,'+intensity+')';
+
+    if(Math.random()<dt*(inCorridor?1:5))tone(rand(100,220),0.05,'sawtooth',inCorridor?0.02:0.07);
+
+    this.alt-=dt*2600;
+    this.hud('ENTRY \u00b7 ALT '+Math.max(0,this.alt/1000).toFixed(1)+' KM \u00b7 ANGLE '+
+      (this.angle>=0?'+':'')+this.angle.toFixed(2)+' DEG \u00b7 HEAT '+Math.round(this.heat)+'%');
+
+    if(this.heat>=100){ this.crash('BURNED UP','Too steep. The plasma sheath became a furnace, and the Meridian became a meteor.'); return; }
+    if(this.alt<=9000){
+      this.stage=1; this.alt=9000; this.chuteArmed=true;
+      el.cockpit.style.boxShadow='inset 0 0 260px 70px rgba(0,0,0,.92)';
+      this.hud('CHUTE WINDOW 7&ndash;9 KM · PRESS SPACE');
+      toast('DEPLOY WINDOW OPEN',1200);
+    }
+  },
+
+  chute(dt){
+    this.alt-=dt*520;   /* ~14s through the window */
+    const km=this.alt/1000;
+    this.hud('UNDER CHUTE \u00b7 ALT '+km.toFixed(2)+' KM \u00b7 '+((km>9||km<7)?'PRESS SPACE IN THE GREEN WINDOW (7-9 KM)':'DEPLOY NOW -- SPACE'));
+    if(Math.random()<dt*3)tone(rand(300,420),0.04,'sine',0.03);
+
+    if(this.alt<=7000&&!this.chuteDone){
+      this.crash('CHUTE NEVER OPENED','Seven kilometres of empty sky, then rock. The window closed at 7 km and nobody pulled the handle.');
+      return;
+    }
+    if(this.alt<=2000&&this.chuteDone){
+      this.stage=2; this.alt=2000; this.speed=118;
+      toast('POWERED DESCENT',1200);
+      tone(660,0.2,'sine',0.14);
+    }
+  },
+
+  onKey(e){
+    if(this.stage!==1||this.chuteDone)return;
+    if(e.code!=='Space')return;
+    e.preventDefault();
+    const km=this.alt/1000;
+    this.chuteDone=true;
+    if(km>9){
+      this.crash('CHUTE SHREDDED','Deployed at '+km.toFixed(1)+' km &mdash; too thin up there to fill the canopy. The lines snapped like thread.');
+    }else if(km<7){
+      this.crash('TOO LOW, TOO FAST','The chute opened at '+km.toFixed(1)+' km and immediately screamed. There was no time left to slow down.');
+    }else{
+      tone(200,0.4,'sine',0.16);
+      toast('CHUTE DEPLOYED · '+km.toFixed(2)+' KM',1400);
+    }
+  },
+
+  powered(dt){
+    if(keys['KeyQ'])this.speed+=dt*26;
+    if(keys['KeyE'])this.speed-=dt*26;
+    this.speed=clamp(this.speed,12,220);
+    if(keys['KeyA'])this.vx-=dt*40;
+    if(keys['KeyD'])this.vx+=dt*40;
+    this.vx*=Math.pow(0.05,dt);
+    this.camX=clamp(this.camX+this.vx*dt,-140,140);
+    camera.position.x=lerp(camera.position.x,this.camX,clamp(dt*6,0,1));
+
+    if(this.speed<60&&Math.random()<dt*4)tone(rand(90,130),0.08,'sawtooth',0.05);
+
+    this.alt-=this.speed*dt*0.28;   /* speed in km/h, alt metres */
+
+    /* boulders stream toward the camera as we descend */
+    const vz=this.speed*0.28;
+    for(const b of this.boulders){
+      b.position.z+=vz*dt*2.2;
+      b.rotation.y+=dt*0.3;
+      if(b.position.z>60){ b.position.z=rand(-900,-500); b.position.x=rand(-160,160); b.userData.hit=false; }
+      if(!b.userData.hit&&Math.abs(b.position.z)<26){
+        if(Math.abs(b.position.x-this.camX)<b.geometry.parameters.radius+7){
+          b.userData.hit=true;
+          this.crash('TERRAIN IMPACT','A boulder the size of a house was in the last hundred metres. The radar saw it. The pilot didn\u2019t.');
+          return;
+        }
+      }
+    }
+
+    this.hud('POWERED DESCENT \u00b7 ALT '+Math.max(0,this.alt).toFixed(0)+' M \u00b7 VEL '+Math.round(this.speed)+' \u00b7 THROTTLE Q/E \u00b7 DODGE A/D');
+
+    if(this.alt<=0){
+      if(this.speed<=50){ this.touchdown(); return; }
+      this.crash('HARD IMPACT','Touchdown at '+Math.round(this.speed)+' km/h. The legs were rated for 50. So was everything else.');
+    }
+  },
+
+  crash(title,txt){
+    this.dead=true;
+    el.cockpit.style.boxShadow='inset 0 0 260px 70px rgba(0,0,0,.92)';
+    el.modalInner.innerHTML=
+      '<div class="kicker" style="color:#ff6b4a">EDL Failure</div>'+
+      '<h1>'+title+'</h1>'+
+      '<p>'+txt+'</p>'+
+      '<p class="small">Every agency that has landed on Mars lost at least one vehicle trying. '+
+      'Beagle 2 got all the way down. Schiaparelli got within 3.7 km. The last seven minutes are where missions go to be tested.</p>'+
+      '<div class="btn" id="mRetry">Retry Entry</div>';
+    el.modal.classList.add('show');
+    $('mRetry').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(landingPhase);
+    });
+  },
+
+  touchdown(){
+    this.dead=true;
+    camera.position.set(0,0,0);
+    tone(392,0.25,'sine',0.15);tone(523,0.3,'sine',0.13,0.15);tone(659,0.6,'sine',0.12,0.3);
+    state.trust+=8; updateHUD();
+    this.hud('TOUCHDOWN CONFIRMED');
+    toast('TOUCHDOWN · '+Math.round(this.speed)+' KM/H',2200);
+    after(1600,()=>setPhase(marsPhase));
+  }
+};
+
+/* =========================================================
+   PHASE 8 — MARS ORBIT (mission log + lessons)
+   ========================================================= */
+const MARS_LOG=[
+  {yr:'1971',ok:false,txt:'Mars 2 & Mars 3 (USSR) &mdash; first human-made objects on Mars. Mars 3 returned 20 seconds of data before falling silent.'},
+  {yr:'1976',ok:true, txt:'Viking 1 & 2 (NASA) &mdash; first successful landings; first life-detection experiments, results still debated.'},
+  {yr:'1997',ok:true, txt:'Mars Pathfinder & Sojourner (NASA) &mdash; first rover on Mars; airbag landing worked first time.'},
+  {yr:'1999',ok:false,txt:'Mars Climate Orbiter (NASA) &mdash; lost on arrival. Root cause: a metric/imperial unit mismatch between two teams.'},
+  {yr:'2003',ok:false,txt:'Beagle 2 (ESA) &mdash; reached Mars but never phoned home; found intact on the surface in 2015.'},
+  {yr:'2004',ok:true, txt:'Mars Express (ESA) & MER rovers Spirit & Opportunity (NASA) &mdash; orbiter and twin rovers arrive within weeks.'},
+  {yr:'2012',ok:true, txt:'Curiosity (NASA) &mdash; sky-crane landing, the most complex entry sequence ever flown.'},
+  {yr:'2014',ok:true, txt:'Mangalyaan / MOM (ISRO) &mdash; India reaches Mars orbit on its first attempt, at record low cost.'},
+  {yr:'2016',ok:false,txt:'ExoMars TGO (ESA/Roscosmos) &mdash; orbiter succeeds; Schiaparelli lander lost during descent.'},
+  {yr:'2021',ok:true, txt:'Tianwen-1 & Zhurong (CNSA) &mdash; China lands and drives on Mars on its first attempt.'},
+  {yr:'2021',ok:true, txt:'Perseverance & Ingenuity (NASA) &mdash; first powered flight on another planet.'},
+  {yr:'2020s',ok:true,txt:'JAXA & ESA &mdash; Martian Moons eXploration (MMX) develops toward a Phobos sample return.'}
+];
+
+const MARS_LESSONS=[
+  {t:'Units kill missions', d:'Mars Climate Orbiter was lost because one team used newton-seconds and another used pound-seconds. On the Meridian, every system speaks SI. Forever.'},
+  {t:'Arrival is harder than the journey', d:'Mars 3, Beagle 2 and Schiaparelli all failed at the last seven minutes. Budget your margin for entry, descent and landing, not for cruise.'},
+  {t:'Redundancy beats brilliance', d:'Viking carried two identical landers. ExoMars lost one lander and kept the orbiter. Design so a single failure is survivable.'},
+  {t:'Cheap does not mean careless', d:'Mangalyaan reached Mars on a first attempt at a fraction of typical cost by being ruthlessly disciplined about scope.'},
+  {t:'Test the whole chain, not the parts', d:'Beagle 2\u2019s subsystems were fine; the deployment sequence was not. Integration testing is where missions live or die.'}
+];
+
+const marsPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    setObjective('MARS \u00b7 THE MERIDIAN HAS LANDED');
+    clearWorld();
+
+    const mars=makePlanet(MARS_TEX,260,TEX_GLOW_AMBER);
+    mars.position.set(0,-90,-760);
+    world.add(mars);
+    this.mars=mars;
+
+    const moon=new THREE.Mesh(
+      new THREE.IcosahedronGeometry(14,1),
+      new THREE.MeshStandardMaterial({color:0x6b5a4a,roughness:1,metalness:0})
+    );
+    moon.position.set(-260,60,-620);
+    world.add(moon);
+    this.moon=moon;
+
+    after(600,()=>this.showLog());
+  },
+
+  showLog(){
+    let logHTML='';
+    MARS_LOG.forEach(l=>{
+      logHTML+='<div class="logitem"><div class="yr">'+l.yr+'</div>'+
+        '<div><span class="'+(l.ok?'ok':'no')+'">'+(l.ok?'\u2713':'\u2715')+'</span> '+l.txt+'</div></div>';
+    });
+    let lesHTML='';
+    MARS_LESSONS.forEach(l=>{
+      lesHTML+='<div class="lesson"><b>'+l.t+'.</b> '+l.d+'</div>';
+    });
+
+    el.modalInner.innerHTML=
+      '<div class="kicker">Sol '+(state.day>60?42:Math.floor(state.day))+' · Jezero Basin</div>'+
+      '<h1>THE MERIDIAN IS DOWN</h1>'+
+      '<p>You crossed in <em>'+(state.day>60?42:Math.floor(state.day))+' sols</em> instead of the usual 210. '+
+      'The three gifts hum in the engine bay. Outside: a sky the colour of dried blood, a sun half the size of Earth\u2019s, '+
+      'and a silence with texture.</p>'+
+      '<h2>What humanity already learned here</h2>'+
+      '<p class="small">Public mission records &mdash; successes and failures both. Nothing classified; simply what the agencies published.</p>'+
+      logHTML+
+      '<h2>Five engineering lessons carried forward</h2>'+
+      lesHTML+
+      '<div class="btn" id="mNext">Found New Horizon City</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(settlementPhase);
+    });
+  },
+
+  update(dt){
+    if(this.mars)this.mars.userData.mesh.rotation.y+=dt*0.04;
+    if(this.moon){
+      this.moon.rotation.y+=dt*0.6;
+      this.moon.position.x=-260+Math.sin(performance.now()*0.0002)*40;
+    }
+  }
+};
+
+/* =========================================================
+   PHASE 9 — SETTLEMENT (five decisions build a city)
+   ========================================================= */
+const SETTLE_ROUNDS=[
+  {
+    title:'SOL 1 · THE LANDING SITE',
+    sub:'Three candidate sites. Each one commits you to something.',
+    options:[
+      {b:'JEZERO CRATER', s:'Ancient river delta. Clay and carbonates &mdash; and a dry lakebed that may hide ice.',
+       e:{water:2,knowledge:1,fuel:1}, trust:1, out:'The drill bites into clay on the second attempt. The cores are beautiful.'},
+      {b:'UTOPIA PLANITIA', s:'Vast northern plain. Shallow, accessible ground ice. Easy terrain for heavy landers.',
+       e:{water:3,fuel:1}, trust:0, out:'Ice at 1.2 metres. The crew laughs out loud when the first litre melts.'},
+      {b:'VALLES MARINERIS RIM', s:'Sheltered canyon walls. Geothermal gradient. But the terrain is brutal for landing.',
+       e:{power:2,knowledge:2}, trust:2, out:'The canyon gives you a windbreak and a heat gradient. Also two broken legs.'}
+    ]
+  },
+  {
+    title:'SOL 9 · POWER',
+    sub:'Three ways to keep the lights on. Scale one first.',
+    options:[
+      {b:'SOLAR FARM', s:'Fold out the Vorasi bloom design. Light and repairable, useless in a dust storm.',
+       e:{power:3}, trust:1, out:'The collectors drink Mars-light all day. You learn to sleep when the batteries say so.'},
+      {b:'KILOPOWER REACTOR', s:'A small fission unit. Heavy, but it does not care about dust or night.',
+       e:{power:2,fuel:2}, trust:0, out:'The reactor hums at 10 kWe. For the first time, the habitat is warm at night.'},
+      {b:'HYBRID + STORAGE', s:'Smaller solar, a big battery bank and reactor backup. Slower to build.',
+       e:{power:2,knowledge:2}, trust:2, out:'Nothing is optimal. Everything is survivable. That is the point.'}
+    ]
+  },
+  {
+    title:'SOL 17 · WATER AND AIR',
+    sub:'The Oom\u2019tal matrix can crack ice. What do you spend the hydrogen on?',
+    options:[
+      {b:'LIFE SUPPORT FIRST', s:'All water to drinking, crops and oxygen. Propellant waits.',
+       e:{water:3,food:2}, trust:1, out:'The greenhouse smells like wet earth for the first time. Nobody wants to leave it.'},
+      {b:'PROPELLANT FIRST', s:'Split the water. Fuel the return vehicle before anything else.',
+       e:{fuel:3,water:1}, trust:0, out:'The ascent stage is fuelled by sol 30. The most expensive safety net ever built.'},
+      {b:'BALANCED SPLIT', s:'Half to life support, half to propellant, with strict rationing.',
+       e:{water:2,fuel:2,knowledge:1}, trust:2, out:'Rationing is unpopular. Rationing works.'}
+    ]
+  },
+  {
+    title:'SOL 31 · THE CREW',
+    sub:'Most of your colonists are not specialists. That can change.',
+    options:[
+      {b:'ON-THE-JOB TRAINING', s:'Everyone learns a second role while doing their first. Slow, brutal, effective.',
+       e:{knowledge:3,power:1}, trust:1, out:'By sol 60, four colonists can run the reactor, the greenhouse and the clinic.'},
+      {b:'ALIEN TUTORING', s:'Let the Kethri and the Vorasi teach. Fast, but the crew must think in alien grammar.',
+       e:{knowledge:4}, trust:3, out:'The lectures are light and rhythm. Retention is astonishing.'},
+      {b:'SPECIALIST FIRST', s:'Train three people deeply. Everyone else keeps hauling rocks.',
+       e:{knowledge:2,power:2}, trust:0, out:'Deep expertise in three people. Fragility in everyone else.'}
+    ]
+  },
+  {
+    title:'SOL 44 · THE LONG PLAN',
+    sub:'You are not a camp any more. Decide what the colony is for.',
+    options:[
+      {b:'PROPELLANT DEPOT', s:'Become the refuelling stop for everything humanity sends outward.',
+       e:{fuel:3,knowledge:1}, trust:2, out:'Tankers begin arriving. Mars stops being a destination and becomes a road.'},
+      {b:'SCIENCE STATION', s:'Become the place where the question of ancient life gets answered.',
+       e:{knowledge:3,power:1}, trust:1, out:'The first paper is published. It is careful, boring, and enormous.'},
+      {b:'SELF-SUFFICIENT TOWN', s:'Food, water, air, power &mdash; all closed loops. No dependence on Earth.',
+       e:{food:3,water:2}, trust:1, out:'On sol 400 the colony goes seven days without a resupply. Nobody notices until later.'}
+    ]
+  }
+];
+
+const settlementPhase={
+  enter(){
+    el.topbar.classList.remove('hidden'); el.resbar.classList.add('show'); updateHUD();
+    setObjective('SETTLEMENT \u00b7 DECIDE');
+    clearWorld();
+
+    const mars=makePlanet(MARS_TEX,300,TEX_GLOW_AMBER);
+    mars.position.set(0,-200,-780);
+    world.add(mars);
+    this.mars=mars;
+
+    state.colony={power:2,water:2,fuel:2,food:2,knowledge:1};
+    this.round=0;
+    after(500,()=>this.showRound());
+  },
+
+  showRound(){
+    const r=SETTLE_ROUNDS[this.round];
+    let cards='';
+    r.options.forEach((o,i)=>{
+      const eff=Object.keys(o.e).map(k=>'+'+o.e[k]+' '+k.toUpperCase()).join(' &middot; ');
+      cards+='<div class="card" data-i="'+i+'">'+
+        '<b>'+o.b+'</b><span>'+o.s+'</span>'+
+        '<div class="eff">'+eff+(o.trust?(' &middot; '+o.trust+' TRUST'):'')+'</div></div>';
+    });
+    const c=state.colony;
+    el.modalInner.innerHTML=
+      '<div class="kicker">'+r.title+'</div>'+
+      '<p class="small" style="margin-top:0">'+r.sub+'</p>'+
+      '<div style="display:flex;gap:14px;flex-wrap:wrap;margin:16px 0 6px;font-size:11px;'+
+      'letter-spacing:.14em;color:#7fa4c4;font-weight:700">'+
+      '<span>POWER '+c.power+'</span><span>WATER '+c.water+'</span>'+
+      '<span>FUEL '+c.fuel+'</span><span>FOOD '+c.food+'</span>'+
+      '<span>KNOWLEDGE '+c.knowledge+'</span><span style="color:#5ff2ff">TRUST '+Math.round(state.trust)+'</span>'+
+      '</div>'+
+      '<div class="cards">'+cards+'</div>';
+    el.modal.classList.add('show');
+
+    el.modalInner.querySelectorAll('.card').forEach(card=>{
+      card.addEventListener('click',()=>{
+        const o=r.options[+card.dataset.i];
+        for(const k in o.e)state.colony[k]=(state.colony[k]||0)+o.e[k];
+        state.trust+=o.trust||0;
+        updateHUD();
+        el.modalInner.innerHTML=
+          '<div class="kicker">'+r.title+'</div>'+
+          '<h1 style="font-size:22px">'+o.b+'</h1>'+
+          '<p>'+o.out+'</p>'+
+          '<div class="btn" id="mNext">Continue</div>';
+        $('mNext').addEventListener('click',()=>{
+          el.modal.classList.remove('show');
+          this.round++;
+          if(this.round>=SETTLE_ROUNDS.length)this.finish();
+          else after(320,()=>this.showRound());
+        });
+      });
+    });
+  },
+
+  finish(){
+    const c=state.colony;
+    const score=c.power+c.water+c.fuel+c.food+c.knowledge+state.trust*0.12;
+    state.population = score>=26?500000:(score>=20?50000:(score>=14?5000:500));
+
+    let tier,title,body;
+    if(score>=26){
+      tier='THE RED MERIDIAN';
+      title='NEW HORIZON CITY';
+      body='By sol 500 the colony is self-sufficient in water and food, exports propellant, '+
+        'and has published three papers on the ancient delta. Maglev lines stitch the crater rim to the ice mines. '+
+        'The Kethri send a bridge. The Vorasi send a song. The Oom\u2019tal send nothing at all, which they consider a compliment. '+
+        'Humanity is a two-planet species.';
+    }else if(score>=20){
+      tier='THE HOLDING PATTERN';
+      title='A COLONY THAT HOLDS';
+      body='The colony survives its first year, then its second. There are lean sols and one very bad night with the reactor. '+
+        'But the greenhouses hold and the ice keeps melting. You are not a city yet. You are a place people will still be living in ten years from now.';
+    }else if(score>=14){
+      tier='THE FOOTHOLD';
+      title='A FOOTHOLD, BARELY';
+      body='The colony lives on rations and borrowed margins. Every system is one failure away from a very bad sol. '+
+        'Still &mdash; nobody has gone home. That counts for something.';
+    }else{
+      tier='THE FRAGILE CAMP';
+      title='A CAMP ON THE EDGE';
+      body='The Meridian sits on the surface with half its systems dark and the crew rationing water by the mouthful. '+
+        'It is not a failure. It is not a success either. It is a beginning that will need a great deal of help.';
+    }
+
+    el.modalInner.innerHTML=
+      '<div class="kicker">Final Report · '+tier+'</div>'+
+      '<h1>'+title+'</h1>'+
+      '<p>'+body+'</p>'+
+      '<h2>Colony at sol 500 &middot; population '+state.population.toLocaleString()+'</h2>'+
+      '<div style="display:flex;gap:16px;flex-wrap:wrap;margin:14px 0;font-size:12px;'+
+      'letter-spacing:.14em;font-weight:800;color:#9fc4de">'+
+      '<span>POWER '+c.power+'</span><span>WATER '+c.water+'</span><span>FUEL '+c.fuel+'</span>'+
+      '<span>FOOD '+c.food+'</span><span>KNOWLEDGE '+c.knowledge+'</span>'+
+      '<span style="color:#5ff2ff">TRUST '+Math.round(state.trust)+'</span></div>'+
+      '<h2>Technology carried</h2>'+
+      '<p class="small">Fusion catalyst (Kethri) &middot; Solar bloom (Vorasi) &middot; '+
+      'Synthesis matrix (Oom\u2019tal) &mdash; combined thrust multiplier '+state.thrustMul.toFixed(1)+'x.</p>'+
+      '<div class="btn" id="mNext">The Next Chapter</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      setPhase(epiloguePhase);
+    });
+  },
+
+  update(dt){
+    if(this.mars)this.mars.userData.mesh.rotation.y+=dt*0.03;
+  }
+};
+
+/* =========================================================
+   PHASE 10 — EPILOGUE (the DSS Bhupinder Deol)
+   ========================================================= */
+const epiloguePhase={
+  enter(){
+    el.topbar.classList.add('hidden');
+    el.resbar.classList.remove('show');
+    setObjective('');
+    clearWorld();
+
+    /* pull-back shot: Mars below, Earth far, new ship ahead */
+    const mars=makePlanet(MARS_TEX,220,TEX_GLOW_AMBER);
+    mars.position.set(-260,-190,-700);
+    world.add(mars);
+    const earth=makePlanet(EARTH_TEX,90,TEX_GLOW_CYAN);
+    earth.position.set(320,220,-1600);
+    world.add(earth);
+    const sun=makeSprite(TEX_GLOW_SUN,500);
+    sun.position.set(0,120,-2200);
+    world.add(sun);
+
+    /* the first human interstellar ship */
+    const ship=new THREE.Group();
+    const hullMat=new THREE.MeshStandardMaterial({color:0xcfd8e6,roughness:0.3,metalness:0.85,
+      emissive:0x112244,emissiveIntensity:0.6});
+    ship.add(new THREE.Mesh(new THREE.CylinderGeometry(6,8,60,16),hullMat));
+    const ring=new THREE.Mesh(new THREE.TorusGeometry(30,2.5,12,48),
+      new THREE.MeshStandardMaterial({color:0x5ff2ff,emissive:0x2fd0ff,emissiveIntensity:1.8,metalness:0.7,roughness:0.3}));
+    ring.rotation.x=Math.PI/2;
+    ship.add(ring);
+    ship.add(makeSprite(TEX_GLOW_CYAN,160));
+    ship.position.set(0,10,-500);
+    world.add(ship);
+    this.ship=ship; this.ring=ring;
+    this.mars=mars;
+
+    this.step=0;
+    after(1000,()=>this.line1());
+  },
+
+  line1(){
+    el.modalInner.innerHTML=
+      '<div class="kicker">Epilogue · Mars Orbit · Year 2075</div>'+
+      '<h1 style="font-size:24px">THEY CAME BACK</h1>'+
+      '<p>Decades after the Meridian, the three civilizations return &mdash; the Cathedral of Dawn, the Endless Hive, '+
+      'the Silent Ocean, hanging over New Horizon City like three moons that learned to think.</p>'+
+      '<p>They reveal the truth: thousands of civilizations exist. Most destroy themselves before they become '+
+      'multiplanetary. The Kethri, the Vorasi and the Oom\u2019tal watch the young ones. Humanity was being evaluated.</p>'+
+      '<p>The Mars colony was humanity\u2019s <em>final examination</em>.</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{ el.modal.classList.remove('show'); this.line2(); });
+  },
+
+  line2(){
+    el.modalInner.innerHTML=
+      '<div class="kicker">The Examination</div>'+
+      '<h1 style="font-size:24px">THE VERDICT</h1>'+
+      '<p>The Kethri speak first, in light:</p>'+
+      '<p style="color:#5ff2ff;font-size:17px;letter-spacing:.06em">&ldquo;They learned.&rdquo;</p>'+
+      '<p>The Vorasi answer in rhythm:</p>'+
+      '<p style="color:#ffb347;font-size:17px;letter-spacing:.06em">&ldquo;They endured.&rdquo;</p>'+
+      '<p>The Oom\u2019tal conclude, in symbols written across their hull:</p>'+
+      '<p style="color:#a06bff;font-size:17px;letter-spacing:.06em">&ldquo;They are ready.&rdquo;</p>'+
+      '<div class="btn" id="mNext">Continue</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{ el.modal.classList.remove('show'); this.line3(); });
+  },
+
+  line3(){
+    el.modalInner.innerHTML=
+      '<div class="kicker">Sol 10,000 · Earth&ndash;Mars Alliance Shipyard</div>'+
+      '<h1>DSS BHUPINDER DEOL</h1>'+
+      '<p>Earth and Mars unite. The first human-built interstellar vessel launches &mdash; '+
+      'fusion catalyst in her heart, solar bloom in her wings, synthesis matrix in her blood. '+
+      'Everything she is, three strangers decided a struggling rocket was worth making faster instead of breaking.</p>'+
+      '<p>The camera pulls back: Earth. Mars. The Sun. A growing network of human colonies. '+
+      'Then the stars stretch, and the Bhupinder Deol jumps to hyperspace.</p>'+
+      '<p style="margin-top:18px;font-size:11px;letter-spacing:.3em;color:#4d6b85">RED MERIDIAN &mdash; A GAME BY BHUPINDER DEOL</p>'+
+      '<div class="btn" id="mNext">Play Again</div>';
+    el.modal.classList.add('show');
+    $('mNext').addEventListener('click',()=>{
+      el.modal.classList.remove('show');
+      Object.assign(state,{
+        day:1, hull:100, trust:0, thrustMul:1.0,
+        fuel:100, power:100, morale:70, radiation:0, ls:100,
+        gifts:{fusion:false,solar:false,fuel:false},
+        words:[], encountersDone:0, population:50,
+        colony:{power:2,water:2,fuel:2,food:2,knowledge:1}
+      });
+      camera.position.set(0,0,0);camera.rotation.z=0;
+      setPhase(titlePhase);
+    });
+  },
+
+  update(dt){
+    if(this.ship){
+      this.ship.position.y=10+Math.sin(performance.now()*0.0006)*8;
+      this.ring.rotation.z+=dt*0.8;
+      this.ship.rotation.y+=dt*0.05;
+    }
+    if(this.mars)this.mars.userData.mesh.rotation.y+=dt*0.03;
+  }
+};
+
+/* =========================================================
+   INPUT / RESIZE / LOOP / BOOT
+   ========================================================= */
+const keys={};
+addEventListener('keydown',(e)=>{
+  keys[e.code]=true;
+  if(e.code==='Space')e.preventDefault();
+  if(currentPhase&&currentPhase.onKey)currentPhase.onKey(e);
+});
+addEventListener('keyup',(e)=>{ keys[e.code]=false; });
+addEventListener('blur',()=>{ for(const k in keys)keys[k]=false; });
+
+function onResize(){
+  camera.aspect=innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
+}
+addEventListener('resize',onResize);
+
+let last=performance.now();
+let elapsed=0;
+function loop(now){
+  requestAnimationFrame(loop);
+  const dt=Math.min(0.05,(now-last)/1000);
+  last=now; elapsed+=dt;
+
+  starsGroup.rotation.y+=dt*0.006;
+  starsGroup.rotation.x=Math.sin(elapsed*0.02)*0.02;
+  NEBULA.rotation.y+=dt*0.002;
+  const pulse=1+Math.sin(elapsed*1.2)*0.03;
+  SUN.children[0].scale.set(1900*pulse,1900*pulse,1);
+
+  if(currentPhase&&currentPhase.update)currentPhase.update(dt);
+  renderer.render(scene,camera);
+}
+
+function boot(){
+  updateHUD();
+  setPhase(titlePhase);
+  requestAnimationFrame(loop);
+
+  $('startBtn').addEventListener('click',async ()=>{
+    audioOn();
+    await fadeTo(true,420);
+    el.title.classList.add('gone');
+    setPhase(launchPhase);
+    await fadeTo(false,600);
+  });
+}
+
+boot();
+
+})();
+</script>
+</body>
+</html>
