@@ -1,0 +1,1283 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local Services & Contact Directory</title>
+    <!-- Load Google Fonts: Inter for crisp English UI & Noto Sans Gurmukhi for authentic Punjabi rendering -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Gurmukhi:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Modern Slate & Indigo Design Tokens */
+        :root {
+            --bg-body: #f8fafc;
+            --bg-surface: #ffffff;
+            --bg-subtle: #f1f5f9;
+            --bg-hover: #f8fafc;
+            
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --text-muted: #64748b;
+            
+            --border-light: #e2e8f0;
+            --border-focus: #6366f1;
+            
+            --primary: #4f46e5;
+            --primary-hover: #4338ca;
+            --primary-light: #eef2ff;
+            --primary-text: #3730a3;
+            
+            --success: #059669;
+            --success-bg: #ecfdf5;
+            --success-border: #a7f3d0;
+            
+            --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+            --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+            --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.05);
+            
+            --radius-sm: 0.375rem;
+            --radius-md: 0.625rem;
+            --radius-lg: 1rem;
+            --radius-full: 9999px;
+        }
+
+        /* Reset & Base Styles */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', 'Noto Sans Gurmukhi', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .punjabi-text {
+            font-family: 'Noto Sans Gurmukhi', 'Inter', sans-serif;
+        }
+
+        /* Header Section */
+        header {
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #3730a3 100%);
+            color: #ffffff;
+            padding: 2rem 1.25rem 3.5rem;
+            position: relative;
+        }
+
+        .container {
+            max-width: 1180px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        .header-top {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .brand-icon {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(8px);
+            padding: 0.65rem;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: clamp(1.35rem, 3vw, 1.85rem);
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .subtitle {
+            color: #c7d2fe;
+            font-size: 0.925rem;
+            margin-top: 0.25rem;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.625rem;
+        }
+
+        .btn-header {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            background: rgba(255, 255, 255, 0.12);
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.25);
+            padding: 0.55rem 0.95rem;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-header:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        /* Main Content Wrapper */
+        main {
+            flex: 1;
+            padding: 0 1.25rem 3rem;
+            margin-top: -2.25rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Control Panel Card (Search, Filter Pills & View Switcher) */
+        .controls-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            border: 1px solid var(--border-light);
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .search-and-view {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.15rem;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 0.95rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            pointer-events: none;
+            display: flex;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 0.72rem 2.5rem 0.72rem 2.65rem;
+            border: 1.5px solid var(--border-light);
+            border-radius: var(--radius-md);
+            font-size: 0.95rem;
+            font-family: inherit;
+            color: var(--text-primary);
+            background-color: var(--bg-subtle);
+            transition: all 0.2s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            background-color: var(--bg-surface);
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+
+        .clear-search {
+            position: absolute;
+            right: 0.75rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: #cbd5e1;
+            color: #ffffff;
+            border: none;
+            width: 1.35rem;
+            height: 1.35rem;
+            border-radius: var(--radius-full);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 0.75rem;
+            transition: background 0.15s;
+        }
+
+        .clear-search:hover {
+            background: #94a3b8;
+        }
+
+        /* View Toggle Switcher */
+        .view-toggle {
+            display: inline-flex;
+            background: var(--bg-subtle);
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+        }
+
+        .view-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            padding: 0.45rem 0.85rem;
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.85rem;
+            font-weight: 600;
+            border-radius: calc(var(--radius-md) - 2px);
+            cursor: pointer;
+            transition: all 0.18s ease;
+        }
+
+        .view-btn.active {
+            background: var(--bg-surface);
+            color: var(--primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Category Filter Pills */
+        .filter-pills {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            align-items: center;
+        }
+
+        .pill {
+            padding: 0.42rem 0.85rem;
+            border-radius: var(--radius-full);
+            border: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-size: 0.825rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.18s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .pill:hover {
+            border-color: #cbd5e1;
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+        }
+
+        .pill.active {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+            box-shadow: 0 2px 5px rgba(79, 70, 229, 0.25);
+        }
+
+        .pill-count {
+            font-size: 0.72rem;
+            padding: 0.05rem 0.4rem;
+            border-radius: var(--radius-full);
+            background: rgba(0, 0, 0, 0.07);
+        }
+
+        .pill.active .pill-count {
+            background: rgba(255, 255, 255, 0.22);
+            color: #ffffff;
+        }
+
+        /* Results Metadata Bar */
+        .results-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* Category Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.65rem;
+            border-radius: var(--radius-full);
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+
+        .badge-electrician { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+        .badge-plumber { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
+        .badge-construction { background: #ffedd5; color: #9a3412; border: 1px solid #fed7aa; }
+        .badge-transport { background: #f3e8ff; color: #6b21a8; border: 1px solid #e9d5ff; }
+        .badge-medical { background: #ffe4e6; color: #9f1239; border: 1px solid #fecdd3; }
+        .badge-general { background: #f1f5f9; color: #334155; border: 1px solid #cbd5e1; }
+
+        /* TABLE VIEW STYLES */
+        .table-container {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            border: 1px solid var(--border-light);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        thead {
+            background: var(--bg-subtle);
+            border-bottom: 1.5px solid var(--border-light);
+        }
+
+        th {
+            padding: 0.9rem 1.15rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid var(--border-light);
+            transition: background-color 0.15s ease;
+        }
+
+        tbody tr:last-child {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background-color: var(--bg-hover);
+        }
+
+        td {
+            padding: 1rem 1.15rem;
+            vertical-align: middle;
+        }
+
+        .contact-name-en {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 0.95rem;
+        }
+
+        .contact-name-pa {
+            font-size: 0.92rem;
+            color: var(--text-secondary);
+            margin-top: 0.15rem;
+        }
+
+        .contact-role-sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        /* Phone Action Group */
+        .phone-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .phone-item {
+            display: inline-flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+
+        .phone-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--primary);
+            background: var(--primary-light);
+            padding: 0.38rem 0.75rem;
+            border-radius: var(--radius-md);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.9rem;
+            font-variant-numeric: tabular-nums;
+            transition: all 0.15s ease;
+            border: 1px solid #c7d2fe;
+        }
+
+        .phone-link:hover {
+            background: var(--primary);
+            color: #ffffff;
+            border-color: var(--primary);
+        }
+
+        .btn-copy {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.38rem 0.68rem;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-light);
+            background: var(--bg-surface);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-copy:hover {
+            background: var(--bg-subtle);
+            color: var(--text-primary);
+            border-color: #cbd5e1;
+        }
+
+        .btn-copy.copied {
+            background: var(--success-bg);
+            color: var(--success);
+            border-color: var(--success-border);
+        }
+
+        .no-phone-note {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            font-style: italic;
+            background: var(--bg-subtle);
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-md);
+            display: inline-block;
+        }
+
+        /* CARD VIEW STYLES */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .contact-card {
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light);
+            box-shadow: var(--shadow-sm);
+            padding: 1.25rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 1rem;
+            transition: transform 0.18s ease, box-shadow 0.18s ease;
+        }
+
+        .contact-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 0.75rem;
+        }
+
+        .card-body {
+            border-top: 1px solid var(--border-light);
+            padding-top: 0.85rem;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 3.5rem 1.5rem;
+            background: var(--bg-surface);
+            border-radius: var(--radius-lg);
+            border: 1px dashed #cbd5e1;
+        }
+
+        .empty-state h3 {
+            font-size: 1.1rem;
+            color: var(--text-primary);
+            margin-top: 0.75rem;
+        }
+
+        .empty-state p {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.35rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-reset {
+            background: var(--primary);
+            color: #ffffff;
+            border: none;
+            padding: 0.55rem 1.1rem;
+            border-radius: var(--radius-md);
+            font-weight: 500;
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        /* Toast Notification */
+        .toast {
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            background: #0f172a;
+            color: #ffffff;
+            padding: 0.75rem 1.15rem;
+            border-radius: var(--radius-md);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            z-index: 1000;
+            transform: translateY(150%);
+            opacity: 0;
+            transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+
+        .toast-icon {
+            color: #34d399;
+            display: flex;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 1.5rem 1.25rem;
+            color: var(--text-muted);
+            font-size: 0.825rem;
+            border-top: 1px solid var(--border-light);
+            background: var(--bg-surface);
+        }
+
+        /* Helper Classes */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive Tweaks */
+        @media (max-width: 640px) {
+            header {
+                padding: 1.5rem 1rem 3rem;
+            }
+            main {
+                padding: 0 0.85rem 2.5rem;
+            }
+            .controls-card {
+                padding: 1rem;
+            }
+            .view-toggle {
+                width: 100%;
+            }
+            .view-btn {
+                flex: 1;
+                justify-content: center;
+            }
+            .toast {
+                left: 1rem;
+                right: 1rem;
+                bottom: 1rem;
+                justify-content: center;
+            }
+        }
+
+        /* Print-Friendly Styles */
+        @media print {
+            body {
+                background: #ffffff;
+                color: #000000;
+            }
+            header {
+                background: #ffffff !important;
+                color: #000000 !important;
+                padding: 0 0 1rem 0;
+                border-bottom: 2px solid #000000;
+            }
+            .subtitle {
+                color: #333333 !important;
+            }
+            .brand-icon, .header-actions, .controls-card, .btn-copy, .toast, footer {
+                display: none !important;
+            }
+            main {
+                margin-top: 1rem;
+                padding: 0;
+            }
+            .table-container, .contact-card {
+                box-shadow: none !important;
+                border: 1px solid #cccccc !important;
+            }
+            .phone-link {
+                background: transparent !important;
+                border: none !important;
+                color: #000000 !important;
+                padding: 0 !important;
+            }
+            .badge {
+                border: 1px solid #999999 !important;
+                background: transparent !important;
+                color: #000000 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Top Header -->
+    <header>
+        <div class="container">
+            <div class="header-top">
+                <div class="brand-title">
+                    <div class="brand-icon" aria-hidden="true">
+                        <!-- Phonebook SVG Icon -->
+                        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/>
+                            <path d="M9 10h6"/>
+                            <path d="M12 7v6"/>
+                        </svg>
+                    </div>
+                    <div>
+                        <h1>Local Services & Contact Directory</h1>
+                        <p class="subtitle">Digitized Punjabi & English Household Service Contacts • Bhogpur & Surrounding Areas</p>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button type="button" class="btn-header" onclick="window.print()" title="Print Contact List">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="6 9 6 2 18 2 18 9"/>
+                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+                            <rect width="12" height="8" x="6" y="14"/>
+                        </svg>
+                        <span>Print Directory</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Application Area -->
+    <main class="container">
+        
+        <!-- Search, View Toggle & Category Filter Controls -->
+        <section class="controls-card" aria-label="Search and filter contacts">
+            <div class="search-and-view">
+                <div class="search-wrapper">
+                    <span class="search-icon" aria-hidden="true">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.3-4.3"/>
+                        </svg>
+                    </span>
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Search by name (English / ਪੰਜਾਬੀ), service, or phone number..." 
+                        aria-label="Search contacts"
+                    >
+                    <button type="button" id="clearSearchBtn" class="clear-search" title="Clear search" aria-label="Clear search">✕</button>
+                </div>
+
+                <div class="view-toggle" role="group" aria-label="Display layout">
+                    <button type="button" id="tableViewBtn" class="view-btn active" aria-pressed="true">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="18" height="18" x="3" y="3" rx="2"/>
+                            <path d="M3 9h18"/>
+                            <path d="M3 15h18"/>
+                            <path d="M9 9v12"/>
+                        </svg>
+                        <span>Table View</span>
+                    </button>
+                    <button type="button" id="cardViewBtn" class="view-btn" aria-pressed="false">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect width="7" height="7" x="3" y="3" rx="1"/>
+                            <rect width="7" height="7" x="14" y="3" rx="1"/>
+                            <rect width="7" height="7" x="14" y="14" rx="1"/>
+                            <rect width="7" height="7" x="3" y="14" rx="1"/>
+                        </svg>
+                        <span>Card View</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="filter-pills" id="categoryPills" role="tablist" aria-label="Filter by category">
+                <!-- Dynamically populated via JS -->
+            </div>
+        </section>
+
+        <!-- Results Summary Bar -->
+        <div class="results-bar">
+            <span id="resultsCount">Showing <strong>21</strong> contacts</span>
+            <span style="font-size: 0.8rem; color: var(--text-muted);">Tap any phone number to call directly</span>
+        </div>
+
+        <!-- Structured Responsive Table View -->
+        <div id="tableViewContainer" class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 34%;">Name (English & Punjabi)</th>
+                        <th style="width: 24%;">Category & Service Role</th>
+                        <th style="width: 42%;">Phone Number(s) & Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody">
+                    <!-- Rows injected via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Mobile-Friendly Card View -->
+        <div id="cardViewContainer" class="cards-grid hidden">
+            <!-- Cards injected via JavaScript -->
+        </div>
+
+        <!-- Empty Search State -->
+        <div id="emptyState" class="empty-state hidden">
+            <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" style="margin: 0 auto;">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.3-4.3"/>
+                <path d="M8 11h6"/>
+            </svg>
+            <h3>No matching contacts found</h3>
+            <p>Try searching with a different spelling, Punjabi word, service type, or clear your active filters.</p>
+            <button type="button" class="btn-reset" id="resetFiltersBtn">Reset Search & Filters</button>
+        </div>
+
+    </main>
+
+    <!-- Copy Confirmation Toast -->
+    <div id="toast" class="toast" role="status" aria-live="polite">
+        <span class="toast-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+            </svg>
+        </span>
+        <span id="toastMessage">Copied to clipboard!</span>
+    </div>
+
+    <footer>
+        <div class="container">
+            Digitized Local Services Contact Directory • Preserving both English transliteration & Gurmukhi (<span class="punjabi-text">ਗੁਰਮੁਖੀ</span>) records.
+        </div>
+    </footer>
+
+    <script>
+        /**
+         * Complete Contact Dataset extracted from handwritten Punjabi/English notes
+         */
+        const contactsData = [
+            {
+                id: 1,
+                nameEn: "Gagan Bijli Wala",
+                namePa: "ਗਗਨੂ ਬਿਜਲੀ ਵਾਲਾ",
+                category: "Electrician & Inverter",
+                role: "Electrician",
+                phones: ["98154-08709"]
+            },
+            {
+                id: 2,
+                nameEn: "Paramjit Singh Bijli",
+                namePa: "ਪਰਮਜੀਤ ਸਿੰਘ ਬਿਜਲੀ",
+                category: "Electrician & Inverter",
+                role: "Electrician",
+                phones: ["98157-18813"]
+            },
+            {
+                id: 3,
+                nameEn: "Lakkar Mistri Jeeti",
+                namePa: "ਲਕੜ ਮਿਸਤਰੀ ਜੀਤੀ",
+                category: "Construction & Paint",
+                role: "Carpenter",
+                phones: ["93162-62258"]
+            },
+            {
+                id: 4,
+                nameEn: "Karambir Rajmistri",
+                namePa: "ਕਰਮਬੀਰ ਰਾਜਮਿਸਤਰੀ",
+                category: "Construction & Paint",
+                role: "Mason / Construction",
+                phones: ["98881-26916", "01881-269161"]
+            },
+            {
+                id: 5,
+                nameEn: "Grill Wala Sukhwinder Singh",
+                namePa: "ਗਰਿਲ ਵਾਲਾ ਸੁਖਵਿੰਦਰ ਸਿੰਘ",
+                category: "Construction & Paint",
+                role: "Welder / Grill Work",
+                phones: ["98726-36927"]
+            },
+            {
+                id: 6,
+                nameEn: "Plumber Sonu Pani Pipe",
+                namePa: "ਪਲੰਬਰ ਸੋਨੂੰ ਪਾਣੀ ਪਾਇਪ",
+                category: "Plumber",
+                role: "Plumber",
+                phones: ["99153-68317"]
+            },
+            {
+                id: 7,
+                nameEn: "Satpal Malak Plumber",
+                namePa: "ਸਤਿ ਪਾਲ ਮਾਲਕ ਪਲੰਬਰ",
+                category: "Plumber",
+                role: "Plumber",
+                phones: ["98156-87990"]
+            },
+            {
+                id: 8,
+                nameEn: "Inverter Wala",
+                namePa: "ਇਨਵਰਟਰ ਵਾਲਾ - Inverter",
+                category: "Electrician & Inverter",
+                role: "Inverter / Battery",
+                phones: ["98159-79519"]
+            },
+            {
+                id: 9,
+                nameEn: "Shindi Rehda & Cable Also",
+                namePa: "ਸ਼ਿੰਦੀ ਰੇਹੜਾ ਤੇ Cable also",
+                category: "Transport & Wedding",
+                role: "Transport (Rehda) & Cable",
+                phones: ["98152-89165"]
+            },
+            {
+                id: 10,
+                nameEn: "Kulwinder - Nigah Ton",
+                namePa: "ਕੁਲਵਿੰਦਰ - ਨਿਗਾਹ ਤੋਂ",
+                category: "General/Other",
+                role: "General / Local",
+                phones: ["98761-90165"]
+            },
+            {
+                id: 11,
+                nameEn: "Kinda Musa Rehda Wala",
+                namePa: "ਕਿੰਦਾ ਮੂਸਾ ਰੇਹੜਾ ਵਾਲਾ",
+                category: "Transport & Wedding",
+                role: "Transport (Rehda)",
+                phones: ["98159-78410"]
+            },
+            {
+                id: 12,
+                nameEn: "Truck Union Bhogpur",
+                namePa: "ਟਰੱਕ ਯੂਨੀਅਨ ਭੋਗਪੁਰ",
+                category: "Transport & Wedding",
+                role: "Transport",
+                phones: ["98723-57044", "0181-2722074"]
+            },
+            {
+                id: 13,
+                nameEn: "Dono Bajean Wale",
+                namePa: "ਦੋਨੋਂ ਵਾਜਿਆਂ ਵਾਲੇ",
+                category: "Transport & Wedding",
+                role: "Band / Wedding Music",
+                phones: [],
+                note: "Linked with Ghoda Baggi / Pamma below"
+            },
+            {
+                id: 14,
+                nameEn: "Ghoda Baggi Katha Ikatha - Pamma",
+                namePa: "ਘੋੜਾ ਬਾਗੀ ਕੱਠਾ ਇਕੱਠਾ - ਪੰਮਾ",
+                category: "Transport & Wedding",
+                role: "Wedding Ghodi & Baggi",
+                phones: ["94177-43785"]
+            },
+            {
+                id: 15,
+                nameEn: "Master Paint Wala Bhogpur",
+                namePa: "ਮਾਸਟਰ ਪੈਂਟ ਵਾਲਾ ਭੋਗਪੁਰ",
+                category: "Construction & Paint",
+                role: "Painter",
+                phones: ["0181-2723433"]
+            },
+            {
+                id: 16,
+                nameEn: "Bina Tanda",
+                namePa: "ਬਿਨਾ ਟਾਂਡਾ",
+                category: "General/Other",
+                role: "General / Local",
+                phones: ["98725-03480"]
+            },
+            {
+                id: 17,
+                nameEn: "Rani Sahajahan Di Kudi",
+                namePa: "ਰਾਣੀ ਸਹਜਹਾਨ ਦੀ ਕੁੜੀ",
+                category: "General/Other",
+                role: "Family / Personal",
+                phones: ["94173-07679"]
+            },
+            {
+                id: 18,
+                nameEn: "Dr. Dilbagh Ramuni",
+                namePa: "Dr. ਦਿਲਬਾਗ ਰਮੂਨੀ",
+                category: "Medical",
+                role: "Medical / Doctor",
+                phones: ["98157-84414"]
+            },
+            {
+                id: 19,
+                nameEn: "Dr. Kaka Talwandi",
+                namePa: "Dr. ਕਾਕਾ ਤਲਵੰਡੀ",
+                category: "Medical",
+                role: "Medical / Doctor",
+                phones: ["98722-84867"]
+            },
+            {
+                id: 20,
+                nameEn: "Ranjit Singh Inverter / Battery",
+                namePa: "ਰਣਜੀਤ ਸਿੰਘ Inverter / Battery",
+                category: "Electrician & Inverter",
+                role: "Inverter / Battery (Note 2)",
+                phones: ["98727-65255", "98881-36341"]
+            },
+            {
+                id: 21,
+                nameEn: "Kala / Santokh (Faded Note)",
+                namePa: "ਕਾਲਾ / ਸੰਤੋਖ (Image 2 Note)",
+                category: "General/Other",
+                role: "General / Other",
+                phones: ["92560-67349", "98158-52250"]
+            }
+        ];
+
+        // Available Filter Categories
+        const categories = [
+            "All",
+            "Electrician & Inverter",
+            "Plumber",
+            "Construction & Paint",
+            "Transport & Wedding",
+            "Medical",
+            "General/Other"
+        ];
+
+        // Application State
+        let state = {
+            searchQuery: "",
+            selectedCategory: "All",
+            viewMode: window.innerWidth < 680 ? "card" : "table" // Auto-default to card on very small screens, table on wider
+        };
+
+        // DOM Elements
+        const searchInput = document.getElementById("searchInput");
+        const clearSearchBtn = document.getElementById("clearSearchBtn");
+        const categoryPillsContainer = document.getElementById("categoryPills");
+        const tableViewBtn = document.getElementById("tableViewBtn");
+        const cardViewBtn = document.getElementById("cardViewBtn");
+        const tableViewContainer = document.getElementById("tableViewContainer");
+        const cardViewContainer = document.getElementById("cardViewContainer");
+        const tableBody = document.getElementById("tableBody");
+        const resultsCount = document.getElementById("resultsCount");
+        const emptyState = document.getElementById("emptyState");
+        const resetFiltersBtn = document.getElementById("resetFiltersBtn");
+        const toast = document.getElementById("toast");
+        const toastMessage = document.getElementById("toastMessage");
+
+        let toastTimeout = null;
+
+        /**
+         * Returns badge styling class for a given category
+         */
+        function getCategoryBadgeClass(category) {
+            switch (category) {
+                case "Electrician & Inverter": return "badge-electrician";
+                case "Plumber": return "badge-plumber";
+                case "Construction & Paint": return "badge-construction";
+                case "Transport & Wedding": return "badge-transport";
+                case "Medical": return "badge-medical";
+                default: return "badge-general";
+            }
+        }
+
+        /**
+         * Renders Category Filter Pills with live counts
+         */
+        function renderCategoryPills() {
+            categoryPillsContainer.innerHTML = "";
+            categories.forEach(cat => {
+                const count = cat === "All" 
+                    ? contactsData.length 
+                    : contactsData.filter(c => c.category === cat).length;
+
+                const btn = document.createElement("button");
+                btn.type = "button";
+                btn.className = `pill ${state.selectedCategory === cat ? "active" : ""}`;
+                btn.setAttribute("role", "tab");
+                btn.setAttribute("aria-selected", state.selectedCategory === cat);
+                btn.innerHTML = `
+                    <span>${cat}</span>
+                    <span class="pill-count">${count}</span>
+                `;
+                btn.addEventListener("click", () => {
+                    state.selectedCategory = cat;
+                    renderCategoryPills();
+                    renderContacts();
+                });
+                categoryPillsContainer.appendChild(btn);
+            });
+        }
+
+        /**
+         * Generates interactive phone link + Copy button HTML for a contact
+         */
+        function buildPhoneActionsHTML(contact) {
+            if (!contact.phones || contact.phones.length === 0) {
+                return `<span class="no-phone-note">${contact.note || "No direct number listed"}</span>`;
+            }
+
+            const items = contact.phones.map(phone => {
+                const cleanDigits = phone.replace(/[^0-9+]/g, "");
+                return `
+                    <div class="phone-item">
+                        <a href="tel:${cleanDigits}" class="phone-link" title="Call ${contact.nameEn}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
+                            </svg>
+                            <span>${phone}</span>
+                        </a>
+                        <button type="button" class="btn-copy" onclick="copyPhoneNumber('${phone}', '${contact.nameEn.replace(/'/g, "\\'")}', this)" title="Copy number">
+                            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            <span>Copy</span>
+                        </button>
+                    </div>
+                `;
+            }).join("");
+
+            return `<div class="phone-list">${items}</div>`;
+        }
+
+        /**
+         * Filters and renders contacts into both Table and Card layouts
+         */
+        function renderContacts() {
+            const query = state.searchQuery.trim().toLowerCase();
+            const normalizedQueryDigits = query.replace(/[^0-9]/g, "");
+
+            const filtered = contactsData.filter(contact => {
+                // Category Filter
+                const matchesCategory = state.selectedCategory === "All" || contact.category === state.selectedCategory;
+                if (!matchesCategory) return false;
+
+                // Search Query Filter (matches English name, Punjabi name, role, category, or phone digits)
+                if (!query) return true;
+
+                const inNameEn = contact.nameEn.toLowerCase().includes(query);
+                const inNamePa = contact.namePa.toLowerCase().includes(query);
+                const inRole = contact.role.toLowerCase().includes(query);
+                const inCategory = contact.category.toLowerCase().includes(query);
+                const inPhones = contact.phones.some(p => {
+                    const cleanP = p.replace(/[^0-9]/g, "");
+                    return p.toLowerCase().includes(query) || (normalizedQueryDigits.length > 0 && cleanP.includes(normalizedQueryDigits));
+                });
+
+                return inNameEn || inNamePa || inRole || inCategory || inPhones;
+            });
+
+            // Update count summary
+            resultsCount.innerHTML = `Showing <strong>${filtered.length}</strong> of <strong>${contactsData.length}</strong> contacts`;
+
+            // Handle Empty State
+            if (filtered.length === 0) {
+                tableViewContainer.classList.add("hidden");
+                cardViewContainer.classList.add("hidden");
+                emptyState.classList.remove("hidden");
+                return;
+            } else {
+                emptyState.classList.add("hidden");
+                updateViewVisibility();
+            }
+
+            // Populate Table Rows
+            tableBody.innerHTML = filtered.map(contact => `
+                <tr>
+                    <td>
+                        <div class="contact-name-en">${contact.nameEn}</div>
+                        <div class="contact-name-pa punjabi-text">${contact.namePa}</div>
+                    </td>
+                    <td>
+                        <span class="badge ${getCategoryBadgeClass(contact.category)}">${contact.category}</span>
+                        <div class="contact-role-sub">${contact.role}</div>
+                    </td>
+                    <td>
+                        ${buildPhoneActionsHTML(contact)}
+                    </td>
+                </tr>
+            `).join("");
+
+            // Populate Cards Grid
+            cardViewContainer.innerHTML = filtered.map(contact => `
+                <article class="contact-card">
+                    <div class="card-header">
+                        <div>
+                            <div class="contact-name-en">${contact.nameEn}</div>
+                            <div class="contact-name-pa punjabi-text">${contact.namePa}</div>
+                            <div class="contact-role-sub">${contact.role}</div>
+                        </div>
+                        <span class="badge ${getCategoryBadgeClass(contact.category)}">${contact.category}</span>
+                    </div>
+                    <div class="card-body">
+                        ${buildPhoneActionsHTML(contact)}
+                    </div>
+                </article>
+            `).join("");
+        }
+
+        /**
+         * Switches visibility between Table View and Card View
+         */
+        function updateViewVisibility() {
+            if (state.viewMode === "table") {
+                tableViewContainer.classList.remove("hidden");
+                cardViewContainer.classList.add("hidden");
+                tableViewBtn.classList.add("active");
+                tableViewBtn.setAttribute("aria-pressed", "true");
+                cardViewBtn.classList.remove("active");
+                cardViewBtn.setAttribute("aria-pressed", "false");
+            } else {
+                tableViewContainer.classList.add("hidden");
+                cardViewContainer.classList.remove("hidden");
+                cardViewBtn.classList.add("active");
+                cardViewBtn.setAttribute("aria-pressed", "true");
+                tableViewBtn.classList.remove("active");
+                tableViewBtn.setAttribute("aria-pressed", "false");
+            }
+        }
+
+        /**
+         * Copies a phone number to clipboard with fallback and triggers toast feedback
+         */
+        function copyPhoneNumber(phoneText, contactName, buttonElement) {
+            const cleanText = phoneText.trim();
+
+            // Reliable copy mechanism compatible with iframes & modern browsers
+            const textArea = document.createElement("textarea");
+            textArea.value = cleanText;
+            textArea.style.position = "fixed";
+            textArea.style.left = "-9999px";
+            document.body.appendChild(textArea);
+            textArea.select();
+
+            try {
+                document.execCommand("copy");
+                showCopiedFeedback(cleanText, contactName, buttonElement);
+            } catch (err) {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    navigator.clipboard.writeText(cleanText).then(() => {
+                        showCopiedFeedback(cleanText, contactName, buttonElement);
+                    });
+                }
+            } finally {
+                document.body.removeChild(textArea);
+            }
+        }
+
+        /**
+         * Visual feedback on both the clicked button and bottom toast notification
+         */
+        function showCopiedFeedback(phone, name, btn) {
+            // Update button state temporarily
+            if (btn) {
+                const originalHTML = btn.innerHTML;
+                btn.classList.add("copied");
+                btn.innerHTML = `
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    <span>Copied!</span>
+                `;
+                setTimeout(() => {
+                    btn.classList.remove("copied");
+                    btn.innerHTML = originalHTML;
+                }, 1800);
+            }
+
+            // Show toast notification
+            toastMessage.textContent = `Copied ${phone} (${name})`;
+            toast.classList.add("show");
+
+            if (toastTimeout) clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.remove("show");
+            }, 2600);
+        }
+
+        // Event Listeners
+        searchInput.addEventListener("input", (e) => {
+            state.searchQuery = e.target.value;
+            clearSearchBtn.style.display = state.searchQuery.length > 0 ? "flex" : "none";
+            renderContacts();
+        });
+
+        clearSearchBtn.addEventListener("click", () => {
+            state.searchQuery = "";
+            searchInput.value = "";
+            clearSearchBtn.style.display = "none";
+            searchInput.focus();
+            renderContacts();
+        });
+
+        resetFiltersBtn.addEventListener("click", () => {
+            state.searchQuery = "";
+            state.selectedCategory = "All";
+            searchInput.value = "";
+            clearSearchBtn.style.display = "none";
+            renderCategoryPills();
+            renderContacts();
+        });
+
+        tableViewBtn.addEventListener("click", () => {
+            state.viewMode = "table";
+            updateViewVisibility();
+        });
+
+        cardViewBtn.addEventListener("click", () => {
+            state.viewMode = "card";
+            updateViewVisibility();
+        });
+
+        // Initialize Directory on Page Load
+        window.addEventListener("DOMContentLoaded", () => {
+            renderCategoryPills();
+            renderContacts();
+        });
+    </script>
+</body>
+</html>
+```
