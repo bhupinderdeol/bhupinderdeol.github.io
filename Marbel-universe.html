@@ -1,0 +1,1703 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Pind De Kanche (ਪਿੰਡ ਦੇ ਕੰਚੇ) — Punjabi Village Marble Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+      background-color: #1c1008;
+      color: #fef3c7;
+      font-family: 'Inter', sans-serif;
+    }
+    .font-display {
+      font-family: 'Baloo 2', cursive;
+    }
+
+    /* Native Sliders & Buttons: Guaranteed Responsive on Touch & Mouse */
+    button, input[type="text"], select {
+      pointer-events: auto;
+      touch-action: manipulation;
+      cursor: pointer;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: #442815;
+      outline: none;
+      pointer-events: auto;
+      touch-action: pan-x;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fde047, #d97706);
+      border: 2px solid #fffbeb;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #fde047, #d97706);
+      border: 2px solid #fffbeb;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      cursor: pointer;
+    }
+
+    /* Setup Screen Modal */
+    #setup-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      overflow-y: auto;
+      background: rgba(24, 15, 9, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 14px;
+      touch-action: pan-y;
+    }
+    .glass-card {
+      background: linear-gradient(180deg, rgba(48, 30, 17, 0.96) 0%, rgba(28, 17, 10, 0.98) 100%);
+      border: 1px solid rgba(251, 191, 36, 0.35);
+      box-shadow: 0 18px 42px rgba(0, 0, 0, 0.65);
+    }
+    .warm-btn {
+      background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      color: #1c1008;
+      box-shadow: 0 4px 14px rgba(217, 119, 6, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      transition: transform 0.1s ease;
+    }
+    .warm-btn:active {
+      transform: scale(0.97);
+    }
+    .chip-btn {
+      background: rgba(255, 248, 235, 0.08);
+      border: 1px solid rgba(251, 191, 36, 0.25);
+      color: #fef3c7;
+      transition: transform 0.1s ease, background 0.15s ease;
+    }
+    .chip-btn:active {
+      transform: scale(0.96);
+    }
+
+    /* Strict 30% Top / 70% Bottom Mobile Split Layout */
+    #game-wrapper {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100dvh;
+      overflow: hidden;
+    }
+    #top-panel {
+      height: 30dvh;
+      flex: 0 0 30%;
+      min-height: 170px;
+      background: linear-gradient(180deg, #221309 0%, #2e1a0d 100%);
+      border-bottom: 2px solid rgba(245, 158, 11, 0.4);
+      padding: 8px 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      z-index: 20;
+      user-select: none;
+    }
+    #play-area {
+      height: 70dvh;
+      flex: 1 1 70%;
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      background: #c88d55;
+      z-index: 10;
+    }
+    #play-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      touch-action: none;
+      z-index: 1;
+    }
+    #hud-canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    /* Single Circular 360° Omni-Directional Control Pad */
+    #omni-wrapper {
+      position: absolute;
+      bottom: 16px;
+      right: 16px;
+      z-index: 15;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      user-select: none;
+    }
+    #omni-pad {
+      width: 118px;
+      height: 118px;
+      border-radius: 9999px;
+      background: radial-gradient(circle at 35% 30%, rgba(56, 35, 20, 0.85), rgba(20, 11, 6, 0.94));
+      border: 2.5px solid rgba(251, 191, 36, 0.6);
+      box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55), inset 0 0 18px rgba(245, 158, 11, 0.22);
+      position: relative;
+      touch-action: none;
+      cursor: grab;
+    }
+    #omni-pad:active {
+      cursor: grabbing;
+    }
+    #omni-knob {
+      width: 44px;
+      height: 44px;
+      border-radius: 9999px;
+      background: radial-gradient(circle at 35% 30%, #fef08a, #d97706);
+      border: 2.5px solid #fffbeb;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+    }
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== 1. PRE-MATCH VILLAGE SETUP MODAL ==================== -->
+  <div id="setup-screen">
+    <div class="glass-card w-full max-w-md rounded-3xl p-5 sm:p-6 my-auto">
+      <div class="text-center mb-4">
+        <span class="inline-block px-3 py-0.5 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 text-[11px] font-bold tracking-wider uppercase">
+          ਪਿੰਡ ਦੇ ਕੰਚੇ • Punjabi Village Marble Game
+        </span>
+        <h1 class="font-display text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-orange-400 mt-1">
+          Pind De Kanche
+        </h1>
+        <p class="text-xs text-amber-100/75 mt-0.5">
+          Toss into the sloped dugout hole (<em>Khutti</em>) &amp; flick the hardest marble!
+        </p>
+      </div>
+
+      <div class="space-y-3.5">
+        <!-- Number of Players -->
+        <div class="bg-black/30 rounded-2xl p-3 border border-amber-500/20">
+          <div class="flex justify-between items-center mb-2">
+            <span class="text-xs font-bold text-amber-200">Players (Village Boys)</span>
+            <span class="text-[11px] text-amber-400 font-semibold">2 – 4 Players</span>
+          </div>
+          <div class="grid grid-cols-3 gap-2">
+            <button type="button" id="btn-p2" data-count="2" class="player-count-btn py-2 rounded-xl font-display font-bold text-sm bg-amber-500 text-stone-950 shadow">2 Players</button>
+            <button type="button" id="btn-p3" data-count="3" class="player-count-btn py-2 rounded-xl font-display font-bold text-sm chip-btn">3 Players</button>
+            <button type="button" id="btn-p4" data-count="4" class="player-count-btn py-2 rounded-xl font-display font-bold text-sm chip-btn">4 Players</button>
+          </div>
+          <div id="player-names-grid" class="grid grid-cols-2 gap-2 mt-2.5"></div>
+        </div>
+
+        <!-- Initial Marbles Slider (6 - 30) -->
+        <div class="bg-black/30 rounded-2xl p-3 border border-amber-500/20">
+          <div class="flex justify-between items-center mb-1.5">
+            <label for="slider-marbles" class="text-xs font-bold text-amber-200">Initial Kanche Each</label>
+            <span id="badge-marbles" class="font-display font-extrabold text-base text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-lg">15</span>
+          </div>
+          <input id="slider-marbles" type="range" min="6" max="30" step="1" value="15" />
+          <div class="flex justify-between text-[10px] text-amber-200/55 mt-1">
+            <span>6 min</span>
+            <span>15 default</span>
+            <span>30 max</span>
+          </div>
+        </div>
+
+        <!-- Pool Ante (3, 4, or 6) & Throw Line Distance (6 ft - 15 ft) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="bg-black/30 rounded-2xl p-3 border border-amber-500/20">
+            <div class="flex justify-between items-center mb-2">
+              <span class="text-xs font-bold text-amber-200">Pool Ante</span>
+              <span id="badge-pot" class="text-[11px] font-bold text-emerald-300">Pot: 6</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1.5">
+              <button type="button" id="btn-a3" data-ante="3" class="ante-btn py-1.5 rounded-xl font-display font-bold text-sm bg-amber-500 text-stone-950">3</button>
+              <button type="button" id="btn-a4" data-ante="4" class="ante-btn py-1.5 rounded-xl font-display font-bold text-sm chip-btn">4</button>
+              <button type="button" id="btn-a6" data-ante="6" class="ante-btn py-1.5 rounded-xl font-display font-bold text-sm chip-btn">6</button>
+            </div>
+          </div>
+
+          <div class="bg-black/30 rounded-2xl p-3 border border-amber-500/20">
+            <div class="flex justify-between items-center mb-1.5">
+              <label for="slider-distance" class="text-xs font-bold text-amber-200">Throw Line</label>
+              <span id="badge-distance" class="font-display font-extrabold text-base text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-lg">6 ft</span>
+            </div>
+            <input id="slider-distance" type="range" min="6" max="15" step="1" value="6" />
+            <div class="flex justify-between text-[10px] text-amber-200/55 mt-1">
+              <span>6 ft</span>
+              <span>10 ft</span>
+              <span>15 ft</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Start Village Match Button -->
+        <button type="button" id="btn-start-match" class="warm-btn w-full py-3.5 rounded-2xl font-display font-extrabold text-lg tracking-wide">
+          Start Village Match (ਖੇਡ ਸ਼ੁਰੂ ਕਰੋ)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 2. STRICT 30% TOP / 70% BOTTOM GAME SHELL ==================== -->
+  <div id="game-wrapper">
+    <!-- TOP 30%: UNCLUTTERED HEADER, SCORE CHIPS, INSTRUCTION & ACTION BAR -->
+    <header id="top-panel">
+      <!-- Row 1: Turn Badge, Round/Pool Info, Sound & Setup Icons -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-1.5 min-w-0">
+          <span id="hud-turn-badge" class="px-2.5 py-0.5 rounded-full bg-amber-500 text-stone-950 font-display font-extrabold text-xs truncate">
+            Gurpreet's Turn
+          </span>
+          <span id="hud-round-pot" class="text-[11px] font-semibold text-amber-200/85 truncate">
+            R1 • Pot: 6 • 6 ft
+          </span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" id="btn-sound" title="Toggle Sound" class="chip-btn px-2 py-1 rounded-lg text-xs font-bold">
+            🔊
+          </button>
+          <button type="button" id="btn-open-setup" title="New Match Setup" class="chip-btn px-2.5 py-1 rounded-lg text-xs font-bold">
+            NEW MATCH
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Horizontal Player Score Chips -->
+      <div id="hud-score-chips" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5"></div>
+
+      <!-- Row 3: Bold 1-2 Line Instruction Banner + Contextual Action Button -->
+      <div class="bg-black/35 border border-amber-500/30 rounded-2xl px-3 py-1.5 flex items-center justify-between gap-2">
+        <div class="min-w-0 flex-1">
+          <div class="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-amber-300">
+            <span id="hud-phase-label">PHASE 1 • HAND TOSS</span>
+            <span id="hud-hole-split" class="hidden text-emerald-300">• Hole: 0 | Out: 0</span>
+          </div>
+          <p id="hud-instruction" class="font-display text-xs sm:text-sm font-bold text-white leading-snug line-clamp-2">
+            Drag the 360° circle pad &amp; release to toss marbles toward the sloped hole!
+          </p>
+        </div>
+
+        <div class="shrink-0 flex items-center gap-1.5">
+          <button type="button" id="btn-auto-pick" class="hidden warm-btn px-3 py-2 rounded-xl font-display font-extrabold text-xs">
+            AUTO-PICK HARDEST
+          </button>
+          <button type="button" id="btn-next-turn" class="hidden warm-btn px-3.5 py-2 rounded-xl font-display font-extrabold text-xs">
+            NEXT TURN →
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- BOTTOM 70%: FULL-BLEED PLAY FIELD + SINGLE 360° OMNI-DIRECTIONAL PAD -->
+    <main id="play-area">
+      <canvas id="play-canvas"></canvas>
+      <canvas id="hud-canvas"></canvas>
+
+      <!-- Single Circular 360° Omni-Directional Control Pad -->
+      <div id="omni-wrapper">
+        <button type="button" id="btn-omni-mode" class="px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950 shadow-md">
+          AIM &amp; SHOOT
+        </button>
+        <div id="omni-pad" aria-label="360 Degree Omni-Directional Control">
+          <span class="absolute top-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-amber-300/75">▲</span>
+          <span class="absolute bottom-1.5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-amber-300/75">▼</span>
+          <span class="absolute left-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-300/75">◀</span>
+          <span class="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] font-bold text-amber-300/75">▶</span>
+          <div id="omni-knob"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      // =========================================================================
+      // STEP 1: CORE GAME STATE & IMMEDIATE UI BINDING (Runs BEFORE 3D/WebGL!)
+      // =========================================================================
+      const DEFAULT_NAMES = ['Gurpreet', 'Manpreet', 'Harjit', 'Balwinder'];
+      const MARBLE_PALETTES = [
+        { name: 'Emerald', fill: '#10b981', swirl: '#fef08a', dark: '#064e3b' },
+        { name: 'Sapphire', fill: '#3b82f6', swirl: '#fde047', dark: '#1e3a8a' },
+        { name: 'Ruby', fill: '#ef4444', swirl: '#fed7aa', dark: '#7f1d1d' },
+        { name: 'Saffron', fill: '#f59e0b', swirl: '#ffffff', dark: '#78350f' }
+      ];
+
+      const UNITS_PER_FOOT = 1.25;
+      const MARBLE_RADIUS = 0.24;
+      const HOLE_X = 0;
+      const HOLE_Z = -2.4;
+      const HOLE_RADIUS = 0.9;
+      const SLOPE_RADIUS = 2.8;
+
+      const state = {
+        phase: 'SETUP', // SETUP, THROW_AIM, THROW_SIM, PICK_TARGET, FLICK_AIM, FLICK_SIM, TURN_DONE, CHAMPION
+        playerCount: 2,
+        initialMarbles: 15,
+        ante: 3,
+        throwFeet: 6,
+        players: [],
+        activeIdx: 0,
+        pickerIdx: 1,
+        round: 1,
+        potCount: 0,
+        marbles: [],
+        striker: null,
+        targetMarble: null,
+        hitTarget: false,
+        omniMode: 'AIM', // 'AIM' or 'LOOK'
+        aimDirX: 0,
+        aimDirZ: -1,
+        aimPower: 0,
+        isAiming: false,
+        camYaw: 0,
+        camPitch: 0.52,
+        settleTimer: 0,
+        muted: false
+      };
+
+      // Cache Setup DOM Elements
+      const setupScreen = document.getElementById('setup-screen');
+      const playerNamesGrid = document.getElementById('player-names-grid');
+      const sliderMarbles = document.getElementById('slider-marbles');
+      const badgeMarbles = document.getElementById('badge-marbles');
+      const sliderDistance = document.getElementById('slider-distance');
+      const badgeDistance = document.getElementById('badge-distance');
+      const badgePot = document.getElementById('badge-pot');
+      const btnStartMatch = document.getElementById('btn-start-match');
+
+      function updatePotBadge() {
+        badgePot.textContent = 'Pot: ' + (state.playerCount * state.ante);
+      }
+
+      function renderPlayerNameInputs() {
+        playerNamesGrid.innerHTML = '';
+        for (let i = 0; i < state.playerCount; i++) {
+          const pal = MARBLE_PALETTES[i];
+          const row = document.createElement('div');
+          row.className = 'flex items-center gap-2 bg-black/40 px-2.5 py-1.5 rounded-xl border border-amber-500/20';
+          row.innerHTML =
+            '<span class="w-3 h-3 rounded-full shrink-0" style="background:' + pal.fill + '"></span>' +
+            '<input type="text" maxlength="12" data-idx="' + i + '" value="' + DEFAULT_NAMES[i] + '" ' +
+            'class="player-name-field bg-transparent text-xs font-bold text-amber-50 w-full focus:outline-none" />';
+          playerNamesGrid.appendChild(row);
+        }
+        updatePotBadge();
+      }
+
+      // Bind Player Count Buttons (2 / 3 / 4)
+      document.querySelectorAll('.player-count-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          state.playerCount = parseInt(btn.getAttribute('data-count'), 10);
+          document.querySelectorAll('.player-count-btn').forEach(function (b) {
+            if (b === btn) {
+              b.className = 'player-count-btn py-2 rounded-xl font-display font-bold text-sm bg-amber-500 text-stone-950 shadow';
+            } else {
+              b.className = 'player-count-btn py-2 rounded-xl font-display font-bold text-sm chip-btn';
+            }
+          });
+          renderPlayerNameInputs();
+        });
+      });
+
+      // Bind Pool Ante Buttons (3 / 4 / 6)
+      document.querySelectorAll('.ante-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          state.ante = parseInt(btn.getAttribute('data-ante'), 10);
+          document.querySelectorAll('.ante-btn').forEach(function (b) {
+            if (b === btn) {
+              b.className = 'ante-btn py-1.5 rounded-xl font-display font-bold text-sm bg-amber-500 text-stone-950';
+            } else {
+              b.className = 'ante-btn py-1.5 rounded-xl font-display font-bold text-sm chip-btn';
+            }
+          });
+          updatePotBadge();
+        });
+      });
+
+      // Bind Initial Marbles Range Slider (input + change for universal mobile/desktop support)
+      function onMarblesSliderChange() {
+        state.initialMarbles = parseInt(sliderMarbles.value, 10) || 15;
+        badgeMarbles.textContent = String(state.initialMarbles);
+      }
+      sliderMarbles.addEventListener('input', onMarblesSliderChange);
+      sliderMarbles.addEventListener('change', onMarblesSliderChange);
+
+      // Bind Throw Line Distance Range Slider
+      function onDistanceSliderChange() {
+        state.throwFeet = parseInt(sliderDistance.value, 10) || 6;
+        badgeDistance.textContent = state.throwFeet + ' ft';
+      }
+      sliderDistance.addEventListener('input', onDistanceSliderChange);
+      sliderDistance.addEventListener('change', onDistanceSliderChange);
+
+      // Initialize default name inputs immediately
+      renderPlayerNameInputs();
+
+      // =========================================================================
+      // STEP 2: PROCEDURAL WEB AUDIO ENGINE (Zero external sound URLs)
+      // =========================================================================
+      let audioCtx = null;
+      function ensureAudio() {
+        if (state.muted) return null;
+        if (!audioCtx) {
+          const Ctx = window.AudioContext || window.webkitAudioContext;
+          if (Ctx) audioCtx = new Ctx();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume().catch(function () {});
+        }
+        return audioCtx;
+      }
+
+      function playClink(strength) {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const vol = Math.min(0.4, Math.max(0.05, (strength || 0.5) * 0.32));
+        [2900 + Math.random() * 400, 4700 + Math.random() * 500].forEach(function (freq, idx) {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now);
+          osc.frequency.exponentialRampToValueAtTime(freq * 0.93, now + 0.06);
+          gain.gain.setValueAtTime(idx === 0 ? vol : vol * 0.5, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.065);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.07);
+        });
+      }
+
+      function playHoleThud() {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(185, now);
+        osc.frequency.exponentialRampToValueAtTime(62, now + 0.14);
+        gain.gain.setValueAtTime(0.28, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      }
+
+      function playWinChime() {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        [523.25, 659.25, 783.99, 1046.5].forEach(function (f, i) {
+          const t = ctx.currentTime + i * 0.08;
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, t);
+          gain.gain.setValueAtTime(0.22, t);
+          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(t);
+          osc.stop(t + 0.32);
+        });
+      }
+
+      // =========================================================================
+      // STEP 3: UNEVEN VILLAGE TERRAIN HEIGHT & SLOPE PHYSICS HELPERS
+      // =========================================================================
+      function getGroundY(x, z) {
+        const bump = Math.sin(x * 0.55 + z * 0.35) * 0.04 + Math.cos(x * 1.1 - z * 0.8) * 0.022;
+        let y = bump;
+        const dist = Math.hypot(x - HOLE_X, z - HOLE_Z);
+        if (dist < SLOPE_RADIUS) {
+          const t = 1 - dist / SLOPE_RADIUS;
+          y -= t * t * 0.24;
+        }
+        if (dist < HOLE_RADIUS) {
+          const inner = 1 - dist / HOLE_RADIUS;
+          y -= 0.34 + inner * 0.24;
+        }
+        return y;
+      }
+
+      function getSlopeGrad(x, z) {
+        const e = 0.06;
+        return {
+          gx: (getGroundY(x + e, z) - getGroundY(x - e, z)) / (2 * e),
+          gz: (getGroundY(x, z + e) - getGroundY(x, z - e)) / (2 * e)
+        };
+      }
+
+      // =========================================================================
+      // STEP 4: DUAL-ENGINE RENDERER (Three.js WebGL + Automatic 3D-Projected Fallback)
+      // =========================================================================
+      const playArea = document.getElementById('play-area');
+      const playCanvas = document.getElementById('play-canvas');
+      const hudCanvas = document.getElementById('hud-canvas');
+      const hudCtx = hudCanvas.getContext('2d');
+
+      let useThree = false;
+      let renderer = null;
+      let scene = null;
+      let camera = null;
+      let throwLineGroup = null;
+      let targetRingMesh = null;
+      let marbleGeo = null;
+      const marbleTexCache = {};
+
+      function makeCatEyeTexture(pal) {
+        const key = pal.fill + pal.swirl;
+        if (marbleTexCache[key]) return marbleTexCache[key];
+        const c = document.createElement('canvas');
+        c.width = 128;
+        c.height = 128;
+        const ctx = c.getContext('2d');
+        const g = ctx.createRadialGradient(64, 64, 6, 64, 64, 64);
+        g.addColorStop(0, '#ffffff');
+        g.addColorStop(0.35, pal.fill);
+        g.addColorStop(1, pal.dark);
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, 128, 128);
+
+        ctx.save();
+        ctx.translate(64, 64);
+        for (let i = 0; i < 3; i++) {
+          ctx.rotate((Math.PI * 2) / 3);
+          ctx.beginPath();
+          ctx.moveTo(-45, 0);
+          ctx.bezierCurveTo(-15, -28, 15, 28, 45, 0);
+          ctx.bezierCurveTo(15, 11, -15, -11, -45, 0);
+          ctx.fillStyle = i % 2 === 0 ? pal.swirl : pal.fill;
+          ctx.globalAlpha = 0.85;
+          ctx.fill();
+        }
+        ctx.restore();
+        const tex = new THREE.CanvasTexture(c);
+        marbleTexCache[key] = tex;
+        return tex;
+      }
+
+      function initThreeScene() {
+        try {
+          if (typeof THREE === 'undefined') return false;
+          const w = playArea.clientWidth || window.innerWidth;
+          const h = playArea.clientHeight || Math.round(window.innerHeight * 0.7);
+          renderer = new THREE.WebGLRenderer({ canvas: playCanvas, antialias: true });
+          renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+          renderer.setSize(w, h);
+          renderer.shadowMap.enabled = true;
+
+          scene = new THREE.Scene();
+          scene.background = new THREE.Color(0xd69e66);
+          scene.fog = new THREE.FogExp2(0xd69e66, 0.017);
+
+          camera = new THREE.PerspectiveCamera(46, w / Math.max(1, h), 0.1, 140);
+          camera.position.set(0, 7, 10);
+
+          const hemi = new THREE.HemisphereLight(0xfff4d6, 0x784421, 0.9);
+          scene.add(hemi);
+
+          const sun = new THREE.DirectionalLight(0xffe4b5, 1.4);
+          sun.position.set(10, 20, 12);
+          sun.castShadow = true;
+          sun.shadow.mapSize.width = 1024;
+          sun.shadow.mapSize.height = 1024;
+          scene.add(sun);
+
+          // Village Dirt Texture
+          const dc = document.createElement('canvas');
+          dc.width = 256;
+          dc.height = 256;
+          const dctx = dc.getContext('2d');
+          dctx.fillStyle = '#9c6b43';
+          dctx.fillRect(0, 0, 256, 256);
+          for (let i = 0; i < 3200; i++) {
+            dctx.fillStyle = Math.random() > 0.5 ? 'rgba(115,70,38,0.32)' : 'rgba(218,176,130,0.24)';
+            dctx.beginPath();
+            dctx.arc(Math.random() * 256, Math.random() * 256, Math.random() * 2 + 0.5, 0, Math.PI * 2);
+            dctx.fill();
+          }
+          const dirtTex = new THREE.CanvasTexture(dc);
+          dirtTex.wrapS = THREE.RepeatWrapping;
+          dirtTex.wrapT = THREE.RepeatWrapping;
+          dirtTex.repeat.set(9, 9);
+
+          // Sculpted Ground Mesh with Dugout Hole
+          const geo = new THREE.PlaneGeometry(40, 46, 110, 125);
+          geo.rotateX(-Math.PI / 2);
+          const pos = geo.attributes.position;
+          const cols = new Float32Array(pos.count * 3);
+          for (let i = 0; i < pos.count; i++) {
+            const vx = pos.getX(i);
+            const vz = pos.getZ(i);
+            const vy = getGroundY(vx, vz);
+            pos.setY(i, vy);
+            const dist = Math.hypot(vx - HOLE_X, vz - HOLE_Z);
+            let shade = 1.0;
+            if (dist < HOLE_RADIUS * 1.15) {
+              shade = 0.42 + 0.45 * Math.min(1, dist / (HOLE_RADIUS * 1.15));
+            } else if (dist < SLOPE_RADIUS) {
+              shade = 0.86 + 0.14 * ((dist - HOLE_RADIUS) / (SLOPE_RADIUS - HOLE_RADIUS));
+            }
+            cols[i * 3] = shade;
+            cols[i * 3 + 1] = shade * 0.96;
+            cols[i * 3 + 2] = shade * 0.9;
+          }
+          geo.setAttribute('color', new THREE.BufferAttribute(cols, 3));
+          geo.computeVertexNormals();
+
+          const groundMesh = new THREE.Mesh(
+            geo,
+            new THREE.MeshStandardMaterial({ map: dirtTex, vertexColors: true, roughness: 0.94 })
+          );
+          groundMesh.receiveShadow = true;
+          scene.add(groundMesh);
+
+          // Dugout Hole Rim
+          const rimGeo = new THREE.RingGeometry(HOLE_RADIUS * 0.95, HOLE_RADIUS * 1.14, 32);
+          rimGeo.rotateX(-Math.PI / 2);
+          const rimMesh = new THREE.Mesh(
+            rimGeo,
+            new THREE.MeshBasicMaterial({ color: 0x452712, side: THREE.DoubleSide, transparent: true, opacity: 0.7 })
+          );
+          rimMesh.position.set(HOLE_X, getGroundY(HOLE_X, HOLE_Z + HOLE_RADIUS) + 0.02, HOLE_Z);
+          scene.add(rimMesh);
+
+          throwLineGroup = new THREE.Group();
+          scene.add(throwLineGroup);
+
+          const tGeo = new THREE.RingGeometry(MARBLE_RADIUS * 1.45, MARBLE_RADIUS * 2.1, 32);
+          tGeo.rotateX(-Math.PI / 2);
+          targetRingMesh = new THREE.Mesh(
+            tGeo,
+            new THREE.MeshBasicMaterial({ color: 0xfbbf24, side: THREE.DoubleSide, transparent: true, opacity: 0.95 })
+          );
+          targetRingMesh.visible = false;
+          scene.add(targetRingMesh);
+
+          marbleGeo = new THREE.SphereGeometry(MARBLE_RADIUS, 24, 24);
+          return true;
+        } catch (err) {
+          console.warn('WebGL/Three.js unavailable, using 3D-projected Canvas fallback:', err);
+          return false;
+        }
+      }
+
+      useThree = initThreeScene();
+
+      function rebuildThrowLine() {
+        const lineZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+        if (!useThree || !throwLineGroup) return;
+        while (throwLineGroup.children.length > 0) {
+          throwLineGroup.remove(throwLineGroup.children[0]);
+        }
+        const lineGeo = new THREE.PlaneGeometry(5.6, 0.16);
+        lineGeo.rotateX(-Math.PI / 2);
+        const lineMesh = new THREE.Mesh(
+          lineGeo,
+          new THREE.MeshBasicMaterial({ color: 0xfef3c7, transparent: true, opacity: 0.88 })
+        );
+        lineMesh.position.set(0, getGroundY(0, lineZ) + 0.03, lineZ);
+        throwLineGroup.add(lineMesh);
+
+        const brickGeo = new THREE.BoxGeometry(0.44, 0.22, 0.25);
+        const brickMat = new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.85 });
+        [-3.0, 3.0].forEach(function (bx) {
+          const brick = new THREE.Mesh(brickGeo, brickMat);
+          brick.position.set(bx, getGroundY(bx, lineZ) + 0.1, lineZ);
+          brick.castShadow = true;
+          throwLineGroup.add(brick);
+        });
+      }
+
+      // Unified 3D World-to-Screen Projection (Works identically in Three.js AND Fallback Mode!)
+      const camPos = { x: 0, y: 6.5, z: 9.5 };
+      const camLook = { x: 0, y: 0, z: -1.2 };
+
+      function projectWorldToScreen(wx, wy, wz) {
+        const w = hudCanvas.width || playArea.clientWidth || 360;
+        const h = hudCanvas.height || playArea.clientHeight || 500;
+
+        if (useThree && camera) {
+          const v = new THREE.Vector3(wx, wy, wz).project(camera);
+          return {
+            x: (v.x * 0.5 + 0.5) * w,
+            y: (-v.y * 0.5 + 0.5) * h,
+            scale: Math.max(0.25, 1 / Math.max(0.5, v.z))
+          };
+        }
+
+        // Software 3D Perspective Camera Projection Fallback
+        const fx = camLook.x - camPos.x;
+        const fy = camLook.y - camPos.y;
+        const fz = camLook.z - camPos.z;
+        const fLen = Math.hypot(fx, fy, fz) || 1;
+        const fwdX = fx / fLen, fwdY = fy / fLen, fwdZ = fz / fLen;
+
+        // Right = fwd x up(0,1,0)
+        let rX = -fwdZ, rY = 0, rZ = fwdX;
+        const rLen = Math.hypot(rX, rZ) || 1;
+        rX /= rLen; rZ /= rLen;
+
+        // Up = right x fwd
+        const uX = rY * fwdZ - rZ * fwdY;
+        const uY = rZ * fwdX - rX * fwdZ;
+        const uZ = rX * fwdY - rY * fwdX;
+
+        const dx = wx - camPos.x;
+        const dy = wy - camPos.y;
+        const dz = wz - camPos.z;
+
+        const cz = dx * fwdX + dy * fwdY + dz * fwdZ;
+        const cx = dx * rX + dy * rY + dz * rZ;
+        const cy = dx * uX + dy * uY + dz * uZ;
+
+        const depth = Math.max(0.6, cz);
+        const fovScale = h * 0.95;
+        return {
+          x: w * 0.5 + (cx / depth) * fovScale,
+          y: h * 0.5 - (cy / depth) * fovScale,
+          scale: fovScale / depth
+        };
+      }
+
+      // Software Fallback Scene Renderer (If WebGL is disabled in browser/iframe)
+      const fallbackCtx = !useThree ? playCanvas.getContext('2d') : null;
+      function renderSoftwareFallbackScene() {
+        if (!fallbackCtx) return;
+        const w = playCanvas.width;
+        const h = playCanvas.height;
+        fallbackCtx.clearRect(0, 0, w, h);
+
+        // Warm Village Earth Gradient
+        const bgGrad = fallbackCtx.createLinearGradient(0, 0, 0, h);
+        bgGrad.addColorStop(0, '#c88d55');
+        bgGrad.addColorStop(0.5, '#a66e3d');
+        bgGrad.addColorStop(1, '#7c4d27');
+        fallbackCtx.fillStyle = bgGrad;
+        fallbackCtx.fillRect(0, 0, w, h);
+
+        // Draw Sloped Basin & Dugout Hole (Khutti)
+        const holePt = projectWorldToScreen(HOLE_X, 0, HOLE_Z);
+        const edgePt = projectWorldToScreen(HOLE_X + HOLE_RADIUS, 0, HOLE_Z);
+        const slopePt = projectWorldToScreen(HOLE_X + SLOPE_RADIUS, 0, HOLE_Z);
+        const holeRx = Math.max(16, Math.abs(edgePt.x - holePt.x));
+        const slopeRx = Math.max(44, Math.abs(slopePt.x - holePt.x));
+
+        fallbackCtx.save();
+        fallbackCtx.beginPath();
+        fallbackCtx.ellipse(holePt.x, holePt.y, slopeRx, slopeRx * 0.56, 0, 0, Math.PI * 2);
+        fallbackCtx.fillStyle = 'rgba(65, 36, 16, 0.25)';
+        fallbackCtx.fill();
+
+        fallbackCtx.beginPath();
+        fallbackCtx.ellipse(holePt.x, holePt.y, holeRx, holeRx * 0.56, 0, 0, Math.PI * 2);
+        fallbackCtx.fillStyle = '#2d180a';
+        fallbackCtx.fill();
+        fallbackCtx.lineWidth = 3;
+        fallbackCtx.strokeStyle = '#5c3418';
+        fallbackCtx.stroke();
+        fallbackCtx.restore();
+
+        // Draw Chalk Throw Line
+        const lineZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+        const lLeft = projectWorldToScreen(-2.8, 0, lineZ);
+        const lRight = projectWorldToScreen(2.8, 0, lineZ);
+        fallbackCtx.save();
+        fallbackCtx.strokeStyle = 'rgba(254, 243, 199, 0.85)';
+        fallbackCtx.lineWidth = 4;
+        fallbackCtx.beginPath();
+        fallbackCtx.moveTo(lLeft.x, lLeft.y);
+        fallbackCtx.lineTo(lRight.x, lRight.y);
+        fallbackCtx.stroke();
+        fallbackCtx.restore();
+
+        // Draw All Marbles Sorted Back-to-Front
+        const allM = state.marbles.slice();
+        if (state.striker) allM.push(state.striker);
+        allM.sort(function (a, b) { return a.z - b.z; });
+
+        allM.forEach(function (m) {
+          const pt = projectWorldToScreen(m.x, m.y, m.z);
+          const rad = Math.max(7, m.radius * pt.scale);
+          const pal = MARBLE_PALETTES[m.paletteIdx % MARBLE_PALETTES.length];
+
+          // Shadow
+          fallbackCtx.beginPath();
+          fallbackCtx.ellipse(pt.x + 2, pt.y + rad * 0.55, rad * 0.9, rad * 0.45, 0, 0, Math.PI * 2);
+          fallbackCtx.fillStyle = 'rgba(0,0,0,0.35)';
+          fallbackCtx.fill();
+
+          // Glass Sphere
+          const g = fallbackCtx.createRadialGradient(pt.x - rad * 0.3, pt.y - rad * 0.3, rad * 0.1, pt.x, pt.y, rad);
+          g.addColorStop(0, '#ffffff');
+          g.addColorStop(0.35, pal.fill);
+          g.addColorStop(1, pal.dark);
+          fallbackCtx.beginPath();
+          fallbackCtx.arc(pt.x, pt.y, rad, 0, Math.PI * 2);
+          fallbackCtx.fillStyle = g;
+          fallbackCtx.fill();
+
+          // Target Ring Highlight
+          if (m === state.targetMarble) {
+            fallbackCtx.beginPath();
+            fallbackCtx.arc(pt.x, pt.y, rad * 1.45, 0, Math.PI * 2);
+            fallbackCtx.strokeStyle = '#fbbf24';
+            fallbackCtx.lineWidth = 2.5;
+            fallbackCtx.stroke();
+          }
+        });
+      }
+
+      // =========================================================================
+      // STEP 5: MARBLE ENTITY FACTORY & MATCH FLOW
+      // =========================================================================
+      function createMarble(paletteIdx, isStriker) {
+        const pal = MARBLE_PALETTES[paletteIdx % MARBLE_PALETTES.length];
+        const radius = isStriker ? MARBLE_RADIUS * 1.15 : MARBLE_RADIUS;
+        let mesh = null;
+        if (useThree && scene && marbleGeo) {
+          const mat = new THREE.MeshPhysicalMaterial({
+            map: makeCatEyeTexture(pal),
+            roughness: 0.08,
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.06
+          });
+          mesh = new THREE.Mesh(marbleGeo, mat);
+          mesh.castShadow = true;
+          mesh.receiveShadow = true;
+          if (isStriker) mesh.scale.setScalar(1.15);
+          scene.add(mesh);
+        }
+        return {
+          mesh: mesh,
+          x: 0,
+          y: radius,
+          z: 0,
+          vx: 0,
+          vz: 0,
+          radius: radius,
+          inHole: false,
+          isStriker: Boolean(isStriker),
+          paletteIdx: paletteIdx
+        };
+      }
+
+      function clearEntities() {
+        if (useThree && scene) {
+          state.marbles.forEach(function (m) {
+            if (m.mesh) scene.remove(m.mesh);
+          });
+          if (state.striker && state.striker.mesh) {
+            scene.remove(state.striker.mesh);
+          }
+        }
+        state.marbles = [];
+        state.striker = null;
+        state.targetMarble = null;
+        if (targetRingMesh) targetRingMesh.visible = false;
+      }
+
+      function updateTopPanelHUD() {
+        const active = state.players[state.activeIdx];
+        if (!active) return;
+
+        document.getElementById('hud-turn-badge').textContent = active.name + "'s Turn";
+        document.getElementById('hud-round-pot').textContent =
+          'R' + state.round + ' • Pot: ' + state.potCount + ' • ' + state.throwFeet + ' ft';
+
+        const chips = document.getElementById('hud-score-chips');
+        chips.innerHTML = '';
+        state.players.forEach(function (p, i) {
+          const pal = MARBLE_PALETTES[p.paletteIdx];
+          const isTurn = i === state.activeIdx;
+          const isPicker = state.phase === 'PICK_TARGET' && i === state.pickerIdx;
+          const chip = document.createElement('div');
+          chip.className =
+            'px-2 py-1 rounded-xl flex items-center gap-1.5 shrink-0 border ' +
+            (isTurn ? 'bg-amber-500/25 border-amber-400' : 'bg-black/35 border-white/10 opacity-80') +
+            (p.eliminated ? ' opacity-35 grayscale' : '');
+          chip.innerHTML =
+            '<span class="w-2.5 h-2.5 rounded-full" style="background:' + pal.fill + '"></span>' +
+            '<span class="text-[11px] font-bold text-white">' + p.name + '</span>' +
+            '<span class="text-[11px] font-extrabold text-amber-300">' + p.marbles + '</span>' +
+            (isPicker ? '<span class="text-[9px] px-1 rounded bg-rose-500 text-white font-black">PICK</span>' : '');
+          chips.appendChild(chip);
+        });
+      }
+
+      function setOmniMode(mode) {
+        state.omniMode = mode;
+        const btn = document.getElementById('btn-omni-mode');
+        if (mode === 'AIM') {
+          btn.textContent = 'AIM & SHOOT';
+          btn.className = 'px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500 text-stone-950 shadow-md';
+        } else {
+          btn.textContent = '360° LOOK';
+          btn.className = 'px-3 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-sky-400 text-stone-950 shadow-md';
+        }
+      }
+
+      function getNextAliveIndex(fromIdx) {
+        for (let step = 1; step <= state.players.length; step++) {
+          const idx = (fromIdx + step) % state.players.length;
+          if (!state.players[idx].eliminated && state.players[idx].marbles > 0) return idx;
+        }
+        return fromIdx;
+      }
+
+      function beginTurn() {
+        clearEntities();
+        state.camYaw = 0;
+        state.camPitch = 0.52;
+        setOmniMode('AIM');
+        state.hitTarget = false;
+        state.aimPower = 0;
+        state.isAiming = false;
+
+        document.getElementById('btn-auto-pick').classList.add('hidden');
+        document.getElementById('btn-next-turn').classList.add('hidden');
+        document.getElementById('hud-hole-split').classList.add('hidden');
+
+        const alive = state.players.filter(function (p) {
+          return !p.eliminated && p.marbles > 0;
+        });
+        if (alive.length <= 1) {
+          const champ = alive[0] || state.players[0];
+          state.phase = 'CHAMPION';
+          playWinChime();
+          document.getElementById('hud-phase-label').textContent = 'VILLAGE CHAMPION 👑';
+          document.getElementById('hud-instruction').textContent =
+            champ.name + ' wins the match with ' + champ.marbles + ' kanche! Tap NEW MATCH to play again.';
+          updateTopPanelHUD();
+          return;
+        }
+
+        if (state.players[state.activeIdx].eliminated || state.players[state.activeIdx].marbles <= 0) {
+          state.activeIdx = getNextAliveIndex(state.activeIdx);
+        }
+
+        // Pool ante marbles from each alive player
+        let pot = 0;
+        const poolOwners = [];
+        alive.forEach(function (p) {
+          const give = Math.min(p.marbles, state.ante);
+          p.marbles -= give;
+          pot += give;
+          for (let k = 0; k < give; k++) poolOwners.push(p.paletteIdx);
+        });
+
+        state.potCount = pot;
+        const throwZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+
+        poolOwners.forEach(function (palIdx, idx) {
+          const m = createMarble(palIdx, false);
+          const ang = (idx / poolOwners.length) * Math.PI * 2;
+          const rad = 0.25 + (idx % 3) * 0.14;
+          m.x = Math.cos(ang) * rad;
+          m.z = throwZ + Math.sin(ang) * rad * 0.7;
+          m.y = getGroundY(m.x, m.z) + m.radius;
+          if (m.mesh) m.mesh.position.set(m.x, m.y, m.z);
+          state.marbles.push(m);
+        });
+
+        state.phase = 'THROW_AIM';
+        const active = state.players[state.activeIdx];
+        document.getElementById('hud-phase-label').textContent = 'PHASE 1 • HAND TOSS';
+        document.getElementById('hud-instruction').textContent =
+          active.name + ': Drag the 360° circle pad in any direction & release to toss ' + pot + ' kanche!';
+        updateTopPanelHUD();
+      }
+
+      function executeHandToss() {
+        playClink(0.8);
+        state.phase = 'THROW_SIM';
+        state.settleTimer = 0;
+
+        const distUnits = state.throwFeet * UNITS_PER_FOOT;
+        const baseSpeed = Math.sqrt(2 * 3.05 * distUnits) * (0.58 + state.aimPower * 0.76);
+
+        state.marbles.forEach(function (m) {
+          const spread = (Math.random() - 0.5) * 0.34;
+          const c = Math.cos(spread);
+          const s = Math.sin(spread);
+          const dx = state.aimDirX * c - state.aimDirZ * s;
+          const dz = state.aimDirX * s + state.aimDirZ * c;
+          const spd = baseSpeed * (0.85 + Math.random() * 0.32);
+          m.vx = dx * spd;
+          m.vz = dz * spd;
+        });
+
+        document.getElementById('hud-instruction').textContent = 'Rolling on uneven village ground...';
+      }
+
+      function findHardestMarble() {
+        const outside = state.marbles.filter(function (m) {
+          return !m.inHole;
+        });
+        if (outside.length === 0) return null;
+        let best = outside[0];
+        let bestScore = -1;
+        outside.forEach(function (m) {
+          const dHole = Math.hypot(m.x - HOLE_X, m.z - HOLE_Z);
+          let cluster = 0;
+          outside.forEach(function (o) {
+            if (o !== m && Math.hypot(o.x - m.x, o.z - m.z) < 0.8) cluster += 0.65;
+          });
+          if (dHole + cluster > bestScore) {
+            bestScore = dHole + cluster;
+            best = m;
+          }
+        });
+        return best;
+      }
+
+      function selectTargetMarble(marble) {
+        if (!marble) return;
+        state.targetMarble = marble;
+        if (targetRingMesh) {
+          targetRingMesh.visible = true;
+          targetRingMesh.position.set(marble.x, getGroundY(marble.x, marble.z) + 0.03, marble.z);
+        }
+      }
+
+      function onTossSettled() {
+        const inHole = state.marbles.filter(function (m) {
+          return m.inHole;
+        });
+        const outside = state.marbles.filter(function (m) {
+          return !m.inHole;
+        });
+
+        const splitEl = document.getElementById('hud-hole-split');
+        splitEl.classList.remove('hidden');
+        splitEl.textContent = '• Hole: ' + inHole.length + ' | Out: ' + outside.length;
+
+        const active = state.players[state.activeIdx];
+
+        if (outside.length === 0) {
+          // All marbles fell directly into the hole!
+          active.marbles += state.potCount;
+          playWinChime();
+          state.phase = 'TURN_DONE';
+          document.getElementById('hud-phase-label').textContent = 'ALL IN HOLE! 🎯';
+          document.getElementById('hud-instruction').textContent =
+            'Amazing! All ' + state.potCount + ' kanche rolled into the hole. ' + active.name + ' wins the entire pot!';
+          document.getElementById('btn-next-turn').classList.remove('hidden');
+          updateTopPanelHUD();
+          return;
+        }
+
+        // Phase 2: Opponent picks hardest scattered marble
+        state.phase = 'PICK_TARGET';
+        state.pickerIdx = getNextAliveIndex(state.activeIdx);
+        setOmniMode('LOOK'); // Switch pad to 360° Look so opponent can inspect all directions
+        const picker = state.players[state.pickerIdx];
+        const hardest = findHardestMarble();
+        selectTargetMarble(hardest);
+
+        document.getElementById('hud-phase-label').textContent = 'PHASE 2 • OPPONENT PICKS TARGET';
+        document.getElementById('hud-instruction').textContent =
+          picker.name + ': Tap any outside marble on the ground or tap AUTO-PICK HARDEST!';
+        document.getElementById('btn-auto-pick').classList.remove('hidden');
+        updateTopPanelHUD();
+      }
+
+      function confirmTargetAndStartFlick(chosenMarble) {
+        selectTargetMarble(chosenMarble);
+        playClink(0.7);
+        document.getElementById('btn-auto-pick').classList.add('hidden');
+
+        const active = state.players[state.activeIdx];
+        state.phase = 'FLICK_AIM';
+        state.camYaw = 0;
+        state.camPitch = 0.45;
+        setOmniMode('AIM');
+        state.hitTarget = false;
+
+        // Place striker marble on the throw line ready for thumb-and-index flick
+        const throwZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+        state.striker = createMarble(active.paletteIdx, true);
+        state.striker.x = 0;
+        state.striker.z = throwZ;
+        state.striker.y = getGroundY(0, throwZ) + state.striker.radius;
+        if (state.striker.mesh) state.striker.mesh.position.set(state.striker.x, state.striker.y, state.striker.z);
+
+        const dx = chosenMarble.x - state.striker.x;
+        const dz = chosenMarble.z - state.striker.z;
+        const len = Math.hypot(dx, dz) || 1;
+        state.aimDirX = dx / len;
+        state.aimDirZ = dz / len;
+        state.aimPower = 0;
+
+        const distFt = (Math.hypot(chosenMarble.x - HOLE_X, chosenMarble.z - HOLE_Z) / UNITS_PER_FOOT).toFixed(1);
+        document.getElementById('hud-phase-label').textContent = 'PHASE 3 • THUMB & INDEX FLICK';
+        document.getElementById('hud-instruction').textContent =
+          active.name + ': Aim & release 360° pad to flick striker at target (' + distFt + ' ft from hole)!';
+        updateTopPanelHUD();
+      }
+
+      function executeStrikerFlick() {
+        if (!state.striker) return;
+        playClink(0.95);
+        state.phase = 'FLICK_SIM';
+        state.settleTimer = 0;
+
+        const distToTarget = state.targetMarble
+          ? Math.hypot(state.targetMarble.x - state.striker.x, state.targetMarble.z - state.striker.z)
+          : state.throwFeet * UNITS_PER_FOOT;
+        const idealFlick = Math.sqrt(2 * 3.05 * Math.max(3, distToTarget));
+        const speed = idealFlick * (0.55 + state.aimPower * 0.95);
+
+        state.striker.vx = state.aimDirX * speed;
+        state.striker.vz = state.aimDirZ * speed;
+        document.getElementById('hud-instruction').textContent = 'Teek! Striker flying across the dirt...';
+      }
+
+      function onFlickSettled() {
+        const active = state.players[state.activeIdx];
+        const inHole = state.marbles.filter(function (m) {
+          return m.inHole;
+        });
+        const outside = state.marbles.filter(function (m) {
+          return !m.inHole;
+        });
+
+        state.phase = 'TURN_DONE';
+        if (state.hitTarget) {
+          active.marbles += state.potCount;
+          playWinChime();
+          document.getElementById('hud-phase-label').textContent = 'DIRECT HIT! 🔥';
+          document.getElementById('hud-instruction').textContent =
+            'Shabash! ' + active.name + ' hit the target marble and won ALL ' + state.potCount + ' kanche!';
+        } else {
+          const holeWon = inHole.length;
+          active.marbles += holeWon;
+          // Return un-won scattered marbles evenly to other alive players
+          const others = state.players.filter(function (p, i) {
+            return i !== state.activeIdx && !p.eliminated;
+          });
+          if (others.length > 0) {
+            for (let i = 0; i < outside.length; i++) {
+              others[i % others.length].marbles += 1;
+            }
+          }
+          playHoleThud();
+          document.getElementById('hud-phase-label').textContent = holeWon > 0 ? 'MISSED TARGET • KEPT HOLE' : 'MISSED TARGET 💨';
+          document.getElementById('hud-instruction').textContent =
+            holeWon > 0
+              ? active.name + ' missed the target, keeping only ' + holeWon + ' hole kanche.'
+              : active.name + ' missed the target and won 0 kanche this turn.';
+        }
+
+        state.players.forEach(function (p) {
+          if (p.marbles <= 0) {
+            p.marbles = 0;
+            p.eliminated = true;
+          }
+        });
+
+        document.getElementById('btn-next-turn').classList.remove('hidden');
+        updateTopPanelHUD();
+      }
+
+      // Bind Start Match, Auto-Pick, Next Turn, Sound & New Match Buttons
+      btnStartMatch.addEventListener('click', function () {
+        ensureAudio();
+        playWinChime();
+
+        const fields = document.querySelectorAll('.player-name-field');
+        state.players = [];
+        for (let i = 0; i < state.playerCount; i++) {
+          const val = fields[i] ? fields[i].value.trim() : '';
+          state.players.push({
+            id: i,
+            name: val || DEFAULT_NAMES[i],
+            marbles: state.initialMarbles,
+            paletteIdx: i,
+            eliminated: false
+          });
+        }
+
+        state.activeIdx = 0;
+        state.round = 1;
+        rebuildThrowLine();
+
+        setupScreen.style.display = 'none';
+        handleResize();
+        beginTurn();
+      });
+
+      document.getElementById('btn-auto-pick').addEventListener('click', function () {
+        if (state.phase !== 'PICK_TARGET') return;
+        const hardest = findHardestMarble();
+        if (hardest) confirmTargetAndStartFlick(hardest);
+      });
+
+      document.getElementById('btn-next-turn').addEventListener('click', function () {
+        const prev = state.activeIdx;
+        state.activeIdx = getNextAliveIndex(prev);
+        if (state.activeIdx <= prev) state.round += 1;
+        beginTurn();
+      });
+
+      document.getElementById('btn-omni-mode').addEventListener('click', function () {
+        setOmniMode(state.omniMode === 'AIM' ? 'LOOK' : 'AIM');
+        playClink(0.4);
+      });
+
+      document.getElementById('btn-sound').addEventListener('click', function () {
+        state.muted = !state.muted;
+        document.getElementById('btn-sound').textContent = state.muted ? '🔇' : '🔊';
+      });
+
+      document.getElementById('btn-open-setup').addEventListener('click', function () {
+        clearEntities();
+        state.phase = 'SETUP';
+        setupScreen.style.display = 'flex';
+      });
+
+      // =========================================================================
+      // STEP 6: SINGLE 360° OMNI-DIRECTIONAL PAD & PLAY-CANVAS TARGET TAP
+      // =========================================================================
+      const omniPad = document.getElementById('omni-pad');
+      const omniKnob = document.getElementById('omni-knob');
+      let omniDragging = false;
+
+      function getEventXY(e) {
+        if (e.touches && e.touches.length > 0) {
+          return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+        if (e.changedTouches && e.changedTouches.length > 0) {
+          return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        }
+        return { x: e.clientX, y: e.clientY };
+      }
+
+      function onOmniDown(e) {
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+        if (state.phase === 'SETUP' || state.phase === 'TURN_DONE' || state.phase === 'CHAMPION') return;
+        ensureAudio();
+        omniDragging = true;
+        onOmniMove(e);
+      }
+
+      function onOmniMove(e) {
+        if (!omniDragging) return;
+        e.stopPropagation();
+        if (e.cancelable) e.preventDefault();
+
+        const pt = getEventXY(e);
+        const rect = omniPad.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const maxR = rect.width * 0.36;
+
+        const dx = pt.x - cx;
+        const dy = pt.y - cy;
+        const dist = Math.hypot(dx, dy);
+        const clamped = Math.min(maxR, dist);
+        const ang = Math.atan2(dy, dx);
+        const kx = Math.cos(ang) * clamped;
+        const ky = Math.sin(ang) * clamped;
+
+        omniKnob.style.transform = 'translate(calc(-50% + ' + kx + 'px), calc(-50% + ' + ky + 'px))';
+
+        const nx = maxR > 0 ? kx / maxR : 0;
+        const ny = maxR > 0 ? ky / maxR : 0;
+        const power = maxR > 0 ? clamped / maxR : 0;
+
+        if (state.omniMode === 'LOOK' || (state.phase !== 'THROW_AIM' && state.phase !== 'FLICK_AIM')) {
+          // 360° all-directions camera orbit & vertical tilt
+          state.camYaw -= nx * 0.055;
+          state.camPitch = Math.max(0.22, Math.min(1.15, state.camPitch + ny * 0.035));
+        } else {
+          // 360° all-directions shot aiming relative to camera yaw
+          state.isAiming = true;
+          state.aimPower = power;
+          if (power > 0.06) {
+            // Forward vector from camera yaw; dragging stick up/forward aims forward, dragging down pulls slingshot forward
+            const fwdX = -Math.sin(state.camYaw);
+            const fwdZ = -Math.cos(state.camYaw);
+            const rightX = Math.cos(state.camYaw);
+            const rightZ = -Math.sin(state.camYaw);
+
+            // Slingshot pull-back feel: pulling down-left aims up-right
+            const wx = rightX * -nx + fwdX * -ny;
+            const wz = rightZ * -nx + fwdZ * -ny;
+            const wLen = Math.hypot(wx, wz) || 1;
+            state.aimDirX = wx / wLen;
+            state.aimDirZ = wz / wLen;
+          }
+        }
+      }
+
+      function onOmniUp(e) {
+        if (!omniDragging) return;
+        e.stopPropagation();
+        omniDragging = false;
+        omniKnob.style.transform = 'translate(-50%, -50%)';
+
+        if (state.omniMode === 'AIM' && state.isAiming) {
+          state.isAiming = false;
+          if (state.aimPower >= 0.1) {
+            if (state.phase === 'THROW_AIM') executeHandToss();
+            else if (state.phase === 'FLICK_AIM') executeStrikerFlick();
+          }
+          state.aimPower = 0;
+        }
+      }
+
+      // Attach listeners ONLY to #omni-pad (and touchmove/touchend on #omni-pad itself!)
+      omniPad.addEventListener('touchstart', onOmniDown, { passive: false });
+      omniPad.addEventListener('touchmove', onOmniMove, { passive: false });
+      omniPad.addEventListener('touchend', onOmniUp);
+      omniPad.addEventListener('touchcancel', onOmniUp);
+
+      omniPad.addEventListener('mousedown', function (e) {
+        onOmniDown(e);
+        function mouseMoveDoc(ev) {
+          onOmniMove(ev);
+        }
+        function mouseUpDoc(ev) {
+          onOmniUp(ev);
+          document.removeEventListener('mousemove', mouseMoveDoc);
+          document.removeEventListener('mouseup', mouseUpDoc);
+        }
+        document.addEventListener('mousemove', mouseMoveDoc);
+        document.addEventListener('mouseup', mouseUpDoc);
+      });
+
+      // Direct Tap on #play-canvas during Phase 2 (Opponent picks hardest marble)
+      function onPlayCanvasTap(e) {
+        if (state.phase !== 'PICK_TARGET') return;
+        const pt = getEventXY(e);
+        const rect = playCanvas.getBoundingClientRect();
+        const tapX = pt.x - rect.left;
+        const tapY = pt.y - rect.top;
+
+        const outside = state.marbles.filter(function (m) {
+          return !m.inHole;
+        });
+        let closest = null;
+        let bestDist = 48;
+        outside.forEach(function (m) {
+          const sp = projectWorldToScreen(m.x, m.y, m.z);
+          const d = Math.hypot(sp.x - tapX, sp.y - tapY);
+          if (d < bestDist) {
+            bestDist = d;
+            closest = m;
+          }
+        });
+        if (closest) {
+          confirmTargetAndStartFlick(closest);
+        }
+      }
+      playCanvas.addEventListener('click', onPlayCanvasTap);
+      playCanvas.addEventListener('touchstart', onPlayCanvasTap, { passive: true });
+
+      // =========================================================================
+      // STEP 7: PHYSICS SIMULATION & CAMERA/OVERLAY RENDER LOOP
+      // =========================================================================
+      function stepPhysics(dt) {
+        const isThrow = state.phase === 'THROW_SIM';
+        const isFlick = state.phase === 'FLICK_SIM';
+        if (!isThrow && !isFlick) return;
+
+        const bodies = state.marbles.slice();
+        if (state.striker) bodies.push(state.striker);
+
+        const subSteps = 4;
+        const subDt = dt / subSteps;
+
+        for (let s = 0; s < subSteps; s++) {
+          for (let i = 0; i < bodies.length; i++) {
+            const b = bodies[i];
+            const grad = getSlopeGrad(b.x, b.z);
+            b.vx -= grad.gx * 6.0 * subDt;
+            b.vz -= grad.gz * 6.0 * subDt;
+
+            const distHole = Math.hypot(b.x - HOLE_X, b.z - HOLE_Z);
+            if (!b.isStriker && distHole < HOLE_RADIUS * 0.84) {
+              if (!b.inHole) {
+                b.inHole = true;
+                playHoleThud();
+              }
+              b.vx += (HOLE_X - b.x) * 14 * subDt;
+              b.vz += (HOLE_Z - b.z) * 14 * subDt;
+              const damp = Math.pow(0.06, subDt);
+              b.vx *= damp;
+              b.vz *= damp;
+            } else {
+              const fric = Math.pow(0.28, subDt);
+              b.vx *= fric;
+              b.vz *= fric;
+            }
+
+            if (b.vx * b.vx + b.vz * b.vz < 0.0025) {
+              b.vx = 0;
+              b.vz = 0;
+            }
+
+            b.x += b.vx * subDt;
+            b.z += b.vz * subDt;
+
+            // Keep inside village ground clearing
+            if (b.x < -11) { b.x = -11; b.vx *= -0.5; }
+            if (b.x > 11) { b.x = 11; b.vx *= -0.5; }
+            if (b.z < -11) { b.z = -11; b.vz *= -0.5; }
+            if (b.z > 19) { b.z = 19; b.vz *= -0.5; }
+
+            b.y = getGroundY(b.x, b.z) + b.radius;
+            if (b.mesh) {
+              b.mesh.position.set(b.x, b.y, b.z);
+              const spd = Math.hypot(b.vx, b.vz);
+              if (spd > 0.01) {
+                const axis = new THREE.Vector3(b.vz, 0, -b.vx).normalize();
+                b.mesh.rotateOnWorldAxis(axis, (spd * subDt) / b.radius);
+              }
+            }
+          }
+
+          // Elastic Marble-to-Marble Collisions
+          for (let i = 0; i < bodies.length; i++) {
+            for (let j = i + 1; j < bodies.length; j++) {
+              const a = bodies[i];
+              const b = bodies[j];
+              const dx = b.x - a.x;
+              const dz = b.z - a.z;
+              const dist = Math.hypot(dx, dz);
+              const minD = a.radius + b.radius;
+              if (dist > 0.0001 && dist < minD) {
+                const nx = dx / dist;
+                const nz = dz / dist;
+                const overlap = (minD - dist) * 0.5;
+                a.x -= nx * overlap;
+                a.z -= nz * overlap;
+                b.x += nx * overlap;
+                b.z += nz * overlap;
+
+                const rvx = b.vx - a.vx;
+                const rvz = b.vz - a.vz;
+                const velNorm = rvx * nx + rvz * nz;
+                if (velNorm < 0) {
+                  const imp = -0.94 * velNorm;
+                  a.vx -= imp * nx;
+                  a.vz -= imp * nz;
+                  b.vx += imp * nx;
+                  b.vz += imp * nz;
+
+                  if (Math.abs(velNorm) > 0.35) {
+                    playClink(Math.min(1, Math.abs(velNorm) / 6));
+                  }
+                  if (isFlick && state.targetMarble) {
+                    if ((a.isStriker && b === state.targetMarble) || (b.isStriker && a === state.targetMarble)) {
+                      state.hitTarget = true;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+
+        const moving = bodies.some(function (b) {
+          return b.vx * b.vx + b.vz * b.vz > 0.006;
+        });
+        if (!moving) {
+          state.settleTimer += dt;
+          if (state.settleTimer > 0.42) {
+            if (isThrow) onTossSettled();
+            else if (isFlick) onFlickSettled();
+          }
+        } else {
+          state.settleTimer = 0;
+        }
+      }
+
+      function updateCamera(dt) {
+        const throwZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+        let pivotX = HOLE_X;
+        let pivotZ = HOLE_Z + 1.0;
+        let dist = 10.5;
+
+        if (state.phase === 'THROW_AIM') {
+          pivotZ = (HOLE_Z + throwZ) * 0.5;
+          dist = state.throwFeet * UNITS_PER_FOOT + 5.2;
+        } else if (state.phase === 'FLICK_AIM' && state.striker) {
+          pivotX = state.striker.x;
+          pivotZ = state.striker.z - 2.0;
+          dist = 7.5;
+        }
+
+        const horiz = dist * Math.cos(state.camPitch);
+        const targetX = pivotX + Math.sin(state.camYaw) * horiz;
+        const targetY = Math.max(2.2, dist * Math.sin(state.camPitch));
+        const targetZ = pivotZ + Math.cos(state.camYaw) * horiz;
+
+        const lerp = Math.min(1, dt * 6);
+        camPos.x += (targetX - camPos.x) * lerp;
+        camPos.y += (targetY - camPos.y) * lerp;
+        camPos.z += (targetZ - camPos.z) * lerp;
+        camLook.x += (pivotX - camLook.x) * lerp;
+        camLook.y = 0.1;
+        camLook.z += (pivotZ - camLook.z) * lerp;
+
+        if (useThree && camera) {
+          camera.position.set(camPos.x, camPos.y, camPos.z);
+          camera.lookAt(camLook.x, camLook.y, camLook.z);
+        }
+      }
+
+      function drawHudOverlay() {
+        const w = hudCanvas.width;
+        const h = hudCanvas.height;
+        hudCtx.clearRect(0, 0, w, h);
+
+        // Label Dugout Hole (Khutti)
+        const holePt = projectWorldToScreen(HOLE_X, 0.05, HOLE_Z);
+        hudCtx.save();
+        hudCtx.font = '700 11px Inter, sans-serif';
+        hudCtx.textAlign = 'center';
+        hudCtx.fillStyle = 'rgba(254, 243, 199, 0.85)';
+        hudCtx.fillText('KHUTTI (HOLE)', holePt.x, holePt.y - 16);
+        hudCtx.restore();
+
+        // Target Marble Callout Pill
+        if ((state.phase === 'PICK_TARGET' || state.phase === 'FLICK_AIM') && state.targetMarble) {
+          const tp = projectWorldToScreen(state.targetMarble.x, state.targetMarble.y + 0.4, state.targetMarble.z);
+          const label = state.phase === 'PICK_TARGET' ? 'SELECTED TARGET' : 'HIT THIS KANCHA';
+          hudCtx.save();
+          hudCtx.font = '800 11px Inter, sans-serif';
+          const tw = hudCtx.measureText(label).width + 14;
+          hudCtx.fillStyle = 'rgba(185, 28, 28, 0.9)';
+          hudCtx.fillRect(tp.x - tw / 2, tp.y - 22, tw, 18);
+          hudCtx.fillStyle = '#fef3c7';
+          hudCtx.textAlign = 'center';
+          hudCtx.fillText(label, tp.x, tp.y - 9);
+          hudCtx.restore();
+        }
+
+        // Trajectory Aim Dots when dragging the 360° Omni-Pad in AIM & SHOOT mode
+        if ((state.phase === 'THROW_AIM' || state.phase === 'FLICK_AIM') && state.isAiming && state.aimPower > 0.06) {
+          const throwZ = HOLE_Z + state.throwFeet * UNITS_PER_FOOT;
+          const ox = state.phase === 'FLICK_AIM' && state.striker ? state.striker.x : 0;
+          const oz = state.phase === 'FLICK_AIM' && state.striker ? state.striker.z : throwZ;
+          const maxLen = state.throwFeet * UNITS_PER_FOOT * 1.25;
+          const len = maxLen * state.aimPower;
+
+          hudCtx.save();
+          for (let i = 1; i <= 14; i++) {
+            const t = i / 14;
+            const wx = ox + state.aimDirX * len * t;
+            const wz = oz + state.aimDirZ * len * t;
+            const wy = getGroundY(wx, wz) + 0.14;
+            const sp = projectWorldToScreen(wx, wy, wz);
+            hudCtx.beginPath();
+            hudCtx.arc(sp.x, sp.y, Math.max(2.5, 6 * (1 - t * 0.5)), 0, Math.PI * 2);
+            hudCtx.fillStyle = state.aimPower > 0.78 ? '#ef4444' : '#fbbf24';
+            hudCtx.globalAlpha = 0.92 - t * 0.45;
+            hudCtx.fill();
+          }
+          hudCtx.restore();
+        }
+      }
+
+      function handleResize() {
+        const w = playArea.clientWidth || window.innerWidth;
+        const h = playArea.clientHeight || Math.round(window.innerHeight * 0.7);
+        playCanvas.width = w;
+        playCanvas.height = h;
+        hudCanvas.width = w;
+        hudCanvas.height = h;
+        if (useThree && camera && renderer) {
+          camera.aspect = w / Math.max(1, h);
+          camera.updateProjectionMatrix();
+          renderer.setSize(w, h);
+        }
+      }
+      window.addEventListener('resize', handleResize);
+      handleResize();
+
+      let lastTime = performance.now();
+      function mainLoop(now) {
+        requestAnimationFrame(mainLoop);
+        const dt = Math.min(0.05, (now - lastTime) / 1000 || 0.016);
+        lastTime = now;
+
+        if (targetRingMesh && targetRingMesh.visible && state.targetMarble) {
+          const pulse = 1 + Math.sin(now * 0.008) * 0.15;
+          targetRingMesh.scale.set(pulse, pulse, 1);
+          targetRingMesh.position.set(
+            state.targetMarble.x,
+            getGroundY(state.targetMarble.x, state.targetMarble.z) + 0.03,
+            state.targetMarble.z
+          );
+        }
+
+        stepPhysics(dt);
+        updateCamera(dt);
+
+        if (useThree && renderer && scene && camera) {
+          renderer.render(scene, camera);
+        } else {
+          renderSoftwareFallbackScene();
+        }
+        drawHudOverlay();
+      }
+
+      rebuildThrowLine();
+      requestAnimationFrame(mainLoop);
+    })();
+  </script>
+</body>
+</html>
