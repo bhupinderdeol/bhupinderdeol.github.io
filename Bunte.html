@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#17271e">
+<title>Dhamuli Marbles - World Championship</title>
+<style>
+:root{--gold:#e8c477;--green:#203b2b;--panel:#294333;--ink:#fff5df}
+*{box-sizing:border-box}
+body{margin:0;background:#14251b;color:var(--ink);font-family:system-ui,Arial;padding:12px}
+.app{max-width:1100px;margin:auto}
+header{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(135deg,#ffe3a1,#a87937);color:#263321;font-size:26px}
+h1{font:600 clamp(19px,4vw,28px) Georgia;margin:0}
+.eyebrow{font-size:10px;letter-spacing:2px;color:var(--gold)}
+.badge{font-size:10px;border:1px solid #657955;border-radius:20px;padding:7px;color:#d9e3c8}
+.story{display:flex;gap:12px;align-items:center;padding:13px;border:1px solid #61764e;border-radius:15px;background:linear-gradient(110deg,#344b32,#263c2c);font-size:12px;line-height:1.55;color:#e9e3ce}
+.story b{color:#f3d28c}
+.nav{display:flex;justify-content:center;gap:7px;margin:14px 0}
+.nav button{border:1px solid #526b4d;background:#17291f;color:#e6e5d4;border-radius:30px;padding:10px 16px;font-size:12px;font-weight:bold}
+.nav button.active{background:linear-gradient(135deg,#f2d48e,#b68a4b);color:#263323}
+.panel{background:linear-gradient(145deg,#2b4433,#1c3024);border:1px solid #506849;border-radius:17px;padding:14px;margin-bottom:12px}
+h2{font:600 20px Georgia;margin:0 0 12px}
+h3{font:600 17px Georgia;color:var(--gold)}
+.setup{display:grid;grid-template-columns:repeat(4,1fr);gap:9px}
+.field{background:#17291f;border:1px solid #52674b;border-radius:11px;padding:9px}
+.field label{display:block;font-size:10px;color:#c5c9b0;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px}
+select,input{width:100%;background:#203529;color:white;border:0;padding:7px;border-radius:6px}
+input[type=range]{accent-color:var(--gold)}
+.value{font-size:12px;color:var(--gold);margin-bottom:4px}
+button{cursor:pointer}
+.btn{border:1px solid #657a55;background:#344d36;color:white;border-radius:10px;padding:11px 14px;font-weight:750;font-size:12px}
+.btn.primary{background:linear-gradient(135deg,#f0d38e,#bb914f);color:#263321;border:0}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.players{display:flex;gap:6px;flex-wrap:wrap;margin-top:12px}
+.chip{border:1px solid #687b54;background:#1b3023;border-radius:30px;padding:7px 10px;font-size:11px}
+.chip.active{background:#69542f;border-color:#f0d18b}
+.gamegrid{display:grid;grid-template-columns:minmax(0,1fr) 235px;gap:12px}
+.arena{height:440px;position:relative;overflow:hidden;border:1px solid #78815a;border-radius:15px;background:#8e7952}
+canvas{width:100%;height:100%;display:block;touch-action:none}
+.side{display:flex;flex-direction:column;gap:9px}
+.stat{background:#17291f;border:1px solid #506549;border-radius:12px;padding:12px}
+.stat small{font-size:10px;color:#bfc8ad;text-transform:uppercase;letter-spacing:1px}
+.stat strong{display:block;color:var(--gold);font:600 24px Georgia;margin:4px 0}
+.stat p{font-size:11px;color:#d7ddc8;line-height:1.5;margin:3px 0}
+.log{max-height:125px;overflow:auto;font-size:11px;color:#d7ddc8;line-height:1.6}
+.log div{border-bottom:1px solid #435740;padding:4px}
+.tab{display:none}.tab.active{display:block}
+.rules{font-size:13px;line-height:1.7;color:#e0e4d1}
+.rules li{margin:6px 0}
+footer{text-align:center;color:#84927d;font-size:10px;margin:14px}
+@media(max-width:720px){
+body{padding:8px}.setup{grid-template-columns:repeat(2,1fr)}
+.gamegrid{grid-template-columns:1fr}.arena{height:390px}
+.side{display:grid;grid-template-columns:repeat(2,1fr)}
+.side .wide{grid-column:1/-1}
+.nav button{padding:10px 12px;font-size:11px}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+ <div class="logo"><div class="logo-icon">◉</div><div>
+ <div class="eyebrow">PUNJAB · INDIA · WORLD</div>
+ <h1>Dhamuli Marbles</h1></div></div>
+ <span class="badge">WORLD CHAMPIONSHIP</span>
+</header>
+
+<div class="story">
+ <span style="font-size:29px">🌳</span>
+ <div><b>School di chhutti… chai da vela!</b><br>
+ After school and a cup of chai, village children gather beneath the shade trees in Dhamuli, Jalandhar. The dusty ground becomes their playground. Glass kanche, friendly rivalry and village pride begin a tradition that can travel around the world.</div>
+</div>
+
+<nav class="nav">
+ <button class="active" data-tab="play">◉ Play</button>
+ <button data-tab="rules">☷ Rules</button>
+ <button data-tab="championship">🏆 World</button>
+ <button data-tab="settings">⚙ Options</button>
+</nav>
+
+<section class="tab active" id="play">
+ <div class="panel">
+  <h2>Prepare the village adda</h2>
+  <div class="setup">
+   <div class="field"><label>Players</label>
+    <select id="players"><option>2</option><option>3</option><option selected>4</option></select>
+   </div>
+   <div class="field"><label>Marbles each</label>
+    <select id="stake"><option value="3">3 marbles</option><option value="4" selected>4 marbles</option><option value="6">6 marbles</option></select>
+   </div>
+   <div class="field"><label>Hole distance</label>
+    <div class="value"><span id="distText">6</span> feet</div>
+    <input id="distance" type="range" min="4" max="18" value="6">
+   </div>
+   <div class="field"><label>Competition country</label>
+    <select id="country">
+     <option>India</option><option>Canada</option><option>United Kingdom</option>
+     <option>United States</option><option>Australia</option><option>Pakistan</option>
+     <option>Bangladesh</option><option>Nepal</option><option>Other country</option>
+    </select>
+   </div>
+  </div>
+  <div class="players" id="playersList"></div>
+  <div class="actions">
+   <button class="btn primary" id="start">Start new game</button>
+   <button class="btn" id="reset">Reset round</button>
+  </div>
+ </div>
+
+ <div class="gamegrid">
+  <div class="arena"><canvas id="field"></canvas></div>
+  <aside class="side">
+   <div class="stat"><small>Current player</small><strong id="turnName">Ready</strong><p id="phaseText">Set up the game and start.</p></div>
+   <div class="stat"><small>Scattered marbles</small><strong id="marbleCount">0</strong><p>Remaining on the playing ground</p></div>
+   <div class="stat"><small>Hole marbles</small><strong id="holeCount">0</strong><p>Waiting for the turn result</p></div>
+   <div class="stat wide"><small>Game action</small><p id="actionText">Start the game to gather the players.</p>
+    <div class="actions">
+     <button class="btn primary" id="action" disabled>Throw from palm</button>
+     <button class="btn" id="next" disabled>Next player</button>
+    </div>
+   </div>
+   <div class="stat wide"><small>Scoreboard</small><div class="log" id="scores">Scores appear here.</div></div>
+  </aside>
+ </div>
+</section>
+
+<section class="tab panel" id="rules">
+ <h2>Traditional Punjabi Kanche Rules</h2>
+ <div class="rules">
+ <h3>1. Gather the pot</h3>
+ <p>Two to four players contribute 3, 4 or 6 marbles each. The total pot is capped at 30.</p>
+ <h3>2. The opening throw</h3>
+ <p>The first player gathers the pooled marbles in their palm and throws them towards the gitta (hole). Some fall into the hole while others scatter around it.</p>
+ <h3>3. Select the challenge</h3>
+ <p>The other players choose the hardest marble to hit. The game highlights that marble with a larger target ring and pointing arrow.</p>
+ <h3>4. Thumb-and-index flick</h3>
+ <p>The player uses the right hand, thumb and index finger to flick a striker marble towards the selected target. Drag backwards from the striker and release.</p>
+ <h3>5. Winning</h3>
+ <p><b>Successful hit:</b> The player wins all remaining scattered marbles and any unclaimed hole marbles.</p>
+ <p><b>Miss:</b> The player receives only the hole marbles. All scattered marbles remain on the ground for the next player.</p>
+ <h3>6. Player rotation</h3>
+ <p>Players take turns using the same remaining scattered marbles. Marbles are never awarded twice. The game ends when the scattered pot is won or exhausted.</p>
+ <h3>Controls</h3>
+ <p>Tap Throw from palm for the opening throw. During a flick turn, touch the striker marble, pull backwards and release. On desktop, use the mouse.</p>
+ </div>
+</section>
+
+<section class="tab panel" id="championship">
+ <h2>From Dhamuli to the World</h2>
+ <p class="rules">The historical birthplace of this game is Dhamuli, Jalandhar, Punjab, India.</p>
+ <div style="font-size:45px;text-align:center;padding:15px">🇮🇳 🌍 🏆</div>
+ <div class="rules">
+ <h3>Our future competition structure</h3>
+ <ol>
+ <li>Dhamuli Village Championship</li>
+ <li>Jalandhar District Championship</li>
+ <li>Punjab Championship</li>
+ <li>Indian National Championship</li>
+ <li>International Country Championships</li>
+ <li>Dhamuli World Championship</li>
+ </ol>
+ <p>Country selection is available in this prototype for competition identity. Online multiplayer, official rankings and tournaments will require a later development stage.</p>
+ </div>
+</section>
+
+<section class="tab panel" id="settings">
+ <h2>Game options</h2>
+ <div class="rules">
+ <p>Sound effects are generated locally by your browser. No server or account is needed.</p>
+ <p>Player count, stake, country and hole distance can be changed before starting a new game.</p>
+ <button class="btn" id="clearSave">Clear saved scores</button>
+ <p id="saveMessage"></p>
+ </div>
+</section>
+
+<footer>DHAMULI MARBLES · A traditional Punjabi game with a global future</footer>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const canvas=$('field'),ctx=canvas.getContext('2d');
+let W=700,H=440,D=1;
+let playerCount=4,stake=4,distance=6,turn=0,round=1;
+let names=['Gurpreet','Jassa','Mintu','Happy'];
+let scores=[],marbles=[],hole=0,target=null,striker=null;
+let phase='setup',started=false,drag=null,handAnim=null,log=[];
+let country='India',rafId=null,ac=null;
+let speckles=[],foliage=[];
+const rand=(a,b)=>a+Math.random()*(b-a);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const colors=['#e9d5a7','#7ed4c5','#e68c70','#a99be8','#e8c85d','#e9a9cf','#a8c6e8'];
+
+function getHoleY(){
+ return H*(0.28-(distance-4)*0.008);
+}
+
+function buildScenery(){
+ speckles=[];
+ for(let i=0;i<150;i++){
+  speckles.push({
+   x:(i*97.31)%W,y:(i*53.77)%H,
+   rx:rand(1,4),ry:rand(1,2),rot:rand(0,3),c:i%2?'#e0c58c':'#342d20'
+  });
+ }
+ foliage=[];
+ for(let i=0;i<25;i++){
+  foliage.push({
+   x:(i*71)%W,y:rand(-10,28),r:rand(15,33),c:i%2?'#344e2d':'#4b633b'
+  });
+ }
+}
+
+function resize(){
+ const r=canvas.getBoundingClientRect();
+ D=Math.min(devicePixelRatio||1,2);
+ W=Math.max(300,r.width);H=Math.max(340,r.height);
+ canvas.width=W*D;canvas.height=H*D;
+ ctx.setTransform(D,0,0,D,0,0);
+ buildScenery();
+ draw();
+}
+window.addEventListener('resize',resize);
+
+function sound(freq=420,duration=.1){
+ try{
+  if(!ac)ac=new(window.AudioContext||window.webkitAudioContext)();
+  if(ac.state==='suspended')ac.resume();
+  const osc=ac.createOscillator(),gain=ac.createGain();
+  osc.type='sine';osc.frequency.value=freq;
+  gain.gain.setValueAtTime(.07,ac.currentTime);
+  gain.gain.exponentialRampToValueAtTime(.001,ac.currentTime+duration);
+  osc.connect(gain);gain.connect(ac.destination);
+  osc.start();osc.stop(ac.currentTime+duration);
+ }catch(e){}
+}
+
+function setup(){
+ playerCount=+$('players').value;
+ stake=+$('stake').value;
+ distance=+$('distance').value;
+ country=$('country').value;
+ $('distText').textContent=distance;
+ $('playersList').innerHTML=names.slice(0,playerCount).map((n,i)=>{
+  const sc=started?` (${scores[i]||0})`:'';
+  return `<span class="chip ${started&&i===turn?'active':''}">● ${n}${sc}</span>`;
+ }).join('');
+}
+['players','stake','distance','country'].forEach(id=>{
+ $(id).addEventListener('input',()=>{if(!started){setup();draw();}});
+});
+
+function addLog(message){
+ log.unshift(message);
+ log=log.slice(0,12);
+ $('scores').innerHTML=log.map(x=>`<div>${x}</div>`).join('');
+}
+
+function startGame(){
+ setup();
+ scores=Array(playerCount).fill(0);
+ turn=0;round=1;hole=0;marbles=[];handAnim=null;drag=null;
+ started=true;phase='ready';log=[];
+ const total=Math.min(30,playerCount*stake);
+ for(let i=0;i<total;i++){
+  marbles.push({id:i,x:W/2,y:H*.82,r:7.5,color:colors[i%colors.length],vx:0,vy:0,rot:rand(0,6)});
+ }
+ addLog(`${country} game started at Dhamuli rules. ${total} marbles in the pot.`);
+ update();draw();sound(520);
+}
+
+function scatter(){
+ let cx=W*.5,cy=H*.49,hx=W*.5,hy=getHoleY();
+ hole=0;
+ marbles.forEach(m=>{
+  let a=rand(0,Math.PI*2);
+  let radius=rand(20,Math.min(W*.29,120));
+  m.x=clamp(cx+Math.cos(a)*radius,22,W-22);
+  m.y=clamp(cy+Math.sin(a)*radius,42,H-25);
+  m.vx=rand(-1.3,1.3);m.vy=rand(-1.2,1.2);
+  m.hole=Math.hypot(m.x-hx,m.y-hy)<23&&Math.random()<.8;
+ });
+ const dropped=marbles.filter(m=>m.hole);
+ hole=dropped.length;
+ marbles=marbles.filter(m=>!m.hole);
+ selectTarget();
+ striker={x:W*.5,y:H*.84,r:10};
+ phase='aim';
+}
+
+function selectTarget(){
+ if(!marbles.length){target=null;return}
+ const hx=W*.5,hy=getHoleY();
+ target=marbles.reduce((best,m)=>
+ Math.hypot(m.x-hx,m.y-hy)>Math.hypot(best.x-hx,best.y-hy)?m:best);
+}
+
+function palmThrow(){
+ if(phase!=='ready')return;
+ phase='opening';
+ handAnim={type:'palm',start:performance.now()};
+ $('actionText').textContent='The player gathers the kanche in their palm and throws them towards the gitta…';
+ update();draw();sound(300);
+ setTimeout(()=>{
+  if(phase!=='opening')return;
+  scatter();
+  addLog(`${names[turn]} opened the game with a palm throw. ${hole} marbles fell into the hole; ${marbles.length} scattered.`);
+  update();draw();sound(570);
+ },1050);
+}
+
+function finish(hit,launchX,launchY){
+ const won=hit?marbles.length+hole:hole;
+ scores[turn]+=won;
+ addLog(`${names[turn]} ${hit?'hit the challenge marble and won the remaining pot':'missed and collected the hole marbles'}: +${won}.`);
+ if(hit){marbles=[];hole=0;phase='finished';}
+ else{
+  hole=0;
+  phase=marbles.length?'result':'finished';
+ }
+ handAnim={type:'flick',start:performance.now(),x:launchX,y:launchY};
+ update();draw();sound(hit?780:210);
+ if(phase==='finished'){
+  const high=Math.max(...scores);
+  const winners=scores.map((s,i)=>s===high?names[i]:null).filter(Boolean).join(' & ');
+  addLog(`Game complete. Winner: ${winners} with ${high} marbles.`);
+  localStorage.setItem('dhamuliBest',String(Math.max(high,+(localStorage.getItem('dhamuliBest')||0))));
+ }
+}
+
+function nextPlayer(){
+ if(phase!=='result')return;
+ turn=(turn+1)%playerCount;round++;
+ selectTarget();
+ striker={x:W*.5,y:H*.84,r:10};
+ phase='aim';
+ addLog(`${names[turn]}'s turn. ${marbles.length} scattered marbles remain.`);
+ update();draw();sound(500);
+}
+
+$('start').onclick=startGame;
+$('reset').onclick=()=>{
+ started=false;phase='setup';marbles=[];hole=0;target=null;striker=null;
+ scores=[];log=[];handAnim=null;drag=null;update();draw();
+};
+$('action').onclick=()=>{
+ if(phase==='ready')palmThrow();
+ else if(phase==='result')nextPlayer();
+};
+$('next').onclick=nextPlayer;
+
+function update(){
+ setup();
+ $('turnName').textContent=started?names[turn]:'Ready';
+ $('marbleCount').textContent=started?marbles.length:'0';
+ $('holeCount').textContent=started?hole:'0';
+ const descriptions={
+ setup:'Set up the game and start.',
+ ready:'The pooled marbles are ready for the opening palm throw.',
+ opening:'Opening throw in progress.',
+ aim:'Drag backwards from your striker marble and release towards the highlighted target.',
+ result:'Your turn is complete. Pass the turn to the next player.',
+ finished:'Game finished. Start a new round to play again.'
+ };
+ $('phaseText').textContent=descriptions[phase]||'';
+ $('action').disabled=!started||!['ready','result'].includes(phase);
+ $('next').disabled=phase!=='result';
+ $('action').textContent=phase==='result'?'Next player':'Throw from palm';
+ $('actionText').textContent=phase==='ready'?'Tap to throw all pooled marbles from the player’s palm.':
+ phase==='aim'?'Target the enlarged marble. Pull back from your striker and release.':
+ phase==='result'?'Scattered marbles stay on the ground for the next player.':
+ phase==='finished'?'Game finished. Start another game.':'Ready for the game.';
+ $('scores').innerHTML=log.map(x=>`<div>${x}</div>`).join('')||'Scores appear here.';
+}
+
+function pointer(e){
+ const r=canvas.getBoundingClientRect();
+ return{x:e.clientX-r.left,y:e.clientY-r.top};
+}
+canvas.addEventListener('pointerdown',e=>{
+ if(phase!=='aim'||!striker)return;
+ const p=pointer(e);
+ if(Math.hypot(p.x-striker.x,p.y-striker.y)<38){
+  drag={x:p.x,y:p.y,p:p};
+  canvas.setPointerCapture(e.pointerId);draw();
+ }
+});
+canvas.addEventListener('pointermove',e=>{
+ if(drag){drag.p=pointer(e);draw()}
+});
+canvas.addEventListener('pointerup',e=>{
+ if(!drag)return;
+ const end=pointer(e),dx=drag.x-end.x,dy=drag.y-end.y;
+ const power=Math.hypot(dx,dy);
+ drag=null;
+ if(power<9){draw();return}
+ const ux=dx/power,uy=dy/power;
+ const travel=clamp(power*1.7,35,Math.min(W,H)*.9);
+ const lx=striker.x,ly=striker.y;
+ const ex=lx+ux*travel,ey=ly+uy*travel;
+ const hit=target&&pointSegment(target.x,target.y,lx,ly,ex,ey)<target.r+striker.r+9;
+ striker={x:ex,y:ey,r:10};
+ finish(!!hit,lx,ly);
+});
+
+function pointSegment(px,py,x1,y1,x2,y2){
+ const dx=x2-x1,dy=y2-y1;
+ const t=clamp(((px-x1)*dx+(py-y1)*dy)/(dx*dx+dy*dy||1),0,1);
+ return Math.hypot(px-x1-t*dx,py-y1-t*dy);
+}
+
+function drawMarble(m,highlight=false){
+ ctx.save();
+ const r=m.r*(highlight?1.48:1);
+ ctx.shadowColor='#20170e99';ctx.shadowBlur=7;ctx.shadowOffsetY=4;
+ const grad=ctx.createRadialGradient(m.x-r*.36,m.y-r*.42,1,m.x,m.y,r*1.25);
+ grad.addColorStop(0,'#ffffff');
+ grad.addColorStop(.15,m.color);
+ grad.addColorStop(.55,m.color);
+ grad.addColorStop(.82,'#64716a');
+ grad.addColorStop(1,'#17251e');
+ ctx.fillStyle=grad;
+ ctx.beginPath();ctx.arc(m.x,m.y,r,0,Math.PI*2);ctx.fill();
+ ctx.shadowBlur=0;ctx.shadowOffsetY=0;
+ ctx.fillStyle='#ffffffa8';
+ ctx.beginPath();ctx.ellipse(m.x-r*.32,m.y-r*.36,r*.25,r*.12,-.5,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#ffffff75';ctx.lineWidth=1;
+ ctx.beginPath();ctx.arc(m.x,m.y,r*.76,-1.3,.6);ctx.stroke();
+ ctx.strokeStyle='#ffffff70';ctx.lineWidth=Math.max(1,r*.16);
+ ctx.beginPath();ctx.arc(m.x+r*.08,m.y+r*.05,r*.4,.2,4.2);ctx.stroke();
+ ctx.restore();
+}
+
+function drawHand(x,y,type,progress){
+ ctx.save();
+ ctx.translate(x,y);
+ const skin='#c98d68',light='#e4b18b',shade='#8e5945';
+ if(type==='palm'){
+  const lift=Math.sin(progress*Math.PI)*-28;
+  ctx.translate(0,lift);
+  ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(-17,10,34,65,13);ctx.fill();
+  ctx.fillStyle=light;ctx.strokeStyle=shade;ctx.lineWidth=2;
+  ctx.beginPath();ctx.ellipse(0,0,39,29,-.12,0,Math.PI*2);ctx.fill();ctx.stroke();
+  for(let i=0;i<4;i++){
+   let xx=-25+i*16;
+   ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(xx,-35,12,42,7);ctx.fill();
+   ctx.fillStyle=light;ctx.beginPath();ctx.ellipse(xx+6,-32,5,5,0,0,Math.PI*2);ctx.fill();
+  }
+  ctx.save();ctx.translate(-32,-2);ctx.rotate(-.75);
+  ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(-5,-5,16,40,8);ctx.fill();ctx.restore();
+  for(let i=0;i<5;i++){
+   const a=i*1.25;
+   drawMarble({x:Math.cos(a)*12,y:Math.sin(a)*9,r:6,color:colors[i]});
+  }
+ }else{
+  ctx.translate(0,progress*12);
+  ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(-14,0,29,55,12);ctx.fill();
+  ctx.fillStyle=light;ctx.strokeStyle=shade;ctx.lineWidth=2;
+  ctx.beginPath();ctx.roundRect(-5,-33,12,53,6);ctx.fill();ctx.stroke();
+  ctx.save();ctx.translate(8,10);ctx.rotate(-.75);
+  ctx.beginPath();ctx.roundRect(-5,-25,13,39,7);ctx.fill();ctx.stroke();ctx.restore();
+  for(let i=0;i<3;i++){
+   ctx.fillStyle=skin;ctx.beginPath();ctx.roundRect(9+i*6,23+i*3,9,28,5);ctx.fill();
+  }
+  drawMarble({x:2,y:-4,r:9,color:'#9de2d2'});
+ }
+ ctx.restore();
+}
+
+function drawArrow(x,y){
+ ctx.save();ctx.fillStyle='#fff0a4';ctx.strokeStyle='#4b3518';ctx.lineWidth=2;
+ ctx.beginPath();ctx.moveTo(x,y-34);ctx.lineTo(x-9,y-48);ctx.lineTo(x-4,y-48);
+ ctx.lineTo(x-4,y-60);ctx.lineTo(x+4,y-60);ctx.lineTo(x+4,y-48);
+ ctx.lineTo(x+9,y-48);ctx.closePath();ctx.fill();ctx.stroke();
+ ctx.restore();
+}
+
+function draw(){
+ if(!ctx)return;
+ if(rafId){cancelAnimationFrame(rafId);rafId=null;}
+ ctx.clearRect(0,0,W,H);
+ const bg=ctx.createLinearGradient(0,0,0,H);
+ bg.addColorStop(0,'#a28d61');bg.addColorStop(.55,'#89744d');bg.addColorStop(1,'#66533a');
+ ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+ ctx.globalAlpha=.12;
+ for(const s of speckles){
+  ctx.fillStyle=s.c;
+  ctx.beginPath();ctx.ellipse(s.x,s.y,s.rx,s.ry,s.rot,0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=.6;
+ for(const f of foliage){
+  ctx.fillStyle=f.c;
+  ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill();
+ }
+ ctx.globalAlpha=1;
+
+ ctx.fillStyle='#665b42';ctx.globalAlpha=.5;
+ ctx.fillRect(10,H*.11,65,28);ctx.fillRect(W-88,H*.13,72,27);
+ ctx.globalAlpha=1;
+
+ ctx.strokeStyle='#f3e1b5';ctx.lineWidth=2;ctx.setLineDash([7,7]);
+ ctx.beginPath();ctx.moveTo(18,H*.88);ctx.lineTo(W-18,H*.88);ctx.stroke();ctx.setLineDash([]);
+ ctx.fillStyle='#fff0c9';ctx.font='11px system-ui';ctx.fillText('THROW LINE',22,H*.88-9);
+
+ const hx=W*.5,hy=getHoleY();
+ ctx.fillStyle='#30291f';ctx.beginPath();ctx.ellipse(hx,hy,27,15,0,0,Math.PI*2);ctx.fill();
+ ctx.strokeStyle='#d6c28f';ctx.lineWidth=3;ctx.stroke();
+ ctx.fillStyle='#fff0c9';ctx.textAlign='center';ctx.font='bold 10px system-ui';
+ ctx.fillText('GITTA / HOLE',hx,hy-23);ctx.textAlign='left';
+
+ ctx.strokeStyle='#f2dfb2';ctx.globalAlpha=.6;ctx.setLineDash([4,6]);
+ ctx.beginPath();ctx.moveTo(hx,hy+20);ctx.lineTo(hx,H*.82);ctx.stroke();
+ ctx.setLineDash([]);ctx.globalAlpha=1;
+ ctx.fillStyle='#fff0c9';ctx.font='11px system-ui';ctx.fillText(distance+' ft',hx+33,H*.55);
+
+ marbles.forEach(m=>drawMarble(m,m===target&&phase==='aim'));
+
+ if(target&&phase==='aim'){
+  const pulse=3+Math.sin(performance.now()/170)*2;
+  ctx.strokeStyle='#ffe28a';ctx.lineWidth=3;
+  ctx.beginPath();ctx.arc(target.x,target.y,target.r*1.48+8+pulse,0,Math.PI*2);ctx.stroke();
+  drawArrow(target.x,target.y);
+  ctx.fillStyle='#fff2bd';ctx.font='bold 10px system-ui';
+  ctx.fillText('HIT THIS MARBLE',target.x+14,target.y+5);
+ }
+
+ if(striker&&phase==='aim'){
+  drawMarble({x:striker.x,y:striker.y,r:10,color:'#a5e8df'});
+  ctx.strokeStyle='#ffffff';ctx.lineWidth=2;
+  ctx.beginPath();ctx.arc(striker.x,striker.y,12,0,Math.PI*2);ctx.stroke();
+ }
+
+ if(drag&&drag.p&&striker){
+  const dx=drag.x-drag.p.x,dy=drag.y-drag.p.y;
+  const power=Math.hypot(dx,dy);
+  ctx.strokeStyle='#fff0a4';ctx.lineWidth=3;
+  ctx.beginPath();ctx.moveTo(striker.x,striker.y);ctx.lineTo(drag.p.x,drag.p.y);ctx.stroke();
+  if(power>=9){
+   const travel=clamp(power*1.7,35,Math.min(W,H)*.9);
+   const ux=dx/power,uy=dy/power;
+   ctx.save();
+   ctx.strokeStyle='#ffffffb8';ctx.lineWidth=2;ctx.setLineDash([6,6]);
+   ctx.beginPath();ctx.moveTo(striker.x,striker.y);
+   ctx.lineTo(striker.x+ux*travel,striker.y+uy*travel);ctx.stroke();
+   ctx.restore();
+  }
+  ctx.fillStyle='#fff2bd';ctx.font='12px system-ui';ctx.fillText('Pull back and release',15,22);
+ }
+
+ if(handAnim){
+  const p=clamp((performance.now()-handAnim.start)/850,0,1);
+  if(handAnim.type==='palm')drawHand(W*.5,H*.73,'palm',p);
+  else drawHand(handAnim.x??W*.5,(handAnim.y??H*.84)-45,'flick',p);
+  if(p>=1)handAnim=null;
+ }
+
+ if(phase==='setup'||phase==='ready'||phase==='finished'){
+  ctx.fillStyle='#fff0c9';ctx.font='bold 15px Georgia';ctx.textAlign='center';
+  ctx.fillText(phase==='setup'?'WELCOME TO THE VILLAGE ADDA':
+   phase==='ready'?'READY FOR THE PALM THROW':'GAME COMPLETE',W/2,H*.68);
+  ctx.textAlign='left';
+ }
+
+ if(handAnim||(target&&phase==='aim')){
+  rafId=requestAnimationFrame(draw);
+ }
+}
+
+$('clearSave').onclick=()=>{
+ localStorage.removeItem('dhamuliBest');
+ $('saveMessage').textContent='Saved high score cleared.';
+};
+
+document.querySelectorAll('.nav button').forEach(btn=>{
+ btn.addEventListener('click',()=>{
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');$(btn.dataset.tab).classList.add('active');
+  if(btn.dataset.tab==='play')resize();
+ });
+});
+
+resize();setup();update();draw();
+})();
+</script>
+</body>
+</html>
