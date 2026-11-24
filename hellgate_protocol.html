@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#090b10">
+<title>HELLGATE PROTOCOL — FPS</title>
+<style>
+:root{--lime:#c8ff45;--red:#ff4545;--panel:#101722;--line:#344253}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#05070a;color:#e9f1f8;font-family:Arial,Helvetica,sans-serif;touch-action:none}
+#app{position:relative;width:100%;height:100dvh;min-height:320px;background:#05070a;overflow:hidden}
+#game{display:block;width:100%;height:100%;image-rendering:pixelated}
+#topbar{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;padding:calc(10px + env(safe-area-inset-top)) 12px 0;pointer-events:none;text-shadow:0 2px 4px #000}
+.hud{background:#071018cc;border:1px solid #526171;padding:7px 10px;border-radius:5px;font-weight:900;font-size:12px;letter-spacing:1px}
+.hud b{color:var(--lime);font-size:16px}
+#mission{position:absolute;top:62px;left:50%;transform:translateX(-50%);font-size:11px;letter-spacing:2px;color:#dce6ef;text-shadow:0 2px 4px #000;white-space:nowrap;pointer-events:none}
+#bottomHud{position:absolute;bottom:calc(12px + env(safe-area-inset-bottom));left:12px;right:12px;display:flex;justify-content:space-between;align-items:end;pointer-events:none}
+#status{display:flex;gap:7px;flex-wrap:wrap}
+.stat{background:#071018dc;border:1px solid #526171;padding:8px 10px;border-radius:4px;font-size:11px;font-weight:900;min-width:64px}
+.stat span{color:var(--lime);font-size:16px;display:block;margin-top:3px}
+#weaponName{color:#d4dce5;font-size:10px;letter-spacing:1px;text-align:right;margin-bottom:5px}
+#crosshair{position:absolute;left:50%;top:50%;width:18px;height:18px;transform:translate(-50%,-50%);pointer-events:none;opacity:.8}
+#crosshair:before,#crosshair:after{content:"";position:absolute;background:#d8ffad;box-shadow:0 0 4px #000}
+#crosshair:before{width:2px;height:18px;left:8px;top:0}#crosshair:after{height:2px;width:18px;top:8px;left:0}
+#controls{position:absolute;inset:0;pointer-events:none}
+#lookZone{position:absolute;right:0;top:18%;width:58%;height:65%;pointer-events:auto}
+#stickBase{position:absolute;left:22px;bottom:calc(35px + env(safe-area-inset-bottom));width:116px;height:116px;border-radius:50%;border:2px solid #c9d4df66;background:#101b2a99;pointer-events:auto;touch-action:none}
+#stick{position:absolute;width:48px;height:48px;left:32px;top:32px;border-radius:50%;background:#c8ff45aa;border:2px solid #e7ffb5;box-shadow:0 0 18px #c8ff4544}
+.action{position:absolute;pointer-events:auto;border:1px solid #d6e3ef88;background:#101a28cc;color:#fff;border-radius:50%;font-weight:900;display:grid;place-items:center;touch-action:none;text-shadow:0 2px 3px #000}
+#fire{right:22px;bottom:calc(45px + env(safe-area-inset-bottom));width:76px;height:76px;background:#9b2020dd;border-color:#ff7777;font-size:12px}
+#use{right:108px;bottom:calc(62px + env(safe-area-inset-bottom));width:54px;height:54px;font-size:10px}
+#switch{right:30px;bottom:calc(135px + env(safe-area-inset-bottom));width:48px;height:48px;font-size:10px}
+#pause{position:absolute;right:12px;top:calc(58px + env(safe-area-inset-top));pointer-events:auto;background:#101722dd;color:#fff;border:1px solid #667585;border-radius:4px;padding:8px 12px;font-weight:900}
+#desktopHelp{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);font-size:10px;color:#d4dce588;white-space:nowrap;pointer-events:none}
+.overlay{position:absolute;inset:0;background:radial-gradient(ellipse at center,#172332f2,#05070af7 75%);display:flex;align-items:center;justify-content:center;padding:18px;z-index:10}
+.panel{width:min(540px,100%);max-height:92%;overflow:auto;background:linear-gradient(145deg,#172333f5,#090e16f5);border:1px solid #596b7d;border-radius:9px;padding:24px;box-shadow:0 20px 80px #000; text-align:center}
+.kicker{color:var(--lime);font-size:11px;letter-spacing:4px;font-weight:900}
+h1{font-size:clamp(30px,8vw,54px);line-height:.95;margin:12px 0;color:#fff;letter-spacing:2px;text-shadow:3px 4px #681c1c}
+h2{font-size:22px;margin:8px 0 12px}
+p{color:#bdc9d5;line-height:1.5;font-size:14px}
+.btn{display:inline-block;border:0;border-radius:4px;padding:13px 20px;margin:6px;background:var(--lime);color:#10160a;font-weight:1000;letter-spacing:1px;cursor:pointer;min-width:135px}
+.btn.secondary{background:#26374a;color:#eef5fb;border:1px solid #65788b}
+.small{font-size:11px;color:#91a1b1}
+.hidden{display:none!important}
+#toast{position:absolute;top:24%;left:50%;transform:translateX(-50%);background:#071018ed;border:1px solid var(--lime);color:#eaffc5;padding:10px 16px;border-radius:4px;font-weight:900;font-size:12px;letter-spacing:1px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:5;white-space:nowrap}
+#damage{position:absolute;inset:0;background:#ff0000;opacity:0;pointer-events:none;mix-blend-mode:screen}
+@media (hover:hover) and (pointer:fine){#stickBase,#fire,#use,#switch{opacity:.35}#desktopHelp{display:block}}
+@media (hover:none){#desktopHelp{display:none}}
+@media(max-height:450px){#stickBase{width:88px;height:88px;bottom:12px}#stick{left:22px;top:22px;width:40px;height:40px}#fire{bottom:18px;width:62px;height:62px}#use{bottom:28px}#switch{bottom:100px}#bottomHud{bottom:8px}.stat{padding:5px 7px}}
+</style>
+</head>
+<body>
+<div id="app">
+<canvas id="game"></canvas>
+<div id="topbar">
+ <div class="hud">HELLGATE <b>01</b></div>
+ <div class="hud">SCORE <b id="scoreTop">0000</b></div>
+</div>
+<div id="mission">MISSION 01 — SECURE THE REACTOR ACCESS KEY</div>
+<button id="pause">Ⅱ PAUSE</button>
+<div id="crosshair"></div>
+<div id="damage"></div>
+<div id="toast"></div>
+<div id="bottomHud">
+ <div id="status">
+  <div class="stat">HEALTH<span id="health">100</span></div>
+  <div class="stat">ARMOR<span id="armor">25</span></div>
+  <div class="stat">AMMO<span id="ammo">24</span></div>
+  <div class="stat">KEYS<span id="keys">0/1</span></div>
+ </div>
+ <div><div id="weaponName">PULSE RIFLE</div><div class="stat">KILLS<span id="kills">0</span></div></div>
+</div>
+<div id="controls">
+ <div id="stickBase"><div id="stick"></div></div>
+ <div id="lookZone"></div>
+ <button class="action" id="fire">FIRE</button>
+ <button class="action" id="use">USE</button>
+ <button class="action" id="switch">GUN</button>
+</div>
+<div id="desktopHelp">WASD MOVE · MOUSE LOOK · CLICK FIRE · E USE · SPACE FIRE · SHIFT RUN</div>
+
+<div class="overlay" id="startScreen">
+ <div class="panel">
+  <div class="kicker">A RETRO SCI-FI FIRST-PERSON SHOOTER</div>
+  <h1>HELLGATE<br>PROTOCOL</h1>
+  <p>Mars Research Station 09 has gone silent. A dimensional breach is spreading through the facility. Find the reactor key, unlock the containment sector and survive.</p>
+  <button class="btn" id="startBtn">DEPLOY MARINE</button>
+  <button class="btn secondary" id="instructionsBtn">HOW TO PLAY</button>
+  <p class="small">Original browser game · No account · Progress saved locally</p>
+ </div>
+</div>
+<div class="overlay hidden" id="pauseScreen">
+ <div class="panel"><div class="kicker">FIELD OPERATIONS</div><h2>MISSION PAUSED</h2><p>Take a breath, Marine. The breach isn't going anywhere.</p><button class="btn" id="resumeBtn">RESUME</button><button class="btn secondary" id="restartBtn">RESTART MISSION</button><button class="btn secondary" id="pauseHelpBtn">CONTROLS</button></div>
+</div>
+<div class="overlay hidden" id="endScreen">
+ <div class="panel"><div class="kicker" id="endKicker">MISSION REPORT</div><h2 id="endTitle">MISSION COMPLETE</h2><p id="endText">The reactor access sector is secure.</p><button class="btn" id="againBtn">PLAY AGAIN</button></div>
+</div>
+</div>
+<script>
+(()=>{
+'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
+const $=id=>document.getElementById(id);
+let W=640,H=400, running=false, paused=true, last=0, raf=0, zbuf=[], score=0,kills=0,toastTimer=0,damageFlash=0,shotFlash=0,moveX=0,moveY=0,lookTouch=null;
+const TILE=64;
+const map=[
+"################",
+"#..............#",
+"#..##.....##...#",
+"#..#......#....#",
+"#..#..##..#....#",
+"#.....#.......##",
+"###...#.........#".slice(0,16),
+"#.....#..##.....#",
+"#..#.....#......#",
+"#..#.....#..##..#",
+"#..##.......#...#",
+"#............#..#",
+"#....####.......#",
+"#...............#",
+"#..............E#",
+"################"
+];
+const grid=map.map(r=>r.split('').map(c=>c==='#'?1:0));
+const player={x:1.7*TILE,y:1.7*TILE,a:0.15,hp:100,armor:25,ammo:24,hasKey:false,weapon:0,shootCd:0,hurtCd:0};
+let enemies=[],pickups=[],doorOpen=false,levelDone=false;
+function resize(){const dpr=Math.min(devicePixelRatio||1,1.5);const r=canvas.getBoundingClientRect();W=Math.max(320,Math.floor(r.width*dpr));H=Math.max(240,Math.floor(r.height*dpr));canvas.width=W;canvas.height=H;ctx.imageSmoothingEnabled=false;}
+new ResizeObserver(resize).observe(canvas);resize();
+function reset(){player.x=1.7*TILE;player.y=1.7*TILE;player.a=.15;player.hp=100;player.armor=25;player.ammo=24;player.hasKey=false;player.shootCd=0;player.hurtCd=0;score=0;kills=0;doorOpen=false;levelDone=false;enemies=[
+{x:7.5*TILE,y:2.5*TILE,hp:45,max:45,speed:25,cd:1.1,alive:true,type:0},
+{x:12.5*TILE,y:6.5*TILE,hp:55,max:55,speed:21,cd:1.7,alive:true,type:1},
+{x:5.5*TILE,y:10.5*TILE,hp:45,max:45,speed:24,cd:2.1,alive:true,type:0},
+{x:13.2*TILE,y:12.5*TILE,hp:80,max:80,speed:17,cd:2.8,alive:true,type:2}
+];pickups=[{x:3.5*TILE,y:8.5*TILE,type:'ammo',taken:false},{x:10.5*TILE,y:9.5*TILE,type:'health',taken:false},{x:13.5*TILE,y:3.5*TILE,type:'armor',taken:false},{x:14.2*TILE,y:13.5*TILE,type:'key',taken:false}];$('mission').textContent='MISSION 01 — SECURE THE REACTOR ACCESS KEY';updateHud();}
+function wall(x,y){const mx=Math.floor(x/TILE),my=Math.floor(y/TILE);return my<0||my>=grid.length||mx<0||mx>=grid[0].length||grid[my][mx]===1;}
+function blocked(x,y){return wall(x-12,y-12)||wall(x+12,y-12)||wall(x-12,y+12)||wall(x+12,y+12);}
+function norm(a){while(a>Math.PI)a-=Math.PI*2;while(a<-Math.PI)a+=Math.PI*2;return a;}
+function ray(px,py,a){let sin=Math.sin(a),cos=Math.cos(a),dist=0;for(let i=0;i<850;i++){dist+=2;let x=px+cos*dist,y=py+sin*dist;if(wall(x,y))return {dist,x,y,side:(Math.floor(x/TILE)!==Math.floor((x-cos*2)/TILE))?0:1};}return {dist:850,x:px+cos*dist,y:py+sin*dist,side:0};}
+function drawWorld(){
+ const horizon=H*.49;
+ let sky=ctx.createLinearGradient(0,0,0,horizon);sky.addColorStop(0,'#090f1b');sky.addColorStop(1,'#34343a');ctx.fillStyle=sky;ctx.fillRect(0,0,W,horizon);
+ let floor=ctx.createLinearGradient(0,horizon,0,H);floor.addColorStop(0,'#27272b');floor.addColorStop(1,'#090b10');ctx.fillStyle=floor;ctx.fillRect(0,horizon,W,H-horizon);
+ const fov=Math.PI/2.9, columns=Math.min(W,480), step=W/columns;zbuf.length=columns;
+ for(let i=0;i<columns;i++){let a=player.a-fov/2+(i/columns)*fov;const hit=ray(player.x,player.y,a);let d=hit.dist*Math.cos(a-player.a);zbuf[i]=d;let height=Math.min(H*1.8,(TILE*H)/(d||1));let shade=Math.max(.18,1-d/850)*(hit.side===1?.72:1);let tx=Math.floor((hit.side===0?hit.y:hit.x)%TILE);let brick=(Math.floor(tx/16)%2===0)?1:.83;let glow=(Math.floor(hit.x/TILE)+Math.floor(hit.y/TILE))%5===0?1.15:1;let c=Math.floor(100*shade*brick*glow);ctx.fillStyle=`rgb(${Math.min(160,c+12)},${Math.min(170,c+16)},${Math.min(190,c+22)})`;ctx.fillRect(i*step,(H-height)/2,step+1,height);
+ // wall seams
+ if(tx%16<1){ctx.fillStyle='rgba(0,0,0,.24)';ctx.fillRect(i*step,(H-height)/2,step+1,height);}
+ }
+ drawSprites(columns,step,fov);
+ // weapon
+ const gunW=W*.19,gunH=H*.27;ctx.fillStyle='#202a33';ctx.fillRect(W/2-gunW*.38,H-gunH*.72,gunW*.76,gunH*.72);ctx.fillStyle='#65717b';ctx.fillRect(W/2-gunW*.22,H-gunH*.78,gunW*.44,gunH*.58);ctx.fillStyle='#111820';ctx.fillRect(W/2-gunW*.1,H-gunH*.82,gunW*.2,gunH*.28);
+ ctx.fillStyle='#b7c6ce';ctx.fillRect(W/2-3,H-gunH*.84,6,gunH*.15);
+ if(shotFlash>0){ctx.fillStyle=`rgba(255,220,120,${shotFlash})`;ctx.beginPath();ctx.arc(W/2,H-gunH*.84,gunW*.4,0,Math.PI*2);ctx.fill();}
+}
+function drawSprites(columns,step,fov){
+ const things=[];
+ enemies.forEach(e=>{if(e.alive)things.push({...e,kind:'enemy'});});
+ pickups.forEach(p=>{if(!p.taken)things.push({...p,kind:'pickup'});});
+ things.sort((a,b)=>Math.hypot(b.x-player.x,b.y-player.y)-Math.hypot(a.x-player.x,a.y-player.y));
+ for(const s of things){let dx=s.x-player.x,dy=s.y-player.y,dist=Math.hypot(dx,dy),angle=norm(Math.atan2(dy,dx)-player.a);if(Math.abs(angle)>fov*.68||dist<8)continue;let sx=(.5+angle/fov)*W,idx=Math.max(0,Math.min(columns-1,Math.floor(sx/step)));if(dist>zbuf[idx]+20)continue;let size=Math.min(H*1.15,(TILE*H)/(dist||1));let sy=H*.49-size*.52;
+ if(s.kind==='enemy'){let col=s.type===2?'#a94cbd':s.type===1?'#bd7438':'#9b343c';ctx.fillStyle='#160d12';ctx.fillRect(sx-size*.27,sy+size*.16,size*.54,size*.78);ctx.fillStyle=col;ctx.fillRect(sx-size*.3,sy+size*.15,size*.6,size*.5);ctx.fillStyle='#ffdf9c';ctx.fillRect(sx-size*.18,sy+size*.32,size*.09,size*.07);ctx.fillRect(sx+size*.09,sy+size*.32,size*.09,size*.07);ctx.fillStyle='#3b121b';ctx.fillRect(sx-size*.22,sy+size*.62,size*.17,size*.28);ctx.fillRect(sx+size*.05,sy+size*.62,size*.17,size*.28);if(s.hp<s.max){ctx.fillStyle='#290d12';ctx.fillRect(sx-size*.3,sy+size*.08,size*.6,4);ctx.fillStyle='#ff4545';ctx.fillRect(sx-size*.3,sy+size*.08,size*.6*(s.hp/s.max),4);}}
+ else{ctx.fillStyle=s.type==='key'?'#c8ff45':s.type==='health'?'#ff5151':s.type==='armor'?'#56c9ff':'#ffca52';ctx.beginPath();ctx.arc(sx,sy+size*.45,Math.max(4,size*.13),0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(sx-2,sy+size*.4,4,size*.1);}
+ }
+}
+function updateHud(){$('health').textContent=Math.max(0,Math.ceil(player.hp));$('armor').textContent=player.armor;$('ammo').textContent=player.ammo;$('keys').textContent=(player.hasKey?'1':'0')+'/1';$('kills').textContent=kills;$('scoreTop').textContent=String(score).padStart(4,'0');}
+function toast(s){$('toast').textContent=s;$('toast').style.opacity=1;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').style.opacity=0,1500);}
+function damage(n){if(player.hurtCd>0)return;let absorb=Math.min(player.armor,Math.ceil(n*.55));player.armor-=absorb;player.hp-=n-absorb;player.hurtCd=.45;damageFlash=.35;updateHud();if(player.hp<=0)endGame(false);}
+function shoot(){if(!running||paused||player.shootCd>0)return;if(player.ammo<=0){toast('OUT OF AMMO');return;}player.ammo--;player.shootCd=.32;shotFlash=.16;let target=null,best=.16;for(const e of enemies){if(!e.alive)continue;let a=norm(Math.atan2(e.y-player.y,e.x-player.x)-player.a),d=Math.hypot(e.x-player.x,e.y-player.y);if(Math.abs(a)<best&&d<520){let h=ray(player.x,player.y,player.a+a);if(h.dist>d-20){target=e;best=Math.abs(a);}}}if(target){target.hp-=player.weapon===0?28:45;toast(target.hp<=0?'TARGET ELIMINATED':'TARGET HIT');if(target.hp<=0){target.alive=false;kills++;score+=100;}}updateHud();}
+function use(){if(!running||paused)return;let found=false;for(const p of pickups){if(p.taken)continue;if(Math.hypot(p.x-player.x,p.y-player.y)<52){p.taken=true;found=true;if(p.type==='ammo'){player.ammo+=12;toast('AMMO +12');}if(p.type==='health'){player.hp=Math.min(100,player.hp+35);toast('MEDKIT +35');}if(p.type==='armor'){player.armor=Math.min(100,player.armor+35);toast('ARMOR +35');}if(p.type==='key'){player.hasKey=true;toast('REACTOR KEY ACQUIRED');}updateHud();}}
+ if(!found){let x=player.x+Math.cos(player.a)*48,y=player.y+Math.sin(player.a)*48;if(wall(x,y)){if(player.hasKey){toast('ACCESS GRANTED — CONTAINMENT OPEN');doorOpen=true;endGame(true);}else toast('LOCKED — REACTOR KEY REQUIRED');}else toast('NOTHING TO USE HERE');}}
+function update(dt){if(!running||paused)return;dt=Math.min(dt,.035);player.shootCd=Math.max(0,player.shootCd-dt);player.hurtCd=Math.max(0,player.hurtCd-dt);shotFlash=Math.max(0,shotFlash-dt*5);damageFlash=Math.max(0,damageFlash-dt*1.8);$('damage').style.opacity=damageFlash;
+ let forward=0,strafe=0; if(keys.w||keys.ArrowUp)forward++;if(keys.s||keys.ArrowDown)forward--;if(keys.a)strafe--;if(keys.d)strafe++;forward+=-moveY;strafe+=moveX;
+ let speed=(keys.Shift?155:112),vx=(Math.cos(player.a)*forward-Math.sin(player.a)*strafe)*speed*dt,vy=(Math.sin(player.a)*forward+Math.cos(player.a)*strafe)*speed*dt;
+ if(!blocked(player.x+vx,player.y))player.x+=vx;if(!blocked(player.x,player.y+vy))player.y+=vy;
+ enemies.forEach(e=>{if(!e.alive)return;let dx=player.x-e.x,dy=player.y-e.y,d=Math.hypot(dx,dy);if(d<430){let ang=Math.atan2(dy,dx),step=e.speed*dt;if(d>34){let nx=e.x+Math.cos(ang)*step,ny=e.y+Math.sin(ang)*step;if(!blocked(nx,e.y))e.x=nx;if(!blocked(e.x,ny))e.y=ny;}e.cd-=dt;if(d<260&&e.cd<=0){e.cd=e.type===2?1.25:1.8;let hit=ray(e.x,e.y,ang);if(hit.dist>d-20)damage(e.type===2?17:10);}}});
+ pickups.forEach(p=>{if(!p.taken&&Math.hypot(p.x-player.x,p.y-player.y)<26){p.taken=true;if(p.type==='ammo')player.ammo+=8;if(p.type==='health')player.hp=Math.min(100,player.hp+20);if(p.type==='armor')player.armor=Math.min(100,player.armor+20);if(p.type==='key'){player.hasKey=true;toast('REACTOR KEY ACQUIRED');}updateHud();}});
+}
+function frame(t){if(!running)return;let dt=(t-last)/1000||0;last=t;update(dt);drawWorld();raf=requestAnimationFrame(frame);}
+function start(){cancelAnimationFrame(raf);reset();running=true;paused=false;$('startScreen').classList.add('hidden');$('pauseScreen').classList.add('hidden');$('endScreen').classList.add('hidden');last=performance.now();raf=requestAnimationFrame(frame);}
+function pause(){if(!running)return;paused=true;$('pauseScreen').classList.remove('hidden');}
+function resume(){paused=false;$('pauseScreen').classList.add('hidden');last=performance.now();}
+function endGame(win){paused=true;running=false;$('endScreen').classList.remove('hidden');$('endKicker').textContent=win?'FACILITY STATUS: CONTAINED':'MARINE STATUS: LOST';$('endTitle').textContent=win?'MISSION COMPLETE':'MARINE DOWN';$('endText').textContent=win?`Containment access unlocked. You eliminated ${kills} hostiles and scored ${score}. The next sector is waiting.`:`You eliminated ${kills} hostiles and scored ${score}. Re-arm, Marine, and try again.`;try{localStorage.setItem('hellgateBest',Math.max(score,Number(localStorage.getItem('hellgateBest')||0)));}catch(e){}}
+const keys={};window.addEventListener('keydown',e=>{keys[e.key===' '?'Space':e.key.length===1?e.key.toLowerCase():e.key]=true;if(e.key===' '){e.preventDefault();shoot();}if(e.key.toLowerCase()==='e')use();if(e.key==='Escape')paused?resume():pause();});window.addEventListener('keyup',e=>{keys[e.key===' '?'Space':e.key.length===1?e.key.toLowerCase():e.key]=false;});
+canvas.addEventListener('click',()=>{if(running&&!paused)shoot();});
+let dragging=false,lastX=0;canvas.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse'){dragging=true;lastX=e.clientX;canvas.setPointerCapture(e.pointerId);}});canvas.addEventListener('pointermove',e=>{if(dragging&&running&&!paused){player.a+= (e.clientX-lastX)*.006;lastX=e.clientX;}});canvas.addEventListener('pointerup',()=>dragging=false);
+const base=$('stickBase'),stick=$('stick');let stickId=null,baseRect;
+base.addEventListener('pointerdown',e=>{stickId=e.pointerId;base.setPointerCapture(stickId);baseRect=base.getBoundingClientRect();moveStick(e);});
+base.addEventListener('pointermove',e=>{if(e.pointerId===stickId)moveStick(e);});
+function moveStick(e){let cx=baseRect.left+baseRect.width/2,cy=baseRect.top+baseRect.height/2,dx=e.clientX-cx,dy=e.clientY-cy,len=Math.hypot(dx,dy),max=baseRect.width*.34;if(len>max){dx=dx/len*max;dy=dy/len*max;}stick.style.transform=`translate(${dx}px,${dy}px)`;moveX=dx/max;moveY=dy/max;}
+function releaseStick(){stickId=null;moveX=moveY=0;stick.style.transform='translate(0,0)';}
+base.addEventListener('pointerup',releaseStick);base.addEventListener('pointercancel',releaseStick);
+$('lookZone').addEventListener('pointerdown',e=>{lookTouch=e.pointerId;lastX=e.clientX;$('lookZone').setPointerCapture(lookTouch);});
+$('lookZone').addEventListener('pointermove',e=>{if(e.pointerId===lookTouch&&running&&!paused){player.a+=(e.clientX-lastX)*.008;lastX=e.clientX;}});
+$('lookZone').addEventListener('pointerup',()=>lookTouch=null);$('lookZone').addEventListener('pointercancel',()=>lookTouch=null);
+$('fire').addEventListener('pointerdown',e=>{e.preventDefault();shoot();});$('use').addEventListener('pointerdown',e=>{e.preventDefault();use();});$('switch').addEventListener('pointerdown',e=>{e.preventDefault();player.weapon=1-player.weapon;$('weaponName').textContent=player.weapon?'HEAVY BLASTER':'PULSE RIFLE';toast(player.weapon?'HEAVY BLASTER':'PULSE RIFLE');});
+$('pause').onclick=pause;$('startBtn').onclick=start;$('resumeBtn').onclick=resume;$('restartBtn').onclick=start;$('againBtn').onclick=start;
+function instructions(){alert('HELLGATE PROTOCOL — FIELD MANUAL\\n\\nDESKTOP\\nWASD: move | Mouse: look | Click or SPACE: fire | E: use | SHIFT: run | ESC: pause\\n\\nMOBILE\\nLeft joystick: move and strafe | Drag right side: look | FIRE: shoot | USE: collect items/open access | GUN: switch weapon\\n\\nOBJECTIVE\\nFind the glowing green reactor key, survive the hostile creatures, then approach the sealed access door and press USE. Pickups can be collected by walking over them or pressing USE nearby.');}
+$('instructionsBtn').onclick=instructions;$('pauseHelpBtn').onclick=instructions;
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&running&&!paused)pause();});
+drawWorld();
+})();
+</script>
+</body>
+</html>
