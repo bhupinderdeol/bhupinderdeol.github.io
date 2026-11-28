@@ -14,11 +14,8 @@
   --gold-dim:#a8863f;
   --bg:#0b1410;
   --panel:rgba(16,30,22,.92);
-  --panel-2:rgba(24,44,32,.94);
   --ink:#f2ecdc;
   --muted:#93a896;
-  --green:#1a2e22;
-  --danger:#e6886a;
   --safe-t:env(safe-area-inset-top,0px);
   --safe-b:env(safe-area-inset-bottom,0px);
 }
@@ -33,11 +30,9 @@ html,body{
 #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
 #vignette{
   position:fixed;inset:0;pointer-events:none;z-index:2;
-  background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 38%, rgba(0,0,0,.42) 100%);
-  mix-blend-mode:multiply;
+  background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.22) 100%);
 }
 
-/* ---------- TOP BAR ---------- */
 #topBar{
   position:fixed;top:0;left:0;right:0;z-index:20;
   padding:calc(8px + var(--safe-t)) 10px 8px;
@@ -59,8 +54,8 @@ html,body{
 }
 .chip.active{
   border-color:var(--gold);
-  background:linear-gradient(160deg,rgba(232,196,119,.22),rgba(26,46,34,.95));
-  box-shadow:0 0 0 1px rgba(232,196,119,.35),0 4px 20px rgba(232,196,119,.22);
+  background:linear-gradient(160deg,rgba(232,196,119,.28),rgba(26,46,34,.95));
+  box-shadow:0 0 0 1px rgba(232,196,119,.45),0 4px 20px rgba(232,196,119,.3);
   transform:translateY(-1px);
 }
 .chip-name{font-size:9px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
@@ -69,17 +64,16 @@ html,body{
 .chip-ai{font-size:8px;opacity:.6;}
 
 #roundInfo{
-  pointer-events:auto;display:flex;gap:6px;align-items:center;
+  pointer-events:auto;display:flex;flex-direction:column;align-items:center;
   background:var(--panel);border:1px solid rgba(232,196,119,.22);
   border-radius:11px;padding:5px 10px;backdrop-filter:blur(10px);
   -webkit-backdrop-filter:blur(10px);box-shadow:0 3px 14px rgba(0,0,0,.35);
-  flex-direction:column;gap:2px;min-width:70px;
+  gap:2px;min-width:70px;
 }
 .round-lbl{font-size:8px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);}
 .round-val{font-size:14px;font-weight:800;color:var(--gold);font-family:Georgia,serif;line-height:1;}
 .gitta-count{font-size:10px;color:var(--gold-2);font-weight:700;}
 
-/* ---------- BOTTOM BAR ---------- */
 #bottomBar{
   position:fixed;left:0;right:0;bottom:0;z-index:20;
   padding:10px 96px calc(12px + var(--safe-b)) 12px;
@@ -116,7 +110,6 @@ html,body{
 }
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
 
-/* ---------- CIRCLE NAV ---------- */
 #circleNav{
   position:fixed;right:calc(16px + env(safe-area-inset-right,0px));
   bottom:calc(18px + var(--safe-b));
@@ -149,11 +142,10 @@ html,body{
   transform:translate(var(--tx),var(--ty)) scale(1);
 }
 
-/* ---------- MODALS ---------- */
 #overlay{
   position:fixed;inset:0;z-index:100;
-  background:radial-gradient(ellipse at 50% 30%,rgba(14,28,20,.85),rgba(4,10,7,.97));
-  backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  background:radial-gradient(ellipse at 50% 30%,rgba(14,28,20,.72),rgba(4,10,7,.92));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
   display:flex;align-items:center;justify-content:center;
   padding:calc(16px + var(--safe-t)) 14px calc(16px + var(--safe-b));
   opacity:0;pointer-events:none;transition:opacity .35s;
@@ -191,7 +183,7 @@ html,body{
   display:block;font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;
   color:var(--muted);margin-bottom:6px;font-weight:700;
 }
-.field select,.field input[type=range]{
+.field select{
   width:100%;background:rgba(0,0,0,.35);border:1px solid #3c5a48;
   color:var(--ink);padding:11px 12px;border-radius:10px;font-size:14px;
   outline:none;font-family:inherit;appearance:none;
@@ -215,7 +207,6 @@ html,body{
 .note{font-size:11px;color:var(--muted);line-height:1.6;text-align:center;margin-top:12px;}
 code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--gold-2);}
 
-/* ---------- LOADER ---------- */
 #loader{
   position:fixed;inset:0;z-index:200;background:var(--bg);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
@@ -234,7 +225,6 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
 }
 #loader p{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;}
 
-/* ---------- TOAST ---------- */
 #toast{
   position:fixed;left:50%;top:calc(72px + var(--safe-t));transform:translate(-50%,-14px);
   background:linear-gradient(160deg,rgba(232,196,119,.95),rgba(200,160,80,.95));
@@ -265,7 +255,6 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
 <canvas id="scene"></canvas>
 <div id="vignette"></div>
 
-<!-- TOP BAR -->
 <div id="topBar">
   <div id="scoreboard"></div>
   <div id="roundInfo">
@@ -275,7 +264,6 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
   </div>
 </div>
 
-<!-- BOTTOM BAR -->
 <div id="bottomBar">
   <div id="instruction">
     <div class="instr-title" id="instrTitle">Welcome</div>
@@ -287,7 +275,6 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
   </div>
 </div>
 
-<!-- CIRCLE NAV -->
 <div id="circleNav" role="button" aria-label="Menu" tabindex="0">
   <div class="nav-center">☰</div>
   <button class="nav-item" data-target="storyModal"    style="--tx:-82px;--ty:-8px"  aria-label="Story">📖</button>
@@ -298,10 +285,8 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
 
 <div id="toast"></div>
 
-<!-- OVERLAY + MODALS -->
-<div id="overlay" class="show">
-
-  <div class="modal show" id="storyModal">
+<div id="overlay">
+  <div class="modal" id="storyModal">
     <h2>Shambolic, Jalandhar</h2>
     <div class="sub">Punjab · Late Afternoon</div>
     <div class="divider"></div>
@@ -429,15 +414,23 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
       <button class="btn btn-secondary" onclick="closeOverlay()">Close</button>
     </div>
   </div>
-
 </div>
 
-<!-- LOADER -->
 <div id="loader">
   <div class="spinner"></div>
   <h1>Dhamuli Marbles</h1>
   <p id="loaderMsg">Warming the adda…</p>
 </div>
+
+<script>
+  // Safety net — if Three.js fails to load we still tell the user something useful
+  setTimeout(function(){
+    if (!window.__DHAMULI_BOOTED){
+      var m = document.getElementById('loaderMsg');
+      if (m) m.textContent = 'Could not load the 3D engine. Check your connection and reload.';
+    }
+  }, 9000);
+</script>
 
 <script type="importmap">
 {
@@ -450,17 +443,12 @@ code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;
 <script type="module">
 import * as THREE from 'three';
 
-/* =========================================================================
-   UTILITIES
-   ========================================================================= */
 const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
 const lerp  = (a,b,t)=> a+(b-a)*t;
 const rand  = (a,b)=> a + Math.random()*(b-a);
 const TAU   = Math.PI*2;
 
-/* =========================================================================
-   AUDIO
-   ========================================================================= */
+/* ============================ AUDIO ============================ */
 const Sfx = {
   ctx:null, muted:false, master:null,
   init(){
@@ -492,9 +480,7 @@ const Sfx = {
     this.tone(f, 0.075, 'sine', 0.055*p);
     this.tone(f*1.97, 0.045, 'triangle', 0.03*p);
   },
-  thud(){
-    this.tone(rand(95,140), 0.11, 'triangle', 0.09);
-  },
+  thud(){ this.tone(rand(95,140), 0.11, 'triangle', 0.09); },
   click(){ this.tone(720, 0.05, 'square', 0.035); },
   throwSwoosh(){
     if (!this.ctx || this.muted) return;
@@ -511,54 +497,47 @@ const Sfx = {
   }
 };
 
-/* =========================================================================
-   PROCEDURAL TEXTURES
-   ========================================================================= */
+/* ============================ TEXTURES ============================ */
 function cv(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
 
 function makeDirtTexture(){
   const S = 1024;
   const c = cv(S,S), g = c.getContext('2d');
-  g.fillStyle = '#7d6c4e'; g.fillRect(0,0,S,S);
+  g.fillStyle = '#a89574'; g.fillRect(0,0,S,S);
 
-  // large tonal patches
   for (let i=0;i<1400;i++){
     const x=Math.random()*S, y=Math.random()*S, r=12+Math.random()*90;
     const t=Math.random();
-    g.fillStyle = `rgba(${Math.round(96+t*58)},${Math.round(82+t*50)},${Math.round(56+t*38)},${0.05+t*0.09})`;
+    g.fillStyle = `rgba(${Math.round(150+t*48)},${Math.round(130+t*42)},${Math.round(96+t*34)},${0.05+t*0.09})`;
     g.beginPath(); g.ellipse(x,y,r,r*rand(.5,1),Math.random()*TAU,0,TAU); g.fill();
   }
-  // dry grass flecks
   for (let i=0;i<2600;i++){
     const x=Math.random()*S, y=Math.random()*S, a=Math.random()*TAU, l=3+Math.random()*9;
-    g.strokeStyle = `rgba(${Math.round(110+Math.random()*60)},${Math.round(110+Math.random()*50)},${Math.round(60+Math.random()*40)},${0.18+Math.random()*0.3})`;
+    g.strokeStyle = `rgba(${Math.round(150+Math.random()*60)},${Math.round(150+Math.random()*50)},${Math.round(90+Math.random()*40)},${0.20+Math.random()*0.32})`;
     g.lineWidth = 0.8+Math.random()*1.4;
     g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a)*l, y+Math.sin(a)*l); g.stroke();
   }
-  // pebbles
   for (let i=0;i<900;i++){
     const x=Math.random()*S, y=Math.random()*S, r=1+Math.random()*3.5;
-    const v = 140+Math.random()*70;
-    g.fillStyle = `rgba(${v|0},${(v*0.93)|0},${(v*0.8)|0},${0.4+Math.random()*0.45})`;
+    const v = 170+Math.random()*70;
+    g.fillStyle = `rgba(${v|0},${(v*0.93)|0},${(v*0.8)|0},${0.45+Math.random()*0.45})`;
     g.beginPath(); g.ellipse(x,y,r,r*rand(.6,1),Math.random()*TAU,0,TAU); g.fill();
-    g.fillStyle = 'rgba(0,0,0,0.18)';
+    g.fillStyle = 'rgba(0,0,0,0.16)';
     g.beginPath(); g.ellipse(x+r*0.35,y+r*0.35,r*0.8,r*0.5,0,0,TAU); g.fill();
   }
-  // baked dappled light
   for (let i=0;i<90;i++){
     const x=Math.random()*S, y=Math.random()*S, r=30+Math.random()*130;
     const grad = g.createRadialGradient(x,y,0,x,y,r);
-    grad.addColorStop(0,'rgba(255,232,180,0.16)');
-    grad.addColorStop(0.6,'rgba(255,232,180,0.05)');
-    grad.addColorStop(1,'rgba(255,232,180,0)');
+    grad.addColorStop(0,'rgba(255,240,200,0.22)');
+    grad.addColorStop(0.6,'rgba(255,240,200,0.07)');
+    grad.addColorStop(1,'rgba(255,240,200,0)');
     g.fillStyle = grad; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
   }
-  // dark stains
   for (let i=0;i<70;i++){
     const x=Math.random()*S, y=Math.random()*S, r=40+Math.random()*120;
     const grad = g.createRadialGradient(x,y,0,x,y,r);
-    grad.addColorStop(0,'rgba(20,16,8,0.15)');
-    grad.addColorStop(1,'rgba(20,16,8,0)');
+    grad.addColorStop(0,'rgba(40,30,16,0.12)');
+    grad.addColorStop(1,'rgba(40,30,16,0)');
     g.fillStyle = grad; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
   }
 
@@ -595,7 +574,6 @@ function makeMarbleTexture(base, accent){
   const c = cv(W,H), g = c.getContext('2d');
   g.fillStyle = base; g.fillRect(0,0,W,H);
 
-  // seamless swirling ribbons
   for (let i=0;i<7;i++){
     g.strokeStyle = accent;
     g.globalAlpha = 0.22 + Math.random()*0.42;
@@ -612,14 +590,12 @@ function makeMarbleTexture(base, accent){
     }
     g.stroke();
   }
-  // second colour veil
   g.globalAlpha = 0.14;
   for (let i=0;i<5;i++){
     g.fillStyle = accent;
     const y = Math.random()*H;
     g.fillRect(0, y, W, 6 + Math.random()*18);
   }
-  // subtle noise
   g.globalAlpha = 1;
   const img = g.getImageData(0,0,W,H);
   const d = img.data;
@@ -669,22 +645,20 @@ function makeEnvTexture(){
   const W = 512, H = 256;
   const c = cv(W,H), g = c.getContext('2d');
   const grad = g.createLinearGradient(0,0,0,H);
-  grad.addColorStop(0.00,'#e8f4ff');
-  grad.addColorStop(0.34,'#c6e0f5');
-  grad.addColorStop(0.50,'#9fb89a');
-  grad.addColorStop(0.58,'#6d7a52');
-  grad.addColorStop(1.00,'#2c2517');
+  grad.addColorStop(0.00,'#eef6ff');
+  grad.addColorStop(0.34,'#cfe4f5');
+  grad.addColorStop(0.50,'#b6c9a8');
+  grad.addColorStop(0.58,'#8b9a6c');
+  grad.addColorStop(1.00,'#4a3f2a');
   g.fillStyle = grad; g.fillRect(0,0,W,H);
 
-  // sun
   const sg = g.createRadialGradient(W*0.72,H*0.22,0,W*0.72,H*0.22,90);
   sg.addColorStop(0,'rgba(255,255,245,1)');
-  sg.addColorStop(0.35,'rgba(255,240,200,0.65)');
+  sg.addColorStop(0.35,'rgba(255,240,200,0.7)');
   sg.addColorStop(1,'rgba(255,240,200,0)');
   g.fillStyle = sg; g.fillRect(0,0,W,H);
 
-  // canopy silhouette at horizon
-  g.fillStyle = 'rgba(28,48,30,0.75)';
+  g.fillStyle = 'rgba(40,66,44,0.75)';
   for (let i=0;i<90;i++){
     const x=Math.random()*W, y=H*0.5 + Math.random()*26, r=12+Math.random()*40;
     g.beginPath(); g.ellipse(x,y,r,r*0.55,0,0,TAU); g.fill();
@@ -695,14 +669,12 @@ function makeEnvTexture(){
   return t;
 }
 
-/* =========================================================================
-   GAME CONFIG
-   ========================================================================= */
+/* ============================ CONFIG ============================ */
 const CFG = {
-  MARBLE_R    : 0.155,
-  STRIKER_R   : 0.235,
-  HOLE_R      : 0.62,
-  FRICTION    : 7.2,          // ft/s^2
+  MARBLE_R    : 0.175,
+  STRIKER_R   : 0.255,
+  HOLE_R      : 0.68,
+  FRICTION    : 7.2,
   RESTITUTION : 0.74,
   MAX_SPEED   : 25,
   MAX_PULL    : 4.6,
@@ -713,25 +685,24 @@ const CFG = {
 
 const PLAYER_NAMES = ['Gurpreet','Jassa','Mintu','Billa'];
 const MARBLE_SKINS = [
-  { base:'#e8705a', accent:'#ffd9a0' },
-  { base:'#3fbfb2', accent:'#e6fffb' },
-  { base:'#eec84a', accent:'#fff6cf' },
-  { base:'#9d7ce8', accent:'#e6d8ff' },
-  { base:'#e87bb0', accent:'#ffe0ef' },
-  { base:'#54a4e8', accent:'#dff0ff' }
+  { base:'#ff7a5c', accent:'#ffe1b0' },
+  { base:'#3fd8c8', accent:'#e8fffb' },
+  { base:'#ffd94a', accent:'#fff8cf' },
+  { base:'#a58cff', accent:'#e9dfff' },
+  { base:'#ff8ec4', accent:'#ffe4f1' },
+  { base:'#5cb8ff', accent:'#e2f3ff' }
 ];
 
-/* =========================================================================
-   GLOBAL STATE
-   ========================================================================= */
+/* ============================ STATE ============================ */
 const G = {
-  phase:'boot',            // boot | menu | ready | gathering | throwing | aiming | simulating | resolve | roundEnd
+  phase:'boot',
   players:[],
   current:0,
   round:1,
   holeDist:6,
   stake:4,
-  aiMode:'normal',         // off | easy | normal | hard
+  aiMode:'normal',
+  aiSkill:0.72,
   marbles:[],
   striker:null,
   target:null,
@@ -741,9 +712,7 @@ const G = {
   drag:null,
   dragging:false,
   timer:null,
-  simTime:0,
-  cameraShake:0,
-  aiSkill:0.72
+  simTime:0
 };
 
 let renderer, scene, camera, clock;
@@ -757,9 +726,7 @@ let dustCursor = 0;
 const raycaster = new THREE.Raycaster();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
 
-/* =========================================================================
-   TERRAIN HEIGHT (subtle undulation)
-   ========================================================================= */
+/* ============================ HEIGHT ============================ */
 function groundH(x,z){
   return Math.sin(x*0.42)*0.055
        + Math.cos(z*0.37)*0.048
@@ -767,9 +734,7 @@ function groundH(x,z){
        + Math.cos(x*0.14 - z*0.19)*0.035;
 }
 
-/* =========================================================================
-   THREE.JS SCENE BOOTSTRAP
-   ========================================================================= */
+/* ============================ SCENE ============================ */
 function initThree(){
   const canvas = document.getElementById('scene');
 
@@ -784,16 +749,15 @@ function initThree(){
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.05;
+  renderer.toneMappingExposure = 1.18;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x27361f);
-  scene.fog = new THREE.Fog(0x33452a, 34, 95);
+  scene.background = new THREE.Color(0x8ea67c);
+  scene.fog = new THREE.Fog(0x8ea67c, 32, 90);
 
   camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.2, 400);
 
-  // ---- Environment map for the glass marbles ----
   const pmrem = new THREE.PMREMGenerator(renderer);
   pmrem.compileEquirectangularShader();
   const envTex = makeEnvTexture();
@@ -821,32 +785,34 @@ function initThree(){
 }
 
 function buildLights(){
-  const hemi = new THREE.HemisphereLight(0xcbe0b0, 0x3a3020, 1.15);
-  scene.add(hemi);
+  scene.add(new THREE.HemisphereLight(0xfff8e0, 0x8a7a5a, 1.9));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.42));
 
-  const sun = new THREE.DirectionalLight(0xfff0cf, 2.35);
+  const sun = new THREE.DirectionalLight(0xfff0cf, 3.1);
   sun.position.set(22, 32, 18);
   sun.target.position.set(0, 0, -5);
   scene.add(sun.target);
   sun.castShadow = true;
-  sun.shadow.mapSize.set(
-    (window.devicePixelRatio||1) > 1.5 ? 2048 : 1024,
-    (window.devicePixelRatio||1) > 1.5 ? 2048 : 1024
-  );
+  const hiRes = (window.devicePixelRatio||1) > 1.5;
+  sun.shadow.mapSize.set(hiRes?2048:1024, hiRes?2048:1024);
   const S = 24;
-  sun.shadow.camera.left   = -S;
-  sun.shadow.camera.right  =  S;
-  sun.shadow.camera.top    =  S;
+  sun.shadow.camera.left = -S;
+  sun.shadow.camera.right = S;
+  sun.shadow.camera.top = S;
   sun.shadow.camera.bottom = -S;
   sun.shadow.camera.near = 1;
-  sun.shadow.camera.far  = 110;
+  sun.shadow.camera.far = 110;
   sun.shadow.bias = -0.0009;
   sun.shadow.normalBias = 0.02;
   scene.add(sun);
 
-  const fill = new THREE.DirectionalLight(0x88aaff, 0.35);
+  const fill = new THREE.DirectionalLight(0xaaccff, 0.55);
   fill.position.set(-18, 14, -22);
   scene.add(fill);
+
+  const back = new THREE.DirectionalLight(0xffe0b0, 0.45);
+  back.position.set(0, 12, 24);
+  scene.add(back);
 }
 
 function buildGround(){
@@ -864,7 +830,7 @@ function buildGround(){
     map: makeDirtTexture(),
     roughness: 1.0,
     metalness: 0.0,
-    color: 0xbfb49a
+    color: 0xffffff
   });
   const ground = new THREE.Mesh(geo, mat);
   ground.receiveShadow = true;
@@ -872,16 +838,14 @@ function buildGround(){
 }
 
 function buildTrees(){
-  const trunkMat = new THREE.MeshStandardMaterial({ color:0x4a3623, roughness:0.95, flatShading:true });
+  const trunkMat = new THREE.MeshStandardMaterial({ color:0x5a4430, roughness:0.95, flatShading:true });
   const leafMats = [
-    new THREE.MeshStandardMaterial({ color:0x25401f, roughness:0.92, flatShading:true }),
-    new THREE.MeshStandardMaterial({ color:0x2f5026, roughness:0.92, flatShading:true }),
-    new THREE.MeshStandardMaterial({ color:0x1c3418, roughness:0.92, flatShading:true })
+    new THREE.MeshStandardMaterial({ color:0x3a5e30, roughness:0.92, flatShading:true }),
+    new THREE.MeshStandardMaterial({ color:0x4a7038, roughness:0.92, flatShading:true }),
+    new THREE.MeshStandardMaterial({ color:0x2c4a26, roughness:0.92, flatShading:true })
   ];
   const trunkGeo = new THREE.CylinderGeometry(0.45, 0.75, 7, 7, 1);
   const blobGeo  = new THREE.IcosahedronGeometry(1, 0);
-
-  const rng = (a,b)=> a + Math.random()*(b-a);
 
   function makeTree(x, z, s){
     const g = new THREE.Group();
@@ -894,9 +858,9 @@ function buildTrees(){
     const blobs = 5 + Math.floor(Math.random()*3);
     for (let i=0;i<blobs;i++){
       const m = new THREE.Mesh(blobGeo, leafMats[i % leafMats.length]);
-      const r = rng(2.0, 3.6);
+      const r = rand(2.0, 3.6);
       m.scale.setScalar(r);
-      m.position.set(rng(-2.6,2.6), 6.2 + rng(-0.8, 2.4), rng(-2.6,2.6));
+      m.position.set(rand(-2.6,2.6), 6.2 + rand(-0.8, 2.4), rand(-2.6,2.6));
       m.rotation.set(Math.random()*TAU, Math.random()*TAU, Math.random()*TAU);
       m.castShadow = true;
       g.add(m);
@@ -907,18 +871,15 @@ function buildTrees(){
     return g;
   }
 
-  // Ring of trees around the adda
   const ring = 14;
   for (let i=0;i<ring;i++){
     const a = (i/ring)*TAU + rand(-0.12,0.12);
     const r = rand(26, 40);
     makeTree(Math.cos(a)*r, Math.sin(a)*r - 4, rand(0.85, 1.45));
   }
-  // A few closer framing trees behind the gitta
   for (let i=0;i<5;i++){
     makeTree(rand(-24,24), rand(-38,-24), rand(0.9,1.3));
   }
-  // Big banyan behind the camera-right
   makeTree(rand(18,24), rand(6,12), 1.6);
 }
 
@@ -928,13 +889,13 @@ function buildCanopy(){
     transparent:false,
     alphaTest:0.5,
     side: THREE.DoubleSide,
-    color: 0x1e3418,
+    color: 0x35502c,
     roughness: 1
   });
   const plane = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat);
   plane.rotation.x = -Math.PI/2;
   plane.position.set(-11, 17, -13);
-  plane.castShadow = true;
+  plane.castShadow = false; // ← BUG FIX: was covering entire play area in shadow
   plane.receiveShadow = false;
   scene.add(plane);
 }
@@ -942,7 +903,6 @@ function buildCanopy(){
 function buildHole(){
   holeGroup = new THREE.Group();
 
-  // dark pit disc
   const disc = new THREE.Mesh(
     new THREE.CircleGeometry(CFG.HOLE_R*1.55, 40),
     new THREE.MeshBasicMaterial({ map: makeHoleTexture(), transparent:true, depthWrite:false })
@@ -952,19 +912,17 @@ function buildHole(){
   disc.renderOrder = 1;
   holeGroup.add(disc);
 
-  // subtle gold rim glow
   const rim = new THREE.Mesh(
     new THREE.RingGeometry(CFG.HOLE_R*1.35, CFG.HOLE_R*1.62, 48),
-    new THREE.MeshBasicMaterial({ color:0xe8c477, transparent:true, opacity:0.18, side:THREE.DoubleSide, depthWrite:false })
+    new THREE.MeshBasicMaterial({ color:0xe8c477, transparent:true, opacity:0.30, side:THREE.DoubleSide, depthWrite:false })
   );
   rim.rotation.x = -Math.PI/2;
   rim.position.y = 0.045;
   rim.renderOrder = 2;
   holeGroup.add(rim);
 
-  // rim stones
   const stoneGeo = new THREE.DodecahedronGeometry(1,0);
-  const stoneMat = new THREE.MeshStandardMaterial({ color:0x6a5b44, roughness:0.95, flatShading:true });
+  const stoneMat = new THREE.MeshStandardMaterial({ color:0x8a7a5a, roughness:0.95, flatShading:true });
   for (let i=0;i<11;i++){
     const a = (i/11)*TAU + rand(-0.18,0.18);
     const r = CFG.HOLE_R*1.75 + rand(-0.06,0.12);
@@ -988,18 +946,17 @@ function updateHolePosition(){
 }
 
 function buildThrowLine(){
-  const geo = new THREE.PlaneGeometry(18, 0.09);
+  const geo = new THREE.PlaneGeometry(18, 0.10);
   geo.rotateX(-Math.PI/2);
   const mat = new THREE.MeshBasicMaterial({
-    color:0xf5ecd0, transparent:true, opacity:0.42, depthWrite:false
+    color:0xfff3d0, transparent:true, opacity:0.55, depthWrite:false
   });
   const line = new THREE.Mesh(geo, mat);
   line.position.set(0, groundH(0,0)+0.03, 0);
   scene.add(line);
 
-  // little marker ticks
   for (let i=-8;i<=8;i+=4){
-    const t = new THREE.Mesh(new THREE.PlaneGeometry(0.09, 0.5), mat);
+    const t = new THREE.Mesh(new THREE.PlaneGeometry(0.10, 0.5), mat);
     t.rotation.x = -Math.PI/2;
     t.position.set(i, groundH(i,0)+0.031, 0);
     scene.add(t);
@@ -1008,7 +965,7 @@ function buildThrowLine(){
 
 function buildPebbles(){
   const geo = new THREE.DodecahedronGeometry(1,0);
-  const mat = new THREE.MeshStandardMaterial({ color:0x77684e, roughness:0.95, flatShading:true });
+  const mat = new THREE.MeshStandardMaterial({ color:0x93836a, roughness:0.95, flatShading:true });
   const count = 42;
   const inst = new THREE.InstancedMesh(geo, mat, count);
   inst.castShadow = true;
@@ -1031,7 +988,6 @@ function buildPebbles(){
 }
 
 function buildIndicatorMeshes(){
-  // Aim guide line
   const aimGeo = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,1)
   ]);
@@ -1043,10 +999,9 @@ function buildIndicatorMeshes(){
   aimLine.renderOrder = 20;
   scene.add(aimLine);
 
-  // Target ring
   targetRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.36, 0.5, 40),
-    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:0.9,
+    new THREE.RingGeometry(0.42, 0.58, 40),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:0.95,
       side:THREE.DoubleSide, depthTest:false, depthWrite:false })
   );
   targetRing.rotation.x = -Math.PI/2;
@@ -1054,9 +1009,8 @@ function buildIndicatorMeshes(){
   targetRing.renderOrder = 21;
   scene.add(targetRing);
 
-  // Target arrow (cone pointing down)
   targetArrow = new THREE.Mesh(
-    new THREE.ConeGeometry(0.16, 0.42, 8),
+    new THREE.ConeGeometry(0.18, 0.46, 8),
     new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:0.95, depthTest:false })
   );
   targetArrow.rotation.x = Math.PI;
@@ -1064,10 +1018,9 @@ function buildIndicatorMeshes(){
   targetArrow.renderOrder = 21;
   scene.add(targetArrow);
 
-  // Striker halo
   strikerRing = new THREE.Mesh(
-    new THREE.RingGeometry(0.36, 0.46, 40),
-    new THREE.MeshBasicMaterial({ color:0x7ce8ff, transparent:true, opacity:0.85,
+    new THREE.RingGeometry(0.42, 0.54, 40),
+    new THREE.MeshBasicMaterial({ color:0x7ce8ff, transparent:true, opacity:0.9,
       side:THREE.DoubleSide, depthTest:false, depthWrite:false })
   );
   strikerRing.rotation.x = -Math.PI/2;
@@ -1089,8 +1042,8 @@ function buildDustSystem(){
     size: 0.42,
     map: makeSoftCircle(),
     transparent:true,
-    opacity:0.42,
-    color:0xe0d0aa,
+    opacity:0.55,
+    color:0xf0e2be,
     depthWrite:false,
     sizeAttenuation:true
   });
@@ -1142,7 +1095,9 @@ function buildMaterials(){
     metalness: 0.02,
     clearcoat: 1.0,
     clearcoatRoughness: 0.06,
-    envMapIntensity: 1.35
+    envMapIntensity: 1.55,
+    emissive: new THREE.Color(s.base).multiplyScalar(0.10),
+    emissiveIntensity: 1.0
   }));
   strikerMat = new THREE.MeshPhysicalMaterial({
     map: makeMarbleTexture('#dff7ff','#ffffff'),
@@ -1152,28 +1107,27 @@ function buildMaterials(){
     clearcoat: 1.0,
     clearcoatRoughness: 0.03,
     envMapIntensity: 2.2,
-    emissive: 0x1c4a5a,
-    emissiveIntensity: 0.45
+    emissive: 0x3a9ac0,
+    emissiveIntensity: 0.55
   });
 }
 
-/* =========================================================================
-   CAMERA FITTING
-   ========================================================================= */
+/* ============================ CAMERA ============================ */
 function fitCamera(){
   const D = G.holeDist;
   const target = new THREE.Vector3(0, 0, -D/2);
   const dir = new THREE.Vector3(0, 0.60, 0.80).normalize();
 
   const corners = [
-    new THREE.Vector3(-9.5, 0,  3.6),
-    new THREE.Vector3( 9.5, 0,  3.6),
-    new THREE.Vector3(-9.5, 0, -D - 3.2),
-    new THREE.Vector3( 9.5, 0, -D - 3.2)
+    new THREE.Vector3(-8.0, 0,  3.5),
+    new THREE.Vector3( 8.0, 0,  3.5),
+    new THREE.Vector3(-8.0, 0, -D - 2.5),
+    new THREE.Vector3( 8.0, 0, -D - 2.5)
   ];
 
-  let R = 6;
-  for (let iter=0; iter<90; iter++){
+  let R = 7;
+  const R_MAX = 40;
+  for (let iter=0; iter<80 && R < R_MAX; iter++){
     camera.position.copy(target).addScaledVector(dir, R);
     camera.lookAt(target);
     camera.updateMatrixWorld(true);
@@ -1182,7 +1136,7 @@ function fitCamera(){
     let ok = true;
     for (const c of corners){
       const p = c.clone().project(camera);
-      if (Math.abs(p.x) > 0.90 || p.y > 0.74 || p.y < -0.55 || p.z > 1){ ok = false; break; }
+      if (Math.abs(p.x) > 0.94 || p.y > 0.80 || p.y < -0.58 || p.z > 1){ ok = false; break; }
     }
     if (ok) break;
     R *= 1.05;
@@ -1198,9 +1152,7 @@ function onResize(){
   fitCamera();
 }
 
-/* =========================================================================
-   SCREEN -> GROUND
-   ========================================================================= */
+/* ============================ SCREEN -> GROUND ============================ */
 function screenToGround(clientX, clientY){
   const rect = renderer.domElement.getBoundingClientRect();
   const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
@@ -1211,9 +1163,7 @@ function screenToGround(clientX, clientY){
   return res ? hit : null;
 }
 
-/* =========================================================================
-   MARBLE CREATION
-   ========================================================================= */
+/* ============================ MARBLES ============================ */
 function potPos(i, total){
   const ga = 2.399963229728653;
   const a = i * ga;
@@ -1249,6 +1199,7 @@ function createMarbles(count){
       from: null,
       gt: 0,
       gdur: 1,
+      gIdx: 0,
       flight: null
     });
     mesh.position.set(p.x, y, p.z);
@@ -1286,9 +1237,7 @@ function removeStriker(){
   strikerRing.visible = false;
 }
 
-/* =========================================================================
-   GAME FLOW
-   ========================================================================= */
+/* ============================ FLOW ============================ */
 function startGame(){
   Sfx.init();
 
@@ -1298,9 +1247,9 @@ function startGame(){
 
   const aiSetting = document.getElementById('setAI').value;
   G.aiMode = aiSetting;
-  if (aiSetting === 'easy')   G.aiSkill = 0.52;
+  if (aiSetting === 'easy')      G.aiSkill = 0.52;
   else if (aiSetting === 'hard') G.aiSkill = 0.90;
-  else G.aiSkill = 0.72;
+  else                           G.aiSkill = 0.72;
 
   G.players = [];
   for (let i=0;i<pc;i++){
@@ -1368,7 +1317,6 @@ function doThrow(){
   const startX = 0, startZ = 0.5;
 
   pot.forEach((m, i) => {
-    // 28% chance the marble drops straight in
     const willHole = Math.random() < 0.28;
     let lx, lz;
 
@@ -1382,7 +1330,6 @@ function doThrow(){
       const r = CFG.HOLE_R + 0.55 + Math.pow(Math.random(), 0.72) * 6.2;
       lx = holePos.x + Math.cos(a)*r;
       lz = holePos.z + Math.sin(a)*r*0.92;
-      // keep inside bounds
       lx = clamp(lx, -CFG.BOUND_X+0.5, CFG.BOUND_X-0.5);
       lz = clamp(lz, -(G.holeDist+8), CFG.BOUND_Z_NEAR-0.5);
     }
@@ -1456,7 +1403,6 @@ function resolveThrow(){
   updateHUD();
 
   if (G.scattered.length === 0){
-    // Everything went in — the thrower takes it all
     const player = G.players[G.current];
     const won = G.holed.length;
     player.score += won;
@@ -1467,7 +1413,6 @@ function resolveThrow(){
     return;
   }
 
-  // Pick the hardest marble — farthest from the gitta
   let best = null, bestD = -1;
   for (const m of G.scattered){
     const d = Math.hypot(m.x - holePos.x, m.z - holePos.z);
@@ -1502,7 +1447,6 @@ function aiFlick(){
   const dx = t.x - s.x, dz = t.z - s.z;
   const dist = Math.hypot(dx, dz) || 0.001;
 
-  // speed needed to just reach the target
   const need = Math.sqrt(2 * CFG.FRICTION * dist) * 1.03;
 
   const errAng = (1 - G.aiSkill) * 0.42;
@@ -1528,7 +1472,7 @@ function launchSimulation(){
   setInstruction('Rolling', 'The striker is away…');
 }
 
-/* ---------- Physics ---------- */
+/* ---------------------------- Physics ---------------------------- */
 function resolvePair(a, b){
   const dx = b.x - a.x;
   const dz = b.z - a.z;
@@ -1539,7 +1483,6 @@ function resolvePair(a, b){
   const d = Math.sqrt(d2);
   const nx = dx/d, nz = dz/d;
 
-  // positional correction
   const overlap = minD - d;
   const tm = a.mass + b.mass;
   a.x -= nx * overlap * (b.mass/tm);
@@ -1550,7 +1493,7 @@ function resolvePair(a, b){
   const rvx = b.vx - a.vx;
   const rvz = b.vz - a.vz;
   const vn = rvx*nx + rvz*nz;
-  if (vn > 0) return true; // already separating
+  if (vn > 0) return true;
 
   const e = CFG.RESTITUTION;
   const j = -(1 + e) * vn / (1/a.mass + 1/b.mass);
@@ -1574,7 +1517,6 @@ function stepPhysics(dt){
   }
   if (G.striker && G.striker.state === 'striker') actives.push(G.striker);
 
-  // integrate
   for (const m of actives){
     const sp = Math.hypot(m.vx, m.vz);
     if (sp > 0.0001){
@@ -1585,7 +1527,6 @@ function stepPhysics(dt){
       m.x += m.vx * dt;
       m.z += m.vz * dt;
 
-      // bounds
       const bx = CFG.BOUND_X;
       const bzN = CFG.BOUND_Z_NEAR;
       const bzF = -(G.holeDist + 9);
@@ -1596,7 +1537,6 @@ function stepPhysics(dt){
     }
   }
 
-  // collisions
   for (let i=0;i<actives.length;i++){
     const a = actives[i];
     if (a.state !== 'ground' && a.state !== 'striker') continue;
@@ -1612,7 +1552,6 @@ function stepPhysics(dt){
     }
   }
 
-  // hole capture (only ground marbles, never the striker)
   for (const m of actives){
     if (m.state !== 'ground') continue;
     const d = Math.hypot(m.x - holePos.x, m.z - holePos.z);
@@ -1635,7 +1574,6 @@ function allStopped(){
   return true;
 }
 
-/* ---------- Turn resolution ---------- */
 function resolveTurn(){
   const player = G.players[G.current];
   G.holed = G.marbles.filter(m => m.state === 'hole');
@@ -1664,7 +1602,6 @@ function resolveTurn(){
     return;
   }
 
-  // Miss — take only what is already in the gitta
   const won = G.holed.length;
   player.score += won;
 
@@ -1686,7 +1623,6 @@ function resolveTurn(){
     return;
   }
 
-  // Next player
   G.current = (G.current + 1) % G.players.length;
   clearIndicators();
   nextTurn();
@@ -1717,12 +1653,12 @@ function nextTurn(){
     return;
   }
 
-  // Gather remaining marbles to the throw line
   groundMarbles.forEach((m, i) => {
     m.state = 'gathering';
     m.from = { x:m.x, y:m.y, z:m.z };
     m.gt = 0;
     m.gdur = 0.42 + i*0.014;
+    m.gIdx = i;
   });
   G.phase = 'gathering';
   setInstruction('Gathering', `${player.name} scoops up the ${groundMarbles.length} scattered marbles…`);
@@ -1740,7 +1676,7 @@ function updateGathering(dt){
     const t = Math.min(m.gt, 1);
     const e = t*t*(3-2*t);
 
-    const p = potPos(m.id % Math.max(total,1), Math.max(total,1));
+    const p = potPos(m.gIdx, Math.max(total,1));
     const ty = groundH(p.x,p.z) + CFG.MARBLE_R;
 
     m.x = lerp(m.from.x, p.x, e);
@@ -1815,9 +1751,7 @@ function clearAllGroundMarbles(){
   G.holed = [];
 }
 
-/* =========================================================================
-   INPUT
-   ========================================================================= */
+/* ============================ INPUT ============================ */
 function attachInput(){
   const el = renderer.domElement;
 
@@ -1835,7 +1769,7 @@ function attachInput(){
 
     G.dragging = true;
     G.drag = { x:p.x, z:p.z };
-    el.setPointerCapture(e.pointerId);
+    try { el.setPointerCapture(e.pointerId); } catch(_){}
     e.preventDefault();
   }, { passive:false });
 
@@ -1851,9 +1785,11 @@ function attachInput(){
   function endDrag(e){
     if (!G.dragging || !G.drag) return;
     G.dragging = false;
-    if (el.hasPointerCapture && el.hasPointerCapture(e.pointerId)){
-      el.releasePointerCapture(e.pointerId);
-    }
+    try {
+      if (el.hasPointerCapture && el.hasPointerCapture(e.pointerId)){
+        el.releasePointerCapture(e.pointerId);
+      }
+    } catch(_){}
 
     if (G.phase !== 'aiming' || !G.striker){ G.drag = null; return; }
 
@@ -1881,9 +1817,7 @@ function attachInput(){
   el.addEventListener('contextmenu', e => e.preventDefault());
 }
 
-/* =========================================================================
-   UPDATE LOOP
-   ========================================================================= */
+/* ============================ UPDATE ============================ */
 function updateHUD(){
   document.getElementById('uiRound').textContent = G.round;
   const holed = G.marbles.filter(m => m.state === 'hole').length;
@@ -1924,7 +1858,6 @@ function toast(msg){
 }
 
 function update(dt){
-  // Timer
   if (G.timer){
     G.timer.t -= dt;
     if (G.timer.t <= 0){
@@ -1935,14 +1868,8 @@ function update(dt){
   }
 
   switch (G.phase){
-    case 'throwing':
-      updateThrow(dt);
-      break;
-
-    case 'gathering':
-      updateGathering(dt);
-      break;
-
+    case 'throwing':  updateThrow(dt); break;
+    case 'gathering': updateGathering(dt); break;
     case 'simulating': {
       G.simTime += dt;
       const sub = CFG.SUBSTEPS;
@@ -1955,7 +1882,6 @@ function update(dt){
     }
   }
 
-  // ---- Marble mesh sync ----
   for (const m of G.marbles){
     if (m.state === 'collected') continue;
     if (m.state === 'hole'){
@@ -1965,7 +1891,7 @@ function update(dt){
       m.mesh.scale.setScalar(Math.max(0.001, s));
       continue;
     }
-    if (m.state === 'flight') continue; // handled in updateThrow
+    if (m.state === 'flight') continue;
     const gy = groundH(m.x, m.z) + m.r;
     m.y = lerp(m.y, gy, Math.min(1, dt*18));
     m.mesh.position.set(m.x, m.y, m.z);
@@ -1978,7 +1904,6 @@ function update(dt){
     }
   }
 
-  // ---- Striker ----
   if (G.striker && G.striker.state === 'striker'){
     const s = G.striker;
     const gy = groundH(s.x, s.z) + s.r;
@@ -1991,28 +1916,26 @@ function update(dt){
     }
   }
 
-  // ---- Target indicators ----
   if (G.target && G.phase === 'aiming'){
     const now = performance.now()/1000;
     const pulse = 1 + Math.sin(now*3.4)*0.14;
     targetRing.position.set(G.target.x, groundH(G.target.x,G.target.z)+0.05, G.target.z);
     targetRing.scale.setScalar(pulse);
     targetRing.rotation.z = now*0.6;
-
     targetArrow.position.set(
       G.target.x,
       groundH(G.target.x,G.target.z) + 1.15 + Math.sin(now*2.6)*0.16,
       G.target.z
     );
     targetArrow.rotation.y = now*1.4;
+    targetRing.visible = true;
+    targetArrow.visible = true;
   } else {
     targetRing.visible = false;
     targetArrow.visible = false;
   }
-  if (G.target && G.phase === 'aiming'){ targetRing.visible = true; targetArrow.visible = true; }
 
-  // ---- Striker halo ----
-  if (G.striker && G.phase === 'aiming' && !G.players[G.current].isAI){
+  if (G.striker && G.phase === 'aiming' && G.players[G.current] && !G.players[G.current].isAI){
     const now = performance.now()/1000;
     strikerRing.position.set(G.striker.x, groundH(G.striker.x,G.striker.z)+0.05, G.striker.z);
     const p = 1 + Math.sin(now*4)*0.08;
@@ -2022,7 +1945,6 @@ function update(dt){
     strikerRing.visible = false;
   }
 
-  // ---- Aim guide ----
   if (G.dragging && G.drag && G.striker && G.phase === 'aiming'){
     const pullX = G.striker.x - G.drag.x;
     const pullZ = G.striker.z - G.drag.z;
@@ -2039,7 +1961,7 @@ function update(dt){
         new THREE.Vector3(G.striker.x + nx*L, y, G.striker.z + nz*L)
       ]);
       aimLine.computeLineDistances();
-      aimLine.material.color.setHSL(0.13, 1.0, 0.42 + power*0.28);
+      aimLine.material.color.setHSL(0.13, 1.0, 0.48 + power*0.28);
       aimLine.visible = true;
     } else {
       aimLine.visible = false;
@@ -2048,24 +1970,11 @@ function update(dt){
     aimLine.visible = false;
   }
 
-  // ---- Dust ----
   updateDust(dt);
-
-  // ---- Camera shake ----
-  if (G.cameraShake > 0.001){
-    G.cameraShake *= Math.pow(0.02, dt);
-    const sx = (Math.random()-0.5) * G.cameraShake;
-    const sy = (Math.random()-0.5) * G.cameraShake;
-    camera.position.x += sx;
-    camera.position.y += sy;
-  }
-
   renderer.render(scene, camera);
 }
 
-/* =========================================================================
-   UI WIRING
-   ========================================================================= */
+/* ============================ UI ============================ */
 function openModal(id){
   const overlay = document.getElementById('overlay');
   overlay.classList.add('show');
@@ -2131,35 +2040,28 @@ function wireUI(){
     Sfx.muted = !soundChk.checked;
   });
 
-  // Close overlay when clicking backdrop
   document.getElementById('overlay').addEventListener('click', e => {
     if (e.target.id === 'overlay'){
-      // Only allow closing if a game is running
       if (G.phase !== 'boot' && G.phase !== 'menu') closeOverlay();
     }
   });
 
-  // Keyboard
   window.addEventListener('keydown', e => {
     if (e.key === 'Escape'){ closeOverlay(); nav.classList.remove('open'); }
   });
 }
 
-/* =========================================================================
-   BOOT
-   ========================================================================= */
+/* ============================ BOOT ============================ */
 function boot(){
   try {
     initThree();
     attachInput();
     wireUI();
 
-    // Initial view for the menu
     G.holeDist = 6;
     updateHolePosition();
     fitCamera();
 
-    // Placeholder marbles so the menu looks alive
     createMarbles(16);
     for (const m of G.marbles){
       m.state = 'ground';
@@ -2173,17 +2075,21 @@ function boot(){
     renderScoreboard();
     updateHUD();
 
+    window.__DHAMULI_BOOTED = true;
     document.getElementById('loader').classList.add('hide');
+
     setTimeout(() => {
       const l = document.getElementById('loader');
       if (l && l.parentNode) l.parentNode.removeChild(l);
+      // BUG FIX: reveal the story modal (was invisible on first load)
+      openModal('storyModal');
     }, 700);
 
     requestAnimationFrame(loop);
   } catch(err){
     console.error(err);
     const msg = document.getElementById('loaderMsg');
-    if (msg) msg.textContent = 'Failed to start — check your connection (Three.js CDN).';
+    if (msg) msg.textContent = 'Failed to start — ' + (err && err.message ? err.message : 'unknown error');
   }
 }
 
@@ -2197,4 +2103,4 @@ boot();
 
 </script>
 </body>
-      </html>
+  </html>
