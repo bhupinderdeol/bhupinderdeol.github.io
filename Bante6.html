@@ -1,0 +1,2106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0b1410">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="description" content="Dhamuli Marbles — a 3D Punjabi village kanche game set in Shambolic, Jalandhar.">
+<title>Dhamuli Marbles — Shambolic Village Championship</title>
+<style>
+:root{
+  --gold:#e8c477;
+  --gold-2:#f7dfa8;
+  --gold-dim:#a8863f;
+  --bg:#0b1410;
+  --panel:rgba(16,30,22,.92);
+  --ink:#f2ecdc;
+  --muted:#93a896;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+html,body{
+  margin:0;padding:0;height:100%;width:100%;
+  background:var(--bg);color:var(--ink);
+  font-family:system-ui,-apple-system,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+  overflow:hidden;touch-action:none;overscroll-behavior:none;
+  -webkit-user-select:none;user-select:none;
+}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;}
+#vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:2;
+  background:radial-gradient(ellipse at 50% 45%, rgba(0,0,0,0) 55%, rgba(0,0,0,.22) 100%);
+}
+
+#topBar{
+  position:fixed;top:0;left:0;right:0;z-index:20;
+  padding:calc(8px + var(--safe-t)) 10px 8px;
+  display:flex;gap:8px;align-items:flex-start;justify-content:space-between;
+  pointer-events:none;
+}
+#scoreboard{
+  display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;
+  pointer-events:auto;padding:2px;max-width:calc(100% - 92px);
+}
+#scoreboard::-webkit-scrollbar{display:none;}
+.chip{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  min-width:62px;padding:5px 8px;border-radius:11px;
+  background:var(--panel);border:1px solid rgba(232,196,119,.22);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  transition:.3s cubic-bezier(.34,1.4,.64,1);
+  box-shadow:0 3px 14px rgba(0,0,0,.35);
+}
+.chip.active{
+  border-color:var(--gold);
+  background:linear-gradient(160deg,rgba(232,196,119,.28),rgba(26,46,34,.95));
+  box-shadow:0 0 0 1px rgba(232,196,119,.45),0 4px 20px rgba(232,196,119,.3);
+  transform:translateY(-1px);
+}
+.chip-name{font-size:9px;letter-spacing:.7px;text-transform:uppercase;color:var(--muted);white-space:nowrap;}
+.chip.active .chip-name{color:var(--gold-2);}
+.chip-score{font-size:15px;font-weight:800;color:var(--gold);font-family:Georgia,serif;line-height:1.15;}
+.chip-ai{font-size:8px;opacity:.6;}
+
+#roundInfo{
+  pointer-events:auto;display:flex;flex-direction:column;align-items:center;
+  background:var(--panel);border:1px solid rgba(232,196,119,.22);
+  border-radius:11px;padding:5px 10px;backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);box-shadow:0 3px 14px rgba(0,0,0,.35);
+  gap:2px;min-width:70px;
+}
+.round-lbl{font-size:8px;letter-spacing:1.2px;text-transform:uppercase;color:var(--muted);}
+.round-val{font-size:14px;font-weight:800;color:var(--gold);font-family:Georgia,serif;line-height:1;}
+.gitta-count{font-size:10px;color:var(--gold-2);font-weight:700;}
+
+#bottomBar{
+  position:fixed;left:0;right:0;bottom:0;z-index:20;
+  padding:10px 96px calc(12px + var(--safe-b)) 12px;
+  display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+#instruction{
+  background:var(--panel);border:1px solid rgba(232,196,119,.2);
+  border-radius:14px;padding:9px 14px;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  box-shadow:0 6px 24px rgba(0,0,0,.4);
+  pointer-events:auto;max-width:100%;
+}
+.instr-title{
+  font-size:9px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--gold-dim);margin-bottom:2px;font-weight:700;
+}
+.instr-text{font-size:12.5px;line-height:1.45;color:#dbe6d8;}
+#actions{display:flex;gap:8px;pointer-events:auto;flex-wrap:wrap;}
+
+.btn{
+  border:none;border-radius:12px;padding:13px 20px;
+  font-weight:800;font-size:12.5px;letter-spacing:1.1px;text-transform:uppercase;
+  cursor:pointer;transition:transform .15s,box-shadow .2s,opacity .2s;
+  font-family:inherit;white-space:nowrap;
+}
+.btn:active{transform:scale(.96);}
+.btn-primary{
+  background:linear-gradient(150deg,var(--gold-2),var(--gold) 45%,var(--gold-dim));
+  color:#14251a;box-shadow:0 6px 20px rgba(232,196,119,.3),inset 0 1px 0 rgba(255,255,255,.5);
+}
+.btn-secondary{
+  background:rgba(255,255,255,.08);color:var(--ink);
+  border:1px solid rgba(255,255,255,.18);box-shadow:0 4px 14px rgba(0,0,0,.3);
+}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none;}
+
+#circleNav{
+  position:fixed;right:calc(16px + env(safe-area-inset-right,0px));
+  bottom:calc(18px + var(--safe-b));
+  width:58px;height:58px;border-radius:50%;z-index:60;
+  background:linear-gradient(150deg,rgba(30,52,38,.96),rgba(14,26,19,.98));
+  border:2px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;cursor:pointer;
+  box-shadow:0 8px 28px rgba(0,0,0,.55),inset 0 0 18px rgba(232,196,119,.12);
+  transition:transform .3s cubic-bezier(.34,1.5,.64,1);
+}
+#circleNav:active{transform:scale(.93);}
+.nav-center{
+  font-size:22px;color:var(--gold);transition:transform .35s cubic-bezier(.34,1.5,.64,1);
+  line-height:1;pointer-events:none;
+}
+#circleNav.open .nav-center{transform:rotate(135deg);}
+.nav-item{
+  position:absolute;width:46px;height:46px;border-radius:50%;
+  background:linear-gradient(150deg,var(--gold-2),var(--gold));
+  color:#14251a;border:2px solid rgba(255,255,255,.85);
+  display:flex;align-items:center;justify-content:center;font-size:18px;
+  cursor:pointer;opacity:0;pointer-events:none;
+  transform:translate(0,0) scale(.2);
+  transition:transform .38s cubic-bezier(.34,1.56,.64,1),opacity .25s;
+  box-shadow:0 5px 18px rgba(0,0,0,.45);
+  padding:0;font-family:inherit;
+}
+#circleNav.open .nav-item{
+  opacity:1;pointer-events:auto;
+  transform:translate(var(--tx),var(--ty)) scale(1);
+}
+
+#overlay{
+  position:fixed;inset:0;z-index:100;
+  background:radial-gradient(ellipse at 50% 30%,rgba(14,28,20,.72),rgba(4,10,7,.92));
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  display:flex;align-items:center;justify-content:center;
+  padding:calc(16px + var(--safe-t)) 14px calc(16px + var(--safe-b));
+  opacity:0;pointer-events:none;transition:opacity .35s;
+}
+#overlay.show{opacity:1;pointer-events:auto;}
+.modal{
+  display:none;width:100%;max-width:480px;max-height:88vh;overflow-y:auto;
+  background:linear-gradient(165deg,rgba(32,56,42,.97),rgba(12,24,17,.99));
+  border:1px solid rgba(232,196,119,.4);border-radius:22px;
+  padding:24px 22px;box-shadow:0 24px 80px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.06);
+  transform:translateY(18px) scale(.97);opacity:0;
+  transition:transform .38s cubic-bezier(.34,1.4,.64,1),opacity .3s;
+  scrollbar-width:thin;
+}
+.modal.show{display:block;}
+.modal.in{transform:translateY(0) scale(1);opacity:1;}
+.modal h2{
+  font-family:Georgia,'Times New Roman',serif;color:var(--gold);
+  font-size:23px;margin:0 0 6px;text-align:center;letter-spacing:.4px;
+}
+.modal .sub{
+  text-align:center;font-size:10px;letter-spacing:2.4px;text-transform:uppercase;
+  color:var(--gold-dim);margin-bottom:16px;
+}
+.modal .divider{
+  height:1px;background:linear-gradient(90deg,transparent,rgba(232,196,119,.45),transparent);
+  margin:0 0 16px;
+}
+.story p{font-size:13.5px;line-height:1.75;color:#cfdccb;margin:0 0 12px;text-align:center;}
+.story strong{color:var(--gold-2);}
+.story em{color:#b8d6c0;font-style:italic;}
+
+.field{margin-bottom:14px;}
+.field label{
+  display:block;font-size:9.5px;letter-spacing:1.6px;text-transform:uppercase;
+  color:var(--muted);margin-bottom:6px;font-weight:700;
+}
+.field select{
+  width:100%;background:rgba(0,0,0,.35);border:1px solid #3c5a48;
+  color:var(--ink);padding:11px 12px;border-radius:10px;font-size:14px;
+  outline:none;font-family:inherit;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--gold-dim) 50%),linear-gradient(135deg,var(--gold-dim) 50%,transparent 50%);
+  background-position:calc(100% - 18px) 50%,calc(100% - 13px) 50%;
+  background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+}
+.field select:focus{border-color:var(--gold);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.toggle{
+  display:flex;align-items:center;justify-content:space-between;
+  background:rgba(0,0,0,.3);border:1px solid #3c5a48;border-radius:10px;
+  padding:10px 12px;font-size:13px;cursor:pointer;
+}
+.toggle input{width:auto;margin:0;accent-color:var(--gold);transform:scale(1.25);}
+.rules{font-size:12.8px;line-height:1.7;color:#c4d3c1;padding-left:18px;margin:0;}
+.rules li{margin-bottom:10px;}
+.rules li b{color:var(--gold-2);}
+.actions{display:flex;gap:9px;margin-top:20px;}
+.actions .btn{flex:1;}
+.note{font-size:11px;color:var(--muted);line-height:1.6;text-align:center;margin-top:12px;}
+code{background:rgba(0,0,0,.4);padding:1px 5px;border-radius:4px;font-size:11px;color:var(--gold-2);}
+
+#loader{
+  position:fixed;inset:0;z-index:200;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .6s;
+}
+#loader.hide{opacity:0;pointer-events:none;}
+.spinner{
+  width:44px;height:44px;border-radius:50%;
+  border:3px solid rgba(232,196,119,.18);border-top-color:var(--gold);
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{to{transform:rotate(360deg);}}
+#loader h1{
+  font-family:Georgia,serif;color:var(--gold);font-size:19px;margin:0;
+  letter-spacing:1px;text-align:center;padding:0 20px;
+}
+#loader p{color:var(--muted);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:0;}
+
+#toast{
+  position:fixed;left:50%;top:calc(72px + var(--safe-t));transform:translate(-50%,-14px);
+  background:linear-gradient(160deg,rgba(232,196,119,.95),rgba(200,160,80,.95));
+  color:#12211a;padding:9px 20px;border-radius:30px;font-size:12px;font-weight:800;
+  letter-spacing:.6px;z-index:90;opacity:0;pointer-events:none;
+  transition:opacity .3s,transform .3s;box-shadow:0 8px 28px rgba(0,0,0,.45);
+  max-width:88vw;text-align:center;
+}
+#toast.show{opacity:1;transform:translate(-50%,0);}
+
+@media (max-width:380px){
+  .chip{min-width:52px;padding:4px 6px;}
+  .chip-name{font-size:8px;}
+  .chip-score{font-size:13px;}
+  .instr-text{font-size:11.5px;}
+  .btn{padding:11px 16px;font-size:11.5px;}
+  #bottomBar{padding-right:84px;}
+}
+@media (min-width:820px){
+  #bottomBar{padding-left:22px;padding-right:110px;}
+  .instr-text{font-size:14px;}
+  .modal{max-width:520px;}
+}
+</style>
+</head>
+<body>
+
+<canvas id="scene"></canvas>
+<div id="vignette"></div>
+
+<div id="topBar">
+  <div id="scoreboard"></div>
+  <div id="roundInfo">
+    <span class="round-lbl">Round</span>
+    <span class="round-val" id="uiRound">1</span>
+    <span class="gitta-count">◎ <span id="uiHole">0</span> in gitta</span>
+  </div>
+</div>
+
+<div id="bottomBar">
+  <div id="instruction">
+    <div class="instr-title" id="instrTitle">Welcome</div>
+    <div class="instr-text" id="instrText">Open the menu and gather the boys at the adda.</div>
+  </div>
+  <div id="actions">
+    <button class="btn btn-primary" id="btnThrow" style="display:none">Throw Marbles</button>
+    <button class="btn btn-primary" id="btnNext" style="display:none">Continue</button>
+  </div>
+</div>
+
+<div id="circleNav" role="button" aria-label="Menu" tabindex="0">
+  <div class="nav-center">☰</div>
+  <button class="nav-item" data-target="storyModal"    style="--tx:-82px;--ty:-8px"  aria-label="Story">📖</button>
+  <button class="nav-item" data-target="rulesModal"    style="--tx:-64px;--ty:-58px" aria-label="Rules">📜</button>
+  <button class="nav-item" data-target="settingsModal" style="--tx:-8px;--ty:-82px"  aria-label="Settings">⚙️</button>
+  <button class="nav-item" data-target="aboutModal"    style="--tx:-56px;--ty:-72px" aria-label="About">ℹ️</button>
+</div>
+
+<div id="toast"></div>
+
+<div id="overlay">
+  <div class="modal" id="storyModal">
+    <h2>Shambolic, Jalandhar</h2>
+    <div class="sub">Punjab · Late Afternoon</div>
+    <div class="divider"></div>
+    <div class="story">
+      <p>The school bell rings out across the fields. Bags thump onto the verandah floor,
+      chappals kicked off at the door, and the smell of <strong>adrak chai</strong> rises
+      from every courtyard in the village.</p>
+      <p>Under the great <em>banyan</em> at the centre of Shambolic, the ground is uneven
+      and the dust is warm. This is the <em>adda</em>. Here, a boy's reputation is not
+      built in the classroom — it is built with a flick of the thumb.</p>
+      <p>Glass <strong>kanche</strong>. A small hole in the earth called the
+      <strong>gitta</strong>. A throw line six feet away. And four boys who will not go
+      home until the light dies.</p>
+      <p style="color:var(--gold);font-weight:700;letter-spacing:.5px;">Welcome to Dhamuli Marbles.</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-primary" data-next="settingsModal">Gather at the Adda</button>
+    </div>
+  </div>
+
+  <div class="modal" id="settingsModal">
+    <h2>Game Setup</h2>
+    <div class="sub">Prepare the Championship</div>
+    <div class="divider"></div>
+
+    <div class="row2">
+      <div class="field">
+        <label for="setPlayers">Players</label>
+        <select id="setPlayers">
+          <option value="2">2 Players</option>
+          <option value="3">3 Players</option>
+          <option value="4" selected>4 Players</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="setStake">Stake per Player</label>
+        <select id="setStake">
+          <option value="3">3 Marbles</option>
+          <option value="4" selected>4 Marbles</option>
+          <option value="6">6 Marbles</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="setDistance">Distance to Gitta</label>
+      <select id="setDistance">
+        <option value="4">4 Feet — Close</option>
+        <option value="6" selected>6 Feet — Standard</option>
+        <option value="9">9 Feet — Long</option>
+        <option value="12">12 Feet — Championship</option>
+        <option value="15">15 Feet — Impossible</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="setAI">Opponents</label>
+      <select id="setAI">
+        <option value="off">All Human (Pass &amp; Play)</option>
+        <option value="easy">AI — Gully Level</option>
+        <option value="normal" selected>AI — Village Level</option>
+        <option value="hard">AI — Championship Level</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Audio</label>
+      <label class="toggle">
+        <span>Sound Effects</span>
+        <input type="checkbox" id="setSound" checked>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-secondary" data-next="rulesModal">Rules</button>
+      <button class="btn btn-primary" id="btnStartGame">Start Game</button>
+    </div>
+    <p class="note">Tip: pull back from your striker like a slingshot and release to flick.</p>
+  </div>
+
+  <div class="modal" id="rulesModal">
+    <h2>Traditional Rules</h2>
+    <div class="sub">Dhamuli · Kanche</div>
+    <div class="divider"></div>
+    <ol class="rules">
+      <li><b>The Pool.</b> Every player contributes 3, 4 or 6 marbles to a common pool (max 30).</li>
+      <li><b>The Throw.</b> The player whose turn it is scoops the whole pool into the palm and
+          throws it from the throw line toward the <em>gitta</em>. Some drop in; the rest scatter.</li>
+      <li><b>The Challenge.</b> The opponents pick the hardest marble — the one <em>farthest</em>
+          from the gitta — and mark it. You must strike that marble first.</li>
+      <li><b>The Flick.</b> Drag backwards from your striker and release. Power and angle come
+          from the length and direction of your pull.</li>
+      <li><b>The Win.</b> Hit the marked marble first and you take <em>every</em> marble on the
+          ground plus everything in the gitta.</li>
+      <li><b>The Miss.</b> Miss it, or touch another marble first, and you only collect the
+          marbles already resting in the gitta. The scattered ones stay for the next player.</li>
+      <li><b>The Round.</b> When the ground is empty, the pool is refilled and a new round begins.
+          Marbles won are kept forever — the highest tally wins the Championship.</li>
+    </ol>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeOverlay()">Close</button>
+    </div>
+  </div>
+
+  <div class="modal" id="aboutModal">
+    <h2>About &amp; Deployment</h2>
+    <div class="sub">Dhamuli Marbles v1.0</div>
+    <div class="divider"></div>
+    <div class="rules" style="padding-left:0;">
+      <p style="margin-top:0;">A single-file HTML5 / Three.js game. No backend, no build step, no
+      external assets — every texture, every sound and every mesh is generated at runtime.</p>
+      <p><b>GitHub Pages deployment</b></p>
+      <ol class="rules">
+        <li>Create a public GitHub repository.</li>
+        <li>Upload this file as <code>index.html</code>.</li>
+        <li>Repository <b>Settings → Pages</b>.</li>
+        <li>Source: <b>Deploy from a branch</b> → <code>main</code> → <code>/ (root)</code>.</li>
+        <li>Save. Your game goes live at<br><code>https://&lt;user&gt;.github.io/&lt;repo&gt;/</code></li>
+      </ol>
+      <p><b>Controls</b> — Desktop: click-drag with mouse. Mobile: touch-drag. Pull away from the
+      striker to aim; release to flick. The guide line shows direction and power.</p>
+      <p style="opacity:.7;font-size:11px;">Built with Three.js · Web Audio API · Canvas 2D textures.</p>
+    </div>
+    <div class="actions">
+      <button class="btn btn-secondary" onclick="closeOverlay()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div id="loader">
+  <div class="spinner"></div>
+  <h1>Dhamuli Marbles</h1>
+  <p id="loaderMsg">Warming the adda…</p>
+</div>
+
+<script>
+  // Safety net — if Three.js fails to load we still tell the user something useful
+  setTimeout(function(){
+    if (!window.__DHAMULI_BOOTED){
+      var m = document.getElementById('loaderMsg');
+      if (m) m.textContent = 'Could not load the 3D engine. Check your connection and reload.';
+    }
+  }, 9000);
+</script>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+const clamp = (v,a,b)=> v<a?a:(v>b?b:v);
+const lerp  = (a,b,t)=> a+(b-a)*t;
+const rand  = (a,b)=> a + Math.random()*(b-a);
+const TAU   = Math.PI*2;
+
+/* ============================ AUDIO ============================ */
+const Sfx = {
+  ctx:null, muted:false, master:null,
+  init(){
+    if (this.ctx){ if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    try{
+      this.ctx = new (window.AudioContext||window.webkitAudioContext)();
+      this.master = this.ctx.createGain();
+      this.master.gain.value = 0.9;
+      this.master.connect(this.ctx.destination);
+    }catch(e){ this.ctx = null; }
+  },
+  tone(freq, dur, type, vol, delay){
+    if (!this.ctx || this.muted) return;
+    const t0 = this.ctx.currentTime + (delay||0);
+    const o = this.ctx.createOscillator();
+    const g = this.ctx.createGain();
+    o.type = type || 'sine';
+    o.frequency.setValueAtTime(freq, t0);
+    g.gain.setValueAtTime(0.0001, t0);
+    g.gain.linearRampToValueAtTime(vol, t0 + 0.008);
+    g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+    o.connect(g); g.connect(this.master);
+    o.start(t0); o.stop(t0 + dur + 0.03);
+  },
+  clink(power){
+    if (!this.ctx || this.muted) return;
+    const p = clamp(power, 0.15, 1.4);
+    const f = rand(1100, 2100);
+    this.tone(f, 0.075, 'sine', 0.055*p);
+    this.tone(f*1.97, 0.045, 'triangle', 0.03*p);
+  },
+  thud(){ this.tone(rand(95,140), 0.11, 'triangle', 0.09); },
+  click(){ this.tone(720, 0.05, 'square', 0.035); },
+  throwSwoosh(){
+    if (!this.ctx || this.muted) return;
+    for (let i=0;i<3;i++) this.tone(rand(280,520), 0.16, 'sine', 0.045, i*0.05);
+  },
+  win(){
+    if (!this.ctx || this.muted) return;
+    [523.25, 659.25, 783.99, 1046.5].forEach((f,i)=> this.tone(f, 0.45, 'sine', 0.085, i*0.085));
+  },
+  lose(){
+    if (!this.ctx || this.muted) return;
+    this.tone(246.94, 0.28, 'sine', 0.07);
+    this.tone(185.00, 0.42, 'sine', 0.07, 0.14);
+  }
+};
+
+/* ============================ TEXTURES ============================ */
+function cv(w,h){ const c=document.createElement('canvas'); c.width=w; c.height=h; return c; }
+
+function makeDirtTexture(){
+  const S = 1024;
+  const c = cv(S,S), g = c.getContext('2d');
+  g.fillStyle = '#a89574'; g.fillRect(0,0,S,S);
+
+  for (let i=0;i<1400;i++){
+    const x=Math.random()*S, y=Math.random()*S, r=12+Math.random()*90;
+    const t=Math.random();
+    g.fillStyle = `rgba(${Math.round(150+t*48)},${Math.round(130+t*42)},${Math.round(96+t*34)},${0.05+t*0.09})`;
+    g.beginPath(); g.ellipse(x,y,r,r*rand(.5,1),Math.random()*TAU,0,TAU); g.fill();
+  }
+  for (let i=0;i<2600;i++){
+    const x=Math.random()*S, y=Math.random()*S, a=Math.random()*TAU, l=3+Math.random()*9;
+    g.strokeStyle = `rgba(${Math.round(150+Math.random()*60)},${Math.round(150+Math.random()*50)},${Math.round(90+Math.random()*40)},${0.20+Math.random()*0.32})`;
+    g.lineWidth = 0.8+Math.random()*1.4;
+    g.beginPath(); g.moveTo(x,y); g.lineTo(x+Math.cos(a)*l, y+Math.sin(a)*l); g.stroke();
+  }
+  for (let i=0;i<900;i++){
+    const x=Math.random()*S, y=Math.random()*S, r=1+Math.random()*3.5;
+    const v = 170+Math.random()*70;
+    g.fillStyle = `rgba(${v|0},${(v*0.93)|0},${(v*0.8)|0},${0.45+Math.random()*0.45})`;
+    g.beginPath(); g.ellipse(x,y,r,r*rand(.6,1),Math.random()*TAU,0,TAU); g.fill();
+    g.fillStyle = 'rgba(0,0,0,0.16)';
+    g.beginPath(); g.ellipse(x+r*0.35,y+r*0.35,r*0.8,r*0.5,0,0,TAU); g.fill();
+  }
+  for (let i=0;i<90;i++){
+    const x=Math.random()*S, y=Math.random()*S, r=30+Math.random()*130;
+    const grad = g.createRadialGradient(x,y,0,x,y,r);
+    grad.addColorStop(0,'rgba(255,240,200,0.22)');
+    grad.addColorStop(0.6,'rgba(255,240,200,0.07)');
+    grad.addColorStop(1,'rgba(255,240,200,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+  }
+  for (let i=0;i<70;i++){
+    const x=Math.random()*S, y=Math.random()*S, r=40+Math.random()*120;
+    const grad = g.createRadialGradient(x,y,0,x,y,r);
+    grad.addColorStop(0,'rgba(40,30,16,0.12)');
+    grad.addColorStop(1,'rgba(40,30,16,0)');
+    g.fillStyle = grad; g.beginPath(); g.arc(x,y,r,0,TAU); g.fill();
+  }
+
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3.5,3.5);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function makeCanopyTexture(){
+  const S = 512;
+  const c = cv(S,S), g = c.getContext('2d');
+  g.clearRect(0,0,S,S);
+  g.fillStyle = '#ffffff';
+  for (let i=0;i<380;i++){
+    const x=Math.random()*S, y=Math.random()*S;
+    const r = 5 + Math.random()*16;
+    g.globalAlpha = 0.55 + Math.random()*0.45;
+    g.beginPath();
+    g.ellipse(x,y,r,r*rand(0.55,1),Math.random()*TAU,0,TAU);
+    g.fill();
+  }
+  g.globalAlpha = 1;
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(3,3);
+  return t;
+}
+
+function makeMarbleTexture(base, accent){
+  const W = 256, H = 128;
+  const c = cv(W,H), g = c.getContext('2d');
+  g.fillStyle = base; g.fillRect(0,0,W,H);
+
+  for (let i=0;i<7;i++){
+    g.strokeStyle = accent;
+    g.globalAlpha = 0.22 + Math.random()*0.42;
+    g.lineWidth = 3 + Math.random()*11;
+    g.lineCap = 'round';
+    const y0 = Math.random()*H;
+    const k = 1 + Math.floor(Math.random()*3);
+    const amp = 8 + Math.random()*20;
+    const ph = Math.random()*TAU;
+    g.beginPath();
+    for (let x=0;x<=W;x+=6){
+      const yy = y0 + Math.sin((x/W)*TAU*k + ph)*amp;
+      if (x===0) g.moveTo(x,yy); else g.lineTo(x,yy);
+    }
+    g.stroke();
+  }
+  g.globalAlpha = 0.14;
+  for (let i=0;i<5;i++){
+    g.fillStyle = accent;
+    const y = Math.random()*H;
+    g.fillRect(0, y, W, 6 + Math.random()*18);
+  }
+  g.globalAlpha = 1;
+  const img = g.getImageData(0,0,W,H);
+  const d = img.data;
+  for (let i=0;i<d.length;i+=4){
+    const n = (Math.random()-0.5)*14;
+    d[i]=clamp(d[i]+n,0,255);
+    d[i+1]=clamp(d[i+1]+n,0,255);
+    d[i+2]=clamp(d[i+2]+n,0,255);
+  }
+  g.putImageData(img,0,0);
+
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 8;
+  return t;
+}
+
+function makeHoleTexture(){
+  const S = 256;
+  const c = cv(S,S), g = c.getContext('2d');
+  const grad = g.createRadialGradient(S/2,S/2,S*0.04,S/2,S/2,S*0.5);
+  grad.addColorStop(0.00,'#000000');
+  grad.addColorStop(0.42,'#050403');
+  grad.addColorStop(0.62,'#1a1409');
+  grad.addColorStop(0.80,'#3a2f1c');
+  grad.addColorStop(0.93,'#5a4a2c');
+  grad.addColorStop(1.00,'rgba(90,74,44,0)');
+  g.fillStyle = grad; g.fillRect(0,0,S,S);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+function makeSoftCircle(){
+  const S = 64;
+  const c = cv(S,S), g = c.getContext('2d');
+  const grad = g.createRadialGradient(S/2,S/2,0,S/2,S/2,S/2);
+  grad.addColorStop(0,'rgba(255,255,255,1)');
+  grad.addColorStop(0.45,'rgba(255,255,255,0.45)');
+  grad.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle = grad; g.fillRect(0,0,S,S);
+  return new THREE.CanvasTexture(c);
+}
+
+function makeEnvTexture(){
+  const W = 512, H = 256;
+  const c = cv(W,H), g = c.getContext('2d');
+  const grad = g.createLinearGradient(0,0,0,H);
+  grad.addColorStop(0.00,'#eef6ff');
+  grad.addColorStop(0.34,'#cfe4f5');
+  grad.addColorStop(0.50,'#b6c9a8');
+  grad.addColorStop(0.58,'#8b9a6c');
+  grad.addColorStop(1.00,'#4a3f2a');
+  g.fillStyle = grad; g.fillRect(0,0,W,H);
+
+  const sg = g.createRadialGradient(W*0.72,H*0.22,0,W*0.72,H*0.22,90);
+  sg.addColorStop(0,'rgba(255,255,245,1)');
+  sg.addColorStop(0.35,'rgba(255,240,200,0.7)');
+  sg.addColorStop(1,'rgba(255,240,200,0)');
+  g.fillStyle = sg; g.fillRect(0,0,W,H);
+
+  g.fillStyle = 'rgba(40,66,44,0.75)';
+  for (let i=0;i<90;i++){
+    const x=Math.random()*W, y=H*0.5 + Math.random()*26, r=12+Math.random()*40;
+    g.beginPath(); g.ellipse(x,y,r,r*0.55,0,0,TAU); g.fill();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.mapping = THREE.EquirectangularReflectionMapping;
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+
+/* ============================ CONFIG ============================ */
+const CFG = {
+  MARBLE_R    : 0.175,
+  STRIKER_R   : 0.255,
+  HOLE_R      : 0.68,
+  FRICTION    : 7.2,
+  RESTITUTION : 0.74,
+  MAX_SPEED   : 25,
+  MAX_PULL    : 4.6,
+  SUBSTEPS    : 4,
+  BOUND_X     : 11,
+  BOUND_Z_NEAR: 4.2
+};
+
+const PLAYER_NAMES = ['Gurpreet','Jassa','Mintu','Billa'];
+const MARBLE_SKINS = [
+  { base:'#ff7a5c', accent:'#ffe1b0' },
+  { base:'#3fd8c8', accent:'#e8fffb' },
+  { base:'#ffd94a', accent:'#fff8cf' },
+  { base:'#a58cff', accent:'#e9dfff' },
+  { base:'#ff8ec4', accent:'#ffe4f1' },
+  { base:'#5cb8ff', accent:'#e2f3ff' }
+];
+
+/* ============================ STATE ============================ */
+const G = {
+  phase:'boot',
+  players:[],
+  current:0,
+  round:1,
+  holeDist:6,
+  stake:4,
+  aiMode:'normal',
+  aiSkill:0.72,
+  marbles:[],
+  striker:null,
+  target:null,
+  firstHit:null,
+  holed:[],
+  scattered:[],
+  drag:null,
+  dragging:false,
+  timer:null,
+  simTime:0
+};
+
+let renderer, scene, camera, clock;
+let sphereGeo, marbleMats, strikerMat;
+let holeGroup, holePos = new THREE.Vector3(0,0,-6);
+let aimLine, targetRing, strikerRing, targetArrow;
+let dustGeo, dustPoints, dustPositions, dustVel, dustLife;
+const DUST_MAX = 160;
+let dustCursor = 0;
+
+const raycaster = new THREE.Raycaster();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0,1,0), 0);
+
+/* ============================ HEIGHT ============================ */
+function groundH(x,z){
+  return Math.sin(x*0.42)*0.055
+       + Math.cos(z*0.37)*0.048
+       + Math.sin((x+z)*0.83)*0.022
+       + Math.cos(x*0.14 - z*0.19)*0.035;
+}
+
+/* ============================ SCENE ============================ */
+function initThree(){
+  const canvas = document.getElementById('scene');
+
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: window.devicePixelRatio < 2,
+    powerPreference:'high-performance',
+    alpha:false
+  });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(window.innerWidth, window.innerHeight, false);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x8ea67c);
+  scene.fog = new THREE.Fog(0x8ea67c, 32, 90);
+
+  camera = new THREE.PerspectiveCamera(52, window.innerWidth/window.innerHeight, 0.2, 400);
+
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  pmrem.compileEquirectangularShader();
+  const envTex = makeEnvTexture();
+  const envRT = pmrem.fromEquirectangular(envTex);
+  scene.environment = envRT.texture;
+  envTex.dispose();
+  pmrem.dispose();
+
+  clock = new THREE.Clock();
+
+  buildLights();
+  buildGround();
+  buildTrees();
+  buildCanopy();
+  buildHole();
+  buildThrowLine();
+  buildPebbles();
+  buildIndicatorMeshes();
+  buildDustSystem();
+  buildMaterials();
+
+  onResize();
+  window.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', ()=> setTimeout(onResize, 250));
+}
+
+function buildLights(){
+  scene.add(new THREE.HemisphereLight(0xfff8e0, 0x8a7a5a, 1.9));
+  scene.add(new THREE.AmbientLight(0xffffff, 0.42));
+
+  const sun = new THREE.DirectionalLight(0xfff0cf, 3.1);
+  sun.position.set(22, 32, 18);
+  sun.target.position.set(0, 0, -5);
+  scene.add(sun.target);
+  sun.castShadow = true;
+  const hiRes = (window.devicePixelRatio||1) > 1.5;
+  sun.shadow.mapSize.set(hiRes?2048:1024, hiRes?2048:1024);
+  const S = 24;
+  sun.shadow.camera.left = -S;
+  sun.shadow.camera.right = S;
+  sun.shadow.camera.top = S;
+  sun.shadow.camera.bottom = -S;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 110;
+  sun.shadow.bias = -0.0009;
+  sun.shadow.normalBias = 0.02;
+  scene.add(sun);
+
+  const fill = new THREE.DirectionalLight(0xaaccff, 0.55);
+  fill.position.set(-18, 14, -22);
+  scene.add(fill);
+
+  const back = new THREE.DirectionalLight(0xffe0b0, 0.45);
+  back.position.set(0, 12, 24);
+  scene.add(back);
+}
+
+function buildGround(){
+  const size = 150, seg = 110;
+  const geo = new THREE.PlaneGeometry(size, size, seg, seg);
+  geo.rotateX(-Math.PI/2);
+  const pos = geo.attributes.position;
+  for (let i=0;i<pos.count;i++){
+    const x = pos.getX(i), z = pos.getZ(i);
+    pos.setY(i, groundH(x,z));
+  }
+  geo.computeVertexNormals();
+
+  const mat = new THREE.MeshStandardMaterial({
+    map: makeDirtTexture(),
+    roughness: 1.0,
+    metalness: 0.0,
+    color: 0xffffff
+  });
+  const ground = new THREE.Mesh(geo, mat);
+  ground.receiveShadow = true;
+  scene.add(ground);
+}
+
+function buildTrees(){
+  const trunkMat = new THREE.MeshStandardMaterial({ color:0x5a4430, roughness:0.95, flatShading:true });
+  const leafMats = [
+    new THREE.MeshStandardMaterial({ color:0x3a5e30, roughness:0.92, flatShading:true }),
+    new THREE.MeshStandardMaterial({ color:0x4a7038, roughness:0.92, flatShading:true }),
+    new THREE.MeshStandardMaterial({ color:0x2c4a26, roughness:0.92, flatShading:true })
+  ];
+  const trunkGeo = new THREE.CylinderGeometry(0.45, 0.75, 7, 7, 1);
+  const blobGeo  = new THREE.IcosahedronGeometry(1, 0);
+
+  function makeTree(x, z, s){
+    const g = new THREE.Group();
+    const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+    trunk.position.y = 3.5;
+    trunk.castShadow = true;
+    trunk.receiveShadow = true;
+    g.add(trunk);
+
+    const blobs = 5 + Math.floor(Math.random()*3);
+    for (let i=0;i<blobs;i++){
+      const m = new THREE.Mesh(blobGeo, leafMats[i % leafMats.length]);
+      const r = rand(2.0, 3.6);
+      m.scale.setScalar(r);
+      m.position.set(rand(-2.6,2.6), 6.2 + rand(-0.8, 2.4), rand(-2.6,2.6));
+      m.rotation.set(Math.random()*TAU, Math.random()*TAU, Math.random()*TAU);
+      m.castShadow = true;
+      g.add(m);
+    }
+    g.position.set(x, groundH(x,z), z);
+    g.scale.setScalar(s);
+    scene.add(g);
+    return g;
+  }
+
+  const ring = 14;
+  for (let i=0;i<ring;i++){
+    const a = (i/ring)*TAU + rand(-0.12,0.12);
+    const r = rand(26, 40);
+    makeTree(Math.cos(a)*r, Math.sin(a)*r - 4, rand(0.85, 1.45));
+  }
+  for (let i=0;i<5;i++){
+    makeTree(rand(-24,24), rand(-38,-24), rand(0.9,1.3));
+  }
+  makeTree(rand(18,24), rand(6,12), 1.6);
+}
+
+function buildCanopy(){
+  const mat = new THREE.MeshStandardMaterial({
+    map: makeCanopyTexture(),
+    transparent:false,
+    alphaTest:0.5,
+    side: THREE.DoubleSide,
+    color: 0x35502c,
+    roughness: 1
+  });
+  const plane = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), mat);
+  plane.rotation.x = -Math.PI/2;
+  plane.position.set(-11, 17, -13);
+  plane.castShadow = false; // ← BUG FIX: was covering entire play area in shadow
+  plane.receiveShadow = false;
+  scene.add(plane);
+}
+
+function buildHole(){
+  holeGroup = new THREE.Group();
+
+  const disc = new THREE.Mesh(
+    new THREE.CircleGeometry(CFG.HOLE_R*1.55, 40),
+    new THREE.MeshBasicMaterial({ map: makeHoleTexture(), transparent:true, depthWrite:false })
+  );
+  disc.rotation.x = -Math.PI/2;
+  disc.position.y = 0.035;
+  disc.renderOrder = 1;
+  holeGroup.add(disc);
+
+  const rim = new THREE.Mesh(
+    new THREE.RingGeometry(CFG.HOLE_R*1.35, CFG.HOLE_R*1.62, 48),
+    new THREE.MeshBasicMaterial({ color:0xe8c477, transparent:true, opacity:0.30, side:THREE.DoubleSide, depthWrite:false })
+  );
+  rim.rotation.x = -Math.PI/2;
+  rim.position.y = 0.045;
+  rim.renderOrder = 2;
+  holeGroup.add(rim);
+
+  const stoneGeo = new THREE.DodecahedronGeometry(1,0);
+  const stoneMat = new THREE.MeshStandardMaterial({ color:0x8a7a5a, roughness:0.95, flatShading:true });
+  for (let i=0;i<11;i++){
+    const a = (i/11)*TAU + rand(-0.18,0.18);
+    const r = CFG.HOLE_R*1.75 + rand(-0.06,0.12);
+    const s = rand(0.09, 0.19);
+    const st = new THREE.Mesh(stoneGeo, stoneMat);
+    st.position.set(Math.cos(a)*r, s*0.35, Math.sin(a)*r);
+    st.scale.set(s, s*rand(0.55,0.9), s);
+    st.rotation.set(Math.random()*TAU, Math.random()*TAU, Math.random()*TAU);
+    st.castShadow = true;
+    st.receiveShadow = true;
+    holeGroup.add(st);
+  }
+
+  scene.add(holeGroup);
+  updateHolePosition();
+}
+
+function updateHolePosition(){
+  holePos.set(0, groundH(0, -G.holeDist), -G.holeDist);
+  holeGroup.position.copy(holePos);
+}
+
+function buildThrowLine(){
+  const geo = new THREE.PlaneGeometry(18, 0.10);
+  geo.rotateX(-Math.PI/2);
+  const mat = new THREE.MeshBasicMaterial({
+    color:0xfff3d0, transparent:true, opacity:0.55, depthWrite:false
+  });
+  const line = new THREE.Mesh(geo, mat);
+  line.position.set(0, groundH(0,0)+0.03, 0);
+  scene.add(line);
+
+  for (let i=-8;i<=8;i+=4){
+    const t = new THREE.Mesh(new THREE.PlaneGeometry(0.10, 0.5), mat);
+    t.rotation.x = -Math.PI/2;
+    t.position.set(i, groundH(i,0)+0.031, 0);
+    scene.add(t);
+  }
+}
+
+function buildPebbles(){
+  const geo = new THREE.DodecahedronGeometry(1,0);
+  const mat = new THREE.MeshStandardMaterial({ color:0x93836a, roughness:0.95, flatShading:true });
+  const count = 42;
+  const inst = new THREE.InstancedMesh(geo, mat, count);
+  inst.castShadow = true;
+  inst.receiveShadow = true;
+  const m4 = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const v = new THREE.Vector3();
+  const s = new THREE.Vector3();
+  for (let i=0;i<count;i++){
+    const x = rand(-16,16), z = rand(-20,10);
+    const sc = rand(0.06, 0.2);
+    v.set(x, groundH(x,z)+sc*0.3, z);
+    q.setFromEuler(new THREE.Euler(Math.random()*TAU, Math.random()*TAU, Math.random()*TAU));
+    s.set(sc, sc*rand(0.5,0.9), sc);
+    m4.compose(v,q,s);
+    inst.setMatrixAt(i, m4);
+  }
+  inst.instanceMatrix.needsUpdate = true;
+  scene.add(inst);
+}
+
+function buildIndicatorMeshes(){
+  const aimGeo = new THREE.BufferGeometry().setFromPoints([
+    new THREE.Vector3(0,0,0), new THREE.Vector3(0,0,1)
+  ]);
+  aimLine = new THREE.Line(aimGeo, new THREE.LineDashedMaterial({
+    color:0xffe9a8, dashSize:0.42, gapSize:0.28,
+    transparent:true, opacity:0.95, depthTest:false
+  }));
+  aimLine.visible = false;
+  aimLine.renderOrder = 20;
+  scene.add(aimLine);
+
+  targetRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.42, 0.58, 40),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:0.95,
+      side:THREE.DoubleSide, depthTest:false, depthWrite:false })
+  );
+  targetRing.rotation.x = -Math.PI/2;
+  targetRing.visible = false;
+  targetRing.renderOrder = 21;
+  scene.add(targetRing);
+
+  targetArrow = new THREE.Mesh(
+    new THREE.ConeGeometry(0.18, 0.46, 8),
+    new THREE.MeshBasicMaterial({ color:0xffd166, transparent:true, opacity:0.95, depthTest:false })
+  );
+  targetArrow.rotation.x = Math.PI;
+  targetArrow.visible = false;
+  targetArrow.renderOrder = 21;
+  scene.add(targetArrow);
+
+  strikerRing = new THREE.Mesh(
+    new THREE.RingGeometry(0.42, 0.54, 40),
+    new THREE.MeshBasicMaterial({ color:0x7ce8ff, transparent:true, opacity:0.9,
+      side:THREE.DoubleSide, depthTest:false, depthWrite:false })
+  );
+  strikerRing.rotation.x = -Math.PI/2;
+  strikerRing.visible = false;
+  strikerRing.renderOrder = 21;
+  scene.add(strikerRing);
+}
+
+function buildDustSystem(){
+  dustPositions = new Float32Array(DUST_MAX*3);
+  dustVel = new Float32Array(DUST_MAX*3);
+  dustLife = new Float32Array(DUST_MAX);
+  for (let i=0;i<DUST_MAX;i++) dustPositions[i*3+1] = -200;
+
+  dustGeo = new THREE.BufferGeometry();
+  dustGeo.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
+
+  const mat = new THREE.PointsMaterial({
+    size: 0.42,
+    map: makeSoftCircle(),
+    transparent:true,
+    opacity:0.55,
+    color:0xf0e2be,
+    depthWrite:false,
+    sizeAttenuation:true
+  });
+  dustPoints = new THREE.Points(dustGeo, mat);
+  dustPoints.frustumCulled = false;
+  scene.add(dustPoints);
+}
+
+function spawnDust(x, y, z, n){
+  for (let i=0;i<n;i++){
+    dustCursor = (dustCursor + 1) % DUST_MAX;
+    const idx = dustCursor;
+    dustPositions[idx*3]   = x + rand(-0.12,0.12);
+    dustPositions[idx*3+1] = y + rand(0.02,0.15);
+    dustPositions[idx*3+2] = z + rand(-0.12,0.12);
+    dustVel[idx*3]   = rand(-1.1,1.1);
+    dustVel[idx*3+1] = rand(0.5,2.0);
+    dustVel[idx*3+2] = rand(-1.1,1.1);
+    dustLife[idx] = 1;
+  }
+}
+
+function updateDust(dt){
+  let any = false;
+  for (let i=0;i<DUST_MAX;i++){
+    if (dustLife[i] <= 0) continue;
+    any = true;
+    dustLife[i] -= dt*1.9;
+    if (dustLife[i] <= 0){
+      dustPositions[i*3+1] = -200;
+      continue;
+    }
+    dustPositions[i*3]   += dustVel[i*3]*dt;
+    dustPositions[i*3+1] += dustVel[i*3+1]*dt;
+    dustPositions[i*3+2] += dustVel[i*3+2]*dt;
+    dustVel[i*3+1] -= 2.6*dt;
+    dustVel[i*3]   *= 0.97;
+    dustVel[i*3+2] *= 0.97;
+  }
+  if (any) dustGeo.attributes.position.needsUpdate = true;
+}
+
+function buildMaterials(){
+  sphereGeo = new THREE.SphereGeometry(1, 26, 18);
+  marbleMats = MARBLE_SKINS.map(s => new THREE.MeshPhysicalMaterial({
+    map: makeMarbleTexture(s.base, s.accent),
+    color: 0xffffff,
+    roughness: 0.10,
+    metalness: 0.02,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.06,
+    envMapIntensity: 1.55,
+    emissive: new THREE.Color(s.base).multiplyScalar(0.10),
+    emissiveIntensity: 1.0
+  }));
+  strikerMat = new THREE.MeshPhysicalMaterial({
+    map: makeMarbleTexture('#dff7ff','#ffffff'),
+    color: 0xffffff,
+    roughness: 0.04,
+    metalness: 0.05,
+    clearcoat: 1.0,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 2.2,
+    emissive: 0x3a9ac0,
+    emissiveIntensity: 0.55
+  });
+}
+
+/* ============================ CAMERA ============================ */
+function fitCamera(){
+  const D = G.holeDist;
+  const target = new THREE.Vector3(0, 0, -D/2);
+  const dir = new THREE.Vector3(0, 0.60, 0.80).normalize();
+
+  const corners = [
+    new THREE.Vector3(-8.0, 0,  3.5),
+    new THREE.Vector3( 8.0, 0,  3.5),
+    new THREE.Vector3(-8.0, 0, -D - 2.5),
+    new THREE.Vector3( 8.0, 0, -D - 2.5)
+  ];
+
+  let R = 7;
+  const R_MAX = 40;
+  for (let iter=0; iter<80 && R < R_MAX; iter++){
+    camera.position.copy(target).addScaledVector(dir, R);
+    camera.lookAt(target);
+    camera.updateMatrixWorld(true);
+    camera.updateProjectionMatrix();
+
+    let ok = true;
+    for (const c of corners){
+      const p = c.clone().project(camera);
+      if (Math.abs(p.x) > 0.94 || p.y > 0.80 || p.y < -0.58 || p.z > 1){ ok = false; break; }
+    }
+    if (ok) break;
+    R *= 1.05;
+  }
+}
+
+function onResize(){
+  const w = window.innerWidth, h = window.innerHeight;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio||1, 2));
+  renderer.setSize(w, h, false);
+  camera.aspect = w/h;
+  camera.updateProjectionMatrix();
+  fitCamera();
+}
+
+/* ============================ SCREEN -> GROUND ============================ */
+function screenToGround(clientX, clientY){
+  const rect = renderer.domElement.getBoundingClientRect();
+  const nx = ((clientX - rect.left) / rect.width) * 2 - 1;
+  const ny = -((clientY - rect.top) / rect.height) * 2 + 1;
+  raycaster.setFromCamera(new THREE.Vector2(nx, ny), camera);
+  const hit = new THREE.Vector3();
+  const res = raycaster.ray.intersectPlane(groundPlane, hit);
+  return res ? hit : null;
+}
+
+/* ============================ MARBLES ============================ */
+function potPos(i, total){
+  const ga = 2.399963229728653;
+  const a = i * ga;
+  const r = 0.26 * Math.sqrt(i + 1);
+  return { x: Math.cos(a)*r, z: 0.55 + Math.sin(a)*r*0.62 };
+}
+
+function createMarbles(count){
+  for (const m of G.marbles){
+    if (m.mesh) scene.remove(m.mesh);
+  }
+  G.marbles = [];
+
+  for (let i=0;i<count;i++){
+    const mat = marbleMats[i % marbleMats.length];
+    const mesh = new THREE.Mesh(sphereGeo, mat);
+    mesh.scale.setScalar(CFG.MARBLE_R);
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    scene.add(mesh);
+
+    const p = potPos(i, count);
+    const y = groundH(p.x,p.z) + CFG.MARBLE_R;
+
+    G.marbles.push({
+      id:i, mesh,
+      x:p.x, y, z:p.z,
+      vx:0, vy:0, vz:0,
+      r: CFG.MARBLE_R,
+      mass: 1,
+      state:'pot',
+      sink: 0,
+      from: null,
+      gt: 0,
+      gdur: 1,
+      gIdx: 0,
+      flight: null
+    });
+    mesh.position.set(p.x, y, p.z);
+  }
+}
+
+function spawnStriker(){
+  if (G.striker && G.striker.mesh) scene.remove(G.striker.mesh);
+
+  const mesh = new THREE.Mesh(sphereGeo, strikerMat);
+  mesh.scale.setScalar(CFG.STRIKER_R);
+  mesh.castShadow = true;
+  mesh.receiveShadow = true;
+  scene.add(mesh);
+
+  const x = 0, z = 0.0;
+  const y = groundH(x,z) + CFG.STRIKER_R;
+  mesh.position.set(x,y,z);
+
+  G.striker = {
+    id:-1, mesh,
+    x, y, z,
+    vx:0, vy:0, vz:0,
+    r: CFG.STRIKER_R,
+    mass: 2.4,
+    state:'striker',
+    sink:0
+  };
+  strikerRing.visible = true;
+}
+
+function removeStriker(){
+  if (G.striker && G.striker.mesh) scene.remove(G.striker.mesh);
+  G.striker = null;
+  strikerRing.visible = false;
+}
+
+/* ============================ FLOW ============================ */
+function startGame(){
+  Sfx.init();
+
+  const pc = parseInt(document.getElementById('setPlayers').value, 10);
+  G.stake = parseInt(document.getElementById('setStake').value, 10);
+  G.holeDist = parseInt(document.getElementById('setDistance').value, 10);
+
+  const aiSetting = document.getElementById('setAI').value;
+  G.aiMode = aiSetting;
+  if (aiSetting === 'easy')      G.aiSkill = 0.52;
+  else if (aiSetting === 'hard') G.aiSkill = 0.90;
+  else                           G.aiSkill = 0.72;
+
+  G.players = [];
+  for (let i=0;i<pc;i++){
+    G.players.push({
+      name: PLAYER_NAMES[i],
+      score: 0,
+      isAI: aiSetting !== 'off' && i !== 0
+    });
+  }
+
+  G.round = 1;
+  G.current = 0;
+  G.timer = null;
+  G.firstHit = null;
+  G.target = null;
+  G.holed = [];
+  G.scattered = [];
+  G.drag = null;
+  G.dragging = false;
+
+  updateHolePosition();
+  fitCamera();
+
+  const potCount = Math.min(30, pc * G.stake);
+  createMarbles(potCount);
+
+  removeStriker();
+  aimLine.visible = false;
+  targetRing.visible = false;
+  targetArrow.visible = false;
+
+  G.phase = 'ready';
+  closeOverlay();
+  renderScoreboard();
+  updateHUD();
+
+  setInstruction('The Pool', `${G.players[G.current].name}, throw all ${potCount} marbles toward the gitta.`);
+  showThrowButton(true);
+
+  if (G.players[G.current].isAI) scheduleAIMove(1.2);
+}
+
+function scheduleAIMove(delay){
+  G.timer = { t: delay, fn: () => {
+    if (G.phase === 'ready' && G.players[G.current].isAI){
+      doThrow();
+    } else if (G.phase === 'aiming' && G.players[G.current].isAI){
+      aiFlick();
+    }
+  }};
+}
+
+function doThrow(){
+  if (G.phase !== 'ready') return;
+  Sfx.init();
+  Sfx.throwSwoosh();
+
+  const pot = G.marbles.filter(m => m.state === 'pot');
+  if (pot.length === 0){ resolveThrow(); return; }
+
+  G.phase = 'throwing';
+  showThrowButton(false);
+  setInstruction('In flight', 'The pool arcs through the dusty air toward the gitta…');
+
+  const startX = 0, startZ = 0.5;
+
+  pot.forEach((m, i) => {
+    const willHole = Math.random() < 0.28;
+    let lx, lz;
+
+    if (willHole){
+      const a = Math.random()*TAU;
+      const r = Math.random() * CFG.HOLE_R * 0.55;
+      lx = holePos.x + Math.cos(a)*r;
+      lz = holePos.z + Math.sin(a)*r;
+    } else {
+      const a = Math.random()*TAU;
+      const r = CFG.HOLE_R + 0.55 + Math.pow(Math.random(), 0.72) * 6.2;
+      lx = holePos.x + Math.cos(a)*r;
+      lz = holePos.z + Math.sin(a)*r*0.92;
+      lx = clamp(lx, -CFG.BOUND_X+0.5, CFG.BOUND_X-0.5);
+      lz = clamp(lz, -(G.holeDist+8), CFG.BOUND_Z_NEAR-0.5);
+    }
+
+    m.state = 'flight';
+    m.flight = {
+      t: 0,
+      dur: 0.62 + Math.random()*0.30 + i*0.008,
+      sx: startX + rand(-0.45,0.45),
+      sz: startZ + rand(-0.35,0.35),
+      sy: groundH(startX,startZ) + 1.25 + Math.random()*0.35,
+      ex: lx,
+      ez: lz,
+      arc: 1.9 + Math.random()*1.9,
+      inHole: willHole
+    };
+    m.mesh.position.set(m.flight.sx, m.flight.sy, m.flight.sz);
+  });
+
+  updateHUD();
+}
+
+function updateThrow(dt){
+  let flying = false;
+
+  for (const m of G.marbles){
+    if (m.state !== 'flight') continue;
+    flying = true;
+    const f = m.flight;
+    f.t += dt / f.dur;
+
+    if (f.t >= 1){
+      f.t = 1;
+      if (f.inHole){
+        m.state = 'hole';
+        m.x = holePos.x + rand(-0.15,0.15);
+        m.z = holePos.z + rand(-0.15,0.15);
+        m.y = holePos.y + CFG.MARBLE_R;
+        m.sink = 0;
+        Sfx.clink(0.5);
+      } else {
+        m.state = 'ground';
+        m.x = f.ex;
+        m.z = f.ez;
+        m.y = groundH(m.x,m.z) + m.r;
+        m.vx = rand(-1.4,1.4);
+        m.vz = rand(-1.4,1.4);
+        spawnDust(m.x, m.y - m.r, m.z, 3);
+        Sfx.clink(0.7);
+      }
+      m.mesh.position.set(m.x, m.y, m.z);
+    } else {
+      const t = f.t;
+      m.x = lerp(f.sx, f.ex, t);
+      m.z = lerp(f.sz, f.ez, t);
+      const baseY = lerp(f.sy, groundH(f.ex,f.ez) + m.r, t);
+      m.y = baseY + Math.sin(Math.PI * t) * f.arc;
+      m.mesh.position.set(m.x, m.y, m.z);
+      m.mesh.rotation.x += dt * 6;
+      m.mesh.rotation.z += dt * 4;
+    }
+  }
+
+  if (!flying) resolveThrow();
+}
+
+function resolveThrow(){
+  G.holed = G.marbles.filter(m => m.state === 'hole');
+  G.scattered = G.marbles.filter(m => m.state === 'ground');
+
+  updateHUD();
+
+  if (G.scattered.length === 0){
+    const player = G.players[G.current];
+    const won = G.holed.length;
+    player.score += won;
+    Sfx.win();
+    toast(`All in! ${player.name} takes ${won} marbles`);
+    clearAllGroundMarbles();
+    endRound(`Clean sweep! ${player.name} claimed the entire pool.`);
+    return;
+  }
+
+  let best = null, bestD = -1;
+  for (const m of G.scattered){
+    const d = Math.hypot(m.x - holePos.x, m.z - holePos.z);
+    if (d > bestD){ bestD = d; best = m; }
+  }
+  G.target = best;
+
+  spawnStriker();
+  G.firstHit = null;
+  G.simTime = 0;
+
+  G.phase = 'aiming';
+  targetRing.visible = true;
+  targetArrow.visible = true;
+
+  const player = G.players[G.current];
+  if (player.isAI){
+    setInstruction('Opponents have chosen', `${player.name} studies the marked marble…`);
+    scheduleAIMove(1.5);
+  } else {
+    setInstruction('Your Flick',
+      'Pull back from the blue striker and release. Hit the gold-marked marble FIRST.');
+  }
+
+  updateHUD();
+}
+
+function aiFlick(){
+  if (G.phase !== 'aiming' || !G.target) return;
+
+  const s = G.striker, t = G.target;
+  const dx = t.x - s.x, dz = t.z - s.z;
+  const dist = Math.hypot(dx, dz) || 0.001;
+
+  const need = Math.sqrt(2 * CFG.FRICTION * dist) * 1.03;
+
+  const errAng = (1 - G.aiSkill) * 0.42;
+  const errSpd = (1 - G.aiSkill) * 0.30;
+
+  const ang = Math.atan2(dz, dx) + (Math.random()-0.5) * errAng;
+  let spd = need * (1 + (Math.random()-0.5) * errSpd);
+  spd = clamp(spd, 2, CFG.MAX_SPEED);
+
+  s.vx = Math.cos(ang) * spd;
+  s.vz = Math.sin(ang) * spd;
+
+  launchSimulation();
+}
+
+function launchSimulation(){
+  G.phase = 'simulating';
+  G.simTime = 0;
+  G.firstHit = null;
+  aimLine.visible = false;
+  Sfx.thud();
+  if (navigator.vibrate) navigator.vibrate(12);
+  setInstruction('Rolling', 'The striker is away…');
+}
+
+/* ---------------------------- Physics ---------------------------- */
+function resolvePair(a, b){
+  const dx = b.x - a.x;
+  const dz = b.z - a.z;
+  const d2 = dx*dx + dz*dz;
+  const minD = a.r + b.r;
+  if (d2 >= minD*minD || d2 < 1e-9) return false;
+
+  const d = Math.sqrt(d2);
+  const nx = dx/d, nz = dz/d;
+
+  const overlap = minD - d;
+  const tm = a.mass + b.mass;
+  a.x -= nx * overlap * (b.mass/tm);
+  a.z -= nz * overlap * (b.mass/tm);
+  b.x += nx * overlap * (a.mass/tm);
+  b.z += nz * overlap * (a.mass/tm);
+
+  const rvx = b.vx - a.vx;
+  const rvz = b.vz - a.vz;
+  const vn = rvx*nx + rvz*nz;
+  if (vn > 0) return true;
+
+  const e = CFG.RESTITUTION;
+  const j = -(1 + e) * vn / (1/a.mass + 1/b.mass);
+  a.vx -= (j*nx)/a.mass;
+  a.vz -= (j*nz)/a.mass;
+  b.vx += (j*nx)/b.mass;
+  b.vz += (j*nz)/b.mass;
+
+  const impact = Math.abs(vn);
+  if (impact > 0.6){
+    Sfx.clink(clamp(impact/6, 0.25, 1.4));
+    spawnDust((a.x+b.x)/2, groundH(a.x,a.z) + 0.08, (a.z+b.z)/2, Math.min(5, 1 + (impact|0)));
+  }
+  return true;
+}
+
+function stepPhysics(dt){
+  const actives = [];
+  for (const m of G.marbles){
+    if (m.state === 'ground') actives.push(m);
+  }
+  if (G.striker && G.striker.state === 'striker') actives.push(G.striker);
+
+  for (const m of actives){
+    const sp = Math.hypot(m.vx, m.vz);
+    if (sp > 0.0001){
+      const dec = CFG.FRICTION * dt;
+      const ns = Math.max(0, sp - dec);
+      if (ns <= 0.02){ m.vx = 0; m.vz = 0; }
+      else { const k = ns/sp; m.vx *= k; m.vz *= k; }
+      m.x += m.vx * dt;
+      m.z += m.vz * dt;
+
+      const bx = CFG.BOUND_X;
+      const bzN = CFG.BOUND_Z_NEAR;
+      const bzF = -(G.holeDist + 9);
+      if (m.x < -bx){ m.x = -bx; m.vx = Math.abs(m.vx)*0.45; Sfx.thud(); }
+      if (m.x >  bx){ m.x =  bx; m.vx = -Math.abs(m.vx)*0.45; Sfx.thud(); }
+      if (m.z >  bzN){ m.z = bzN; m.vz = -Math.abs(m.vz)*0.45; Sfx.thud(); }
+      if (m.z <  bzF){ m.z = bzF; m.vz = Math.abs(m.vz)*0.45; Sfx.thud(); }
+    }
+  }
+
+  for (let i=0;i<actives.length;i++){
+    const a = actives[i];
+    if (a.state !== 'ground' && a.state !== 'striker') continue;
+    for (let j=i+1;j<actives.length;j++){
+      const b = actives[j];
+      if (b.state !== 'ground' && b.state !== 'striker') continue;
+      const hit = resolvePair(a, b);
+      if (hit && G.firstHit === null){
+        if (a === G.striker || b === G.striker){
+          G.firstHit = (a === G.striker) ? b : a;
+        }
+      }
+    }
+  }
+
+  for (const m of actives){
+    if (m.state !== 'ground') continue;
+    const d = Math.hypot(m.x - holePos.x, m.z - holePos.z);
+    if (d < CFG.HOLE_R * 0.88){
+      m.state = 'hole';
+      m.vx = 0; m.vz = 0;
+      m.sink = 0;
+      Sfx.clink(0.55);
+    }
+  }
+}
+
+function allStopped(){
+  for (const m of G.marbles){
+    if (m.state === 'ground' && Math.hypot(m.vx,m.vz) > 0.05) return false;
+  }
+  if (G.striker && G.striker.state === 'striker'){
+    if (Math.hypot(G.striker.vx, G.striker.vz) > 0.05) return false;
+  }
+  return true;
+}
+
+function resolveTurn(){
+  const player = G.players[G.current];
+  G.holed = G.marbles.filter(m => m.state === 'hole');
+  G.scattered = G.marbles.filter(m => m.state === 'ground');
+
+  const hitTarget = (G.firstHit !== null && G.firstHit === G.target);
+
+  if (hitTarget){
+    const won = G.holed.length + G.scattered.length;
+    player.score += won;
+    Sfx.win();
+    if (navigator.vibrate) navigator.vibrate([40,60,90]);
+
+    for (const m of G.marbles){
+      if (m.state === 'ground' || m.state === 'hole'){
+        m.state = 'collected';
+        scene.remove(m.mesh);
+      }
+    }
+    G.scattered = [];
+    G.holed = [];
+
+    updateHUD();
+    clearIndicators();
+    endRound(`${player.name} struck the marked marble! ${won} marbles won.`);
+    return;
+  }
+
+  const won = G.holed.length;
+  player.score += won;
+
+  for (const m of G.marbles){
+    if (m.state === 'hole'){
+      m.state = 'collected';
+      scene.remove(m.mesh);
+    }
+  }
+  G.holed = [];
+  G.scattered = G.marbles.filter(m => m.state === 'ground');
+
+  Sfx.lose();
+  updateHUD();
+
+  if (G.scattered.length === 0){
+    clearIndicators();
+    endRound(`${player.name} missed, but cleared the gitta (${won} marbles).`);
+    return;
+  }
+
+  G.current = (G.current + 1) % G.players.length;
+  clearIndicators();
+  nextTurn();
+}
+
+function clearIndicators(){
+  aimLine.visible = false;
+  targetRing.visible = false;
+  targetArrow.visible = false;
+  strikerRing.visible = false;
+  removeStriker();
+  if (G.target) G.target = null;
+  G.firstHit = null;
+  G.drag = null;
+  G.dragging = false;
+}
+
+function nextTurn(){
+  removeStriker();
+  const player = G.players[G.current];
+  renderScoreboard();
+  updateHUD();
+
+  const groundMarbles = G.marbles.filter(m => m.state === 'ground');
+
+  if (groundMarbles.length === 0){
+    endRound('The ground is clear.');
+    return;
+  }
+
+  groundMarbles.forEach((m, i) => {
+    m.state = 'gathering';
+    m.from = { x:m.x, y:m.y, z:m.z };
+    m.gt = 0;
+    m.gdur = 0.42 + i*0.014;
+    m.gIdx = i;
+  });
+  G.phase = 'gathering';
+  setInstruction('Gathering', `${player.name} scoops up the ${groundMarbles.length} scattered marbles…`);
+}
+
+function updateGathering(dt){
+  let remaining = false;
+  const groundMarbles = G.marbles.filter(m => m.state === 'gathering');
+  const total = groundMarbles.length;
+
+  for (let i=0;i<total;i++){
+    const m = groundMarbles[i];
+    remaining = true;
+    m.gt += dt / m.gdur;
+    const t = Math.min(m.gt, 1);
+    const e = t*t*(3-2*t);
+
+    const p = potPos(m.gIdx, Math.max(total,1));
+    const ty = groundH(p.x,p.z) + CFG.MARBLE_R;
+
+    m.x = lerp(m.from.x, p.x, e);
+    m.z = lerp(m.from.z, p.z, e);
+    m.y = lerp(m.from.y, ty + 1.1, e) + Math.sin(Math.PI*e)*0.7;
+
+    if (t >= 1){
+      m.state = 'pot';
+      m.x = p.x; m.z = p.z; m.y = ty;
+      m.vx = 0; m.vz = 0;
+    }
+  }
+
+  if (!remaining || G.marbles.filter(m => m.state === 'gathering').length === 0){
+    G.phase = 'ready';
+    const player = G.players[G.current];
+    setInstruction('Your Throw', `${player.name}, throw the pool toward the gitta.`);
+    showThrowButton(true);
+    updateHUD();
+    if (player.isAI) scheduleAIMove(1.0);
+  }
+}
+
+function endRound(message){
+  G.phase = 'roundEnd';
+  clearIndicators();
+  showThrowButton(false);
+  document.getElementById('btnNext').style.display = 'block';
+  document.getElementById('btnNext').textContent = 'Next Round';
+  setInstruction('Round Complete', message);
+  toast(message);
+  updateHUD();
+}
+
+function startNextRound(){
+  document.getElementById('btnNext').style.display = 'none';
+
+  G.round++;
+  G.current = 0;
+  G.holed = [];
+  G.scattered = [];
+  G.target = null;
+  G.firstHit = null;
+
+  for (const m of G.marbles){
+    if (m.mesh) scene.remove(m.mesh);
+  }
+  G.marbles = [];
+
+  const potCount = Math.min(30, G.players.length * G.stake);
+  createMarbles(potCount);
+  removeStriker();
+  clearIndicators();
+
+  G.phase = 'ready';
+  renderScoreboard();
+  updateHUD();
+  setInstruction('New Round', `Round ${G.round}. ${G.players[0].name} throws first.`);
+  showThrowButton(true);
+
+  if (G.players[0].isAI) scheduleAIMove(1.1);
+}
+
+function clearAllGroundMarbles(){
+  for (const m of G.marbles){
+    if (m.state === 'ground' || m.state === 'hole'){
+      m.state = 'collected';
+      scene.remove(m.mesh);
+    }
+  }
+  G.scattered = [];
+  G.holed = [];
+}
+
+/* ============================ INPUT ============================ */
+function attachInput(){
+  const el = renderer.domElement;
+
+  el.addEventListener('pointerdown', e => {
+    if (G.phase !== 'aiming') return;
+    if (!G.striker) return;
+    if (G.players[G.current].isAI) return;
+
+    Sfx.init();
+    const p = screenToGround(e.clientX, e.clientY);
+    if (!p) return;
+
+    const d = Math.hypot(p.x - G.striker.x, p.z - G.striker.z);
+    if (d > 7) return;
+
+    G.dragging = true;
+    G.drag = { x:p.x, z:p.z };
+    try { el.setPointerCapture(e.pointerId); } catch(_){}
+    e.preventDefault();
+  }, { passive:false });
+
+  el.addEventListener('pointermove', e => {
+    if (!G.dragging || !G.drag) return;
+    const p = screenToGround(e.clientX, e.clientY);
+    if (!p) return;
+    G.drag.x = p.x;
+    G.drag.z = p.z;
+    e.preventDefault();
+  }, { passive:false });
+
+  function endDrag(e){
+    if (!G.dragging || !G.drag) return;
+    G.dragging = false;
+    try {
+      if (el.hasPointerCapture && el.hasPointerCapture(e.pointerId)){
+        el.releasePointerCapture(e.pointerId);
+      }
+    } catch(_){}
+
+    if (G.phase !== 'aiming' || !G.striker){ G.drag = null; return; }
+
+    const pullX = G.striker.x - G.drag.x;
+    const pullZ = G.striker.z - G.drag.z;
+    const len = Math.hypot(pullX, pullZ);
+
+    if (len < 0.35){ G.drag = null; aimLine.visible = false; return; }
+
+    const power = Math.min(len, CFG.MAX_PULL) / CFG.MAX_PULL;
+    const nx = pullX / len;
+    const nz = pullZ / len;
+    const speed = clamp(power * CFG.MAX_SPEED, 1.5, CFG.MAX_SPEED);
+
+    G.striker.vx = nx * speed;
+    G.striker.vz = nz * speed;
+
+    G.drag = null;
+    launchSimulation();
+    e.preventDefault();
+  }
+
+  el.addEventListener('pointerup', endDrag);
+  el.addEventListener('pointercancel', endDrag);
+  el.addEventListener('contextmenu', e => e.preventDefault());
+}
+
+/* ============================ UPDATE ============================ */
+function updateHUD(){
+  document.getElementById('uiRound').textContent = G.round;
+  const holed = G.marbles.filter(m => m.state === 'hole').length;
+  document.getElementById('uiHole').textContent = holed;
+  renderScoreboard();
+}
+
+function renderScoreboard(){
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  G.players.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'chip' + (i === G.current ? ' active' : '');
+    el.innerHTML = `<span class="chip-name">${p.name}${p.isAI ? ' <span class="chip-ai">AI</span>' : ''}</span>
+                    <span class="chip-score">${p.score}</span>`;
+    sb.appendChild(el);
+  });
+}
+
+function setInstruction(title, text){
+  document.getElementById('instrTitle').textContent = title;
+  document.getElementById('instrText').textContent = text;
+}
+
+function showThrowButton(show){
+  const b = document.getElementById('btnThrow');
+  b.style.display = show ? 'inline-block' : 'none';
+  b.disabled = !show;
+}
+
+let toastTimer = null;
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function update(dt){
+  if (G.timer){
+    G.timer.t -= dt;
+    if (G.timer.t <= 0){
+      const fn = G.timer.fn;
+      G.timer = null;
+      try { fn(); } catch(err){ console.warn(err); }
+    }
+  }
+
+  switch (G.phase){
+    case 'throwing':  updateThrow(dt); break;
+    case 'gathering': updateGathering(dt); break;
+    case 'simulating': {
+      G.simTime += dt;
+      const sub = CFG.SUBSTEPS;
+      for (let i=0;i<sub;i++) stepPhysics(dt/sub);
+      if (allStopped() || G.simTime > 9){
+        G.phase = 'resolve';
+        resolveTurn();
+      }
+      break;
+    }
+  }
+
+  for (const m of G.marbles){
+    if (m.state === 'collected') continue;
+    if (m.state === 'hole'){
+      m.sink = Math.min(1, (m.sink || 0) + dt*3.2);
+      m.mesh.position.set(m.x, m.y - m.sink*0.32, m.z);
+      const s = CFG.MARBLE_R * (1 - m.sink*0.75);
+      m.mesh.scale.setScalar(Math.max(0.001, s));
+      continue;
+    }
+    if (m.state === 'flight') continue;
+    const gy = groundH(m.x, m.z) + m.r;
+    m.y = lerp(m.y, gy, Math.min(1, dt*18));
+    m.mesh.position.set(m.x, m.y, m.z);
+    if (m.state === 'ground'){
+      const sp = Math.hypot(m.vx, m.vz);
+      if (sp > 0.05){
+        m.mesh.rotation.x += m.vz * dt * 2.2;
+        m.mesh.rotation.z -= m.vx * dt * 2.2;
+      }
+    }
+  }
+
+  if (G.striker && G.striker.state === 'striker'){
+    const s = G.striker;
+    const gy = groundH(s.x, s.z) + s.r;
+    s.y = lerp(s.y, gy, Math.min(1, dt*18));
+    s.mesh.position.set(s.x, s.y, s.z);
+    const sp = Math.hypot(s.vx, s.vz);
+    if (sp > 0.05){
+      s.mesh.rotation.x += s.vz * dt * 2.0;
+      s.mesh.rotation.z -= s.vx * dt * 2.0;
+    }
+  }
+
+  if (G.target && G.phase === 'aiming'){
+    const now = performance.now()/1000;
+    const pulse = 1 + Math.sin(now*3.4)*0.14;
+    targetRing.position.set(G.target.x, groundH(G.target.x,G.target.z)+0.05, G.target.z);
+    targetRing.scale.setScalar(pulse);
+    targetRing.rotation.z = now*0.6;
+    targetArrow.position.set(
+      G.target.x,
+      groundH(G.target.x,G.target.z) + 1.15 + Math.sin(now*2.6)*0.16,
+      G.target.z
+    );
+    targetArrow.rotation.y = now*1.4;
+    targetRing.visible = true;
+    targetArrow.visible = true;
+  } else {
+    targetRing.visible = false;
+    targetArrow.visible = false;
+  }
+
+  if (G.striker && G.phase === 'aiming' && G.players[G.current] && !G.players[G.current].isAI){
+    const now = performance.now()/1000;
+    strikerRing.position.set(G.striker.x, groundH(G.striker.x,G.striker.z)+0.05, G.striker.z);
+    const p = 1 + Math.sin(now*4)*0.08;
+    strikerRing.scale.setScalar(p);
+    strikerRing.visible = true;
+  } else {
+    strikerRing.visible = false;
+  }
+
+  if (G.dragging && G.drag && G.striker && G.phase === 'aiming'){
+    const pullX = G.striker.x - G.drag.x;
+    const pullZ = G.striker.z - G.drag.z;
+    const len = Math.hypot(pullX, pullZ);
+
+    if (len > 0.35){
+      const power = Math.min(len, CFG.MAX_PULL) / CFG.MAX_PULL;
+      const nx = pullX/len, nz = pullZ/len;
+      const L = 1.5 + power * 9.5;
+      const y = groundH(G.striker.x, G.striker.z) + 0.10;
+
+      aimLine.geometry.setFromPoints([
+        new THREE.Vector3(G.striker.x, y, G.striker.z),
+        new THREE.Vector3(G.striker.x + nx*L, y, G.striker.z + nz*L)
+      ]);
+      aimLine.computeLineDistances();
+      aimLine.material.color.setHSL(0.13, 1.0, 0.48 + power*0.28);
+      aimLine.visible = true;
+    } else {
+      aimLine.visible = false;
+    }
+  } else if (G.phase !== 'aiming'){
+    aimLine.visible = false;
+  }
+
+  updateDust(dt);
+  renderer.render(scene, camera);
+}
+
+/* ============================ UI ============================ */
+function openModal(id){
+  const overlay = document.getElementById('overlay');
+  overlay.classList.add('show');
+  document.querySelectorAll('.modal').forEach(m => {
+    m.classList.remove('show','in');
+  });
+  const el = document.getElementById(id);
+  if (el){
+    el.classList.add('show');
+    requestAnimationFrame(() => el.classList.add('in'));
+  }
+  document.getElementById('circleNav').classList.remove('open');
+}
+
+function closeOverlay(){
+  const overlay = document.getElementById('overlay');
+  overlay.classList.remove('show');
+  document.querySelectorAll('.modal').forEach(m => m.classList.remove('show','in'));
+}
+
+window.closeOverlay = closeOverlay;
+
+function wireUI(){
+  const nav = document.getElementById('circleNav');
+  nav.addEventListener('click', e => {
+    if (e.target.closest('.nav-item')) return;
+    nav.classList.toggle('open');
+    Sfx.init(); Sfx.click();
+  });
+
+  document.querySelectorAll('.nav-item').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      Sfx.init(); Sfx.click();
+      openModal(btn.dataset.target);
+    });
+  });
+
+  document.querySelectorAll('[data-next]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      Sfx.init(); Sfx.click();
+      openModal(btn.dataset.next);
+    });
+  });
+
+  document.getElementById('btnStartGame').addEventListener('click', () => {
+    Sfx.init(); Sfx.click();
+    startGame();
+  });
+
+  document.getElementById('btnThrow').addEventListener('click', () => {
+    Sfx.init(); Sfx.click();
+    doThrow();
+  });
+
+  document.getElementById('btnNext').addEventListener('click', () => {
+    Sfx.init(); Sfx.click();
+    startNextRound();
+  });
+
+  const soundChk = document.getElementById('setSound');
+  soundChk.addEventListener('change', () => {
+    Sfx.muted = !soundChk.checked;
+  });
+
+  document.getElementById('overlay').addEventListener('click', e => {
+    if (e.target.id === 'overlay'){
+      if (G.phase !== 'boot' && G.phase !== 'menu') closeOverlay();
+    }
+  });
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape'){ closeOverlay(); nav.classList.remove('open'); }
+  });
+}
+
+/* ============================ BOOT ============================ */
+function boot(){
+  try {
+    initThree();
+    attachInput();
+    wireUI();
+
+    G.holeDist = 6;
+    updateHolePosition();
+    fitCamera();
+
+    createMarbles(16);
+    for (const m of G.marbles){
+      m.state = 'ground';
+      m.x = rand(-5,5);
+      m.z = rand(-9,-1);
+      m.y = groundH(m.x,m.z) + m.r;
+      m.mesh.position.set(m.x,m.y,m.z);
+    }
+
+    G.phase = 'menu';
+    renderScoreboard();
+    updateHUD();
+
+    window.__DHAMULI_BOOTED = true;
+    document.getElementById('loader').classList.add('hide');
+
+    setTimeout(() => {
+      const l = document.getElementById('loader');
+      if (l && l.parentNode) l.parentNode.removeChild(l);
+      // BUG FIX: reveal the story modal (was invisible on first load)
+      openModal('storyModal');
+    }, 700);
+
+    requestAnimationFrame(loop);
+  } catch(err){
+    console.error(err);
+    const msg = document.getElementById('loaderMsg');
+    if (msg) msg.textContent = 'Failed to start — ' + (err && err.message ? err.message : 'unknown error');
+  }
+}
+
+function loop(){
+  requestAnimationFrame(loop);
+  const dt = Math.min(clock.getDelta(), 0.05);
+  update(dt);
+}
+
+boot();
+
+</script>
+</body>
+  </html>
