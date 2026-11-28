@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#18291f">
+<title>Dhamuli Marbles — Village Champion</title>
+<style>
+:root{--ink:#f8f0dc;--muted:#c9c1a9;--gold:#ffd36a;--green:#193d2b;--panel:#15291f;--line:#58745a}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:#17291f;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+body{background:radial-gradient(ellipse at 50% 0%,#46623d 0,#263d2d 42%,#111e19 100%);padding:12px}
+.app{max-width:1100px;margin:auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:4px 0 12px}.brand{font-weight:950;letter-spacing:.09em;font-size:clamp(18px,3vw,27px)}.brand span{color:var(--gold)}.sub{color:var(--muted);font-size:12px}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px}.stage{position:relative;min-width:0;border:2px solid #789064;border-radius:18px;overflow:hidden;background:#b88a52;box-shadow:0 18px 50px #0008;min-height:350px}
+canvas{display:block;width:100%;height:auto;aspect-ratio: 4 / 3;touch-action:none;background:#b88a52}
+.hud{position:absolute;top:10px;left:10px;right:10px;display:flex;justify-content:space-between;pointer-events:none;gap:8px}.pill{background:#17251ddd;border:1px solid #ffffff35;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:800;box-shadow:0 3px 10px #0004}
+.side{display:flex;flex-direction:column;gap:10px}.card{background:linear-gradient(145deg,#203b2b,#14271e);border:1px solid #66805d;border-radius:15px;padding:13px;box-shadow:0 7px 18px #0003}.card h2{font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#e8c979;margin:0 0 9px}.big{font-size:23px;font-weight:900}.hint{font-size:12px;color:#d0d5c2;line-height:1.45;margin:5px 0 0}
+.controls{display:grid;grid-template-columns:1fr 1fr;gap:8px}.controls .wide{grid-column:1/-1}
+button,select{font:inherit}button{border:0;border-radius:11px;padding:11px 12px;font-weight:850;color:#17251c;background:linear-gradient(#ffe49a,#e8b94d);box-shadow:0 3px 0 #9a6d25;cursor:pointer}button.secondary{background:#314b38;color:#fff;border:1px solid #78906d;box-shadow:none}button:disabled{opacity:.42;cursor:not-allowed}
+select{width:100%;background:#0e1c16;color:#fff;border:1px solid #72886b;border-radius:8px;padding:8px}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:7px 0;font-size:13px}.scoreline{font-size:12px;color:#e8eadc;padding:4px 0;border-bottom:1px solid #ffffff18}
+.overlay{position:absolute;inset:0;z-index:4;display:flex;align-items:center;justify-content:center;padding:20px;background:linear-gradient(135deg,#14281eeF,#233d2de8);text-align:center}
+.overlay.hidden{display:none}.introbox{max-width:490px}.introbox h1{font-size:clamp(30px,6vw,54px);line-height:.98;margin:0 0 12px;text-shadow:0 4px 0 #0005}.introbox h1 em{font-style:normal;color:#ffd36a}.introbox p{color:#e4e6d6;line-height:1.55}.introbox button{font-size:16px;padding:14px 24px;margin-top:8px}
+.bottomnote{text-align:center;color:#c6c9b8;font-size:11px;padding:12px}
+@media(max-width:760px){body{padding:8px}.layout{grid-template-columns:1fr}.side{display:grid;grid-template-columns:1fr 1fr}.side .scorecard,.side .actioncard{grid-column:1/-1}.stage{min-height:0}.card{padding:10px}.sub{display:none}}
+@media(max-width:390px){.side{grid-template-columns:1fr 1fr}.pill{font-size:10px;padding:6px 8px}}
+</style>
+</head>
+<body>
+<div class="app">
+ <header class="top"><div><div class="brand">DHAMULI <span>MARBLES</span></div><div class="sub">Village Champion · A modern take on traditional kanche</div></div><div class="sub">HTML5 CANVAS EDITION</div></header>
+ <main class="layout">
+  <section class="stage">
+   <canvas id="game" width="960" height="720" aria-label="Marble playing field"></canvas>
+   <div class="hud"><div class="pill" id="turnPill">READY TO PLAY</div><div class="pill" id="potPill">POT: 0</div></div>
+   <div class="overlay" id="intro">
+    <div class="introbox"><div style="font-size:38px">🔵 🟢 🟠</div><h1>DHAMULI<br><em>MARBLES</em></h1><p>Gather your kanche, aim with your striker and flick with a real hand gesture. Missed marbles stay scattered for the next player.</p><button id="begin">START PLAYING</button></div>
+   </div>
+  </section>
+  <aside class="side">
+   <section class="card"><h2>Player setup</h2>
+    <div class="row"><label for="players">Players</label><select id="players"><option>2</option><option>3</option><option selected>4</option></select></div>
+    <div class="row"><label for="stake">Kanche each</label><select id="stake"><option value="3">3 marbles</option><option value="4" selected>4 marbles</option><option value="6">6 marbles</option></select></div>
+    <div class="row"><label for="distance">Hole distance</label><select id="distance"><option value="4">4 feet</option><option value="6" selected>6 feet</option><option value="10">10 feet</option></select></div>
+    <button class="secondary" id="newGame" style="width:100%;margin-top:5px">NEW GAME</button>
+   </section>
+   <section class="card"><h2>Turn</h2><div class="big" id="turnName">Player 1</div><p class="hint" id="status">Press Start Playing to begin.</p></section>
+   <section class="card"><h2>Marbles</h2><div class="row"><span>On the ground</span><b id="groundCount">0</b></div><div class="row"><span>In the hole</span><b id="holeCount">0</b></div><div class="row"><span>Target</span><b id="targetName">—</b></div></section>
+   <section class="card actioncard"><h2>How to throw</h2><p class="hint" id="actionHelp">Touch the striker marble, pull backwards, then release towards the glowing target. On desktop, use your mouse.</p><div class="controls" style="margin-top:10px"><button id="resetShot" class="secondary">RESET AIM</button><button id="nextPlayer" disabled>NEXT PLAYER</button><button id="sound" class="secondary wide">SOUND: ON</button></div></section>
+   <section class="card scorecard"><h2>Scoreboard</h2><div id="scores"></div></section>
+  </aside>
+ </main>
+ <div class="bottomnote">Tip: Drag away from the direction you want to shoot, then release. Stronger pull = stronger flick.</div>
+</div>
+<script>
+(()=>{'use strict';
+const canvas=document.getElementById('game'),ctx=canvas.getContext('2d',{alpha:false});
+const $=id=>document.getElementById(id),W=960,H=720;
+let players=4,stake=4,turn=0,scores=[],pot=[],hole=0,shooter=null,target=null,started=false,phase='intro',drag=null,shotAnim=null,soundOn=true,audio=null,round=1;
+const colors=['#e74f67','#40b9e6','#f4c84a','#8bd17c','#c18be8','#f28c45'];
+const rand=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+function sound(freq=420,dur=.07){if(!soundOn)return;try{audio=audio||new(window.AudioContext||window.webkitAudioContext)();let o=audio.createOscillator(),g=audio.createGain();o.connect(g);g.connect(audio.destination);o.frequency.value=freq;o.type='sine';g.gain.setValueAtTime(.08,audio.currentTime);g.gain.exponentialRampToValueAtTime(.001,audio.currentTime+dur);o.start();o.stop(audio.currentTime+dur)}catch(e){}}
+function marble(x,y,r,c,id){return{x,y,vx:0,vy:0,r,c,id,spin:rand(0,6),shine:rand(-.25,.25)}}
+function setup(){
+ players=+$('players').value;stake=+$('stake').value;turn=0;round=1;scores=Array(players).fill(0);pot=[];hole=0;started=true;phase='scatter';
+ const total=Math.min(30,players*stake),hx=W*.5,hy=H*.22;
+ for(let i=0;i<total;i++){let a=rand(0,Math.PI*2),r=rand(38,190),x=clamp(hx+Math.cos(a)*r,100,W-100),y=clamp(H*.52+Math.sin(a)*r*.7,245,H-110);if(Math.hypot(x-hx,y-hy)<36&&Math.random()<.7){hole++;continue}pot.push(marble(x,y,rand(13,17),colors[i%colors.length],i))}
+ shooter=marble(W*.5,H*.86,18,'#e7f4ff','striker');chooseTarget();$('intro').classList.add('hidden');$('nextPlayer').disabled=true;$('status').textContent='The pot is scattered. Flick your striker at the glowing target.';update();draw();
+}
+function chooseTarget(){target=pot.length?pot.reduce((a,b)=>Math.hypot(a.x-W*.5,a.y-H*.22)>Math.hypot(b.x-W*.5,b.y-H*.22)?a:b):null;phase='aim'}
+function update(){ $('turnName').textContent=`Player ${turn+1}`;$('turnPill').textContent=`PLAYER ${turn+1} · ROUND ${round}`;$('potPill').textContent=`POT: ${pot.length+hole}`;$('groundCount').textContent=pot.length;$('holeCount').textContent=hole;$('targetName').textContent=target?'Highlighted':'None';$('scores').innerHTML=scores.map((s,i)=>`<div class="scoreline">Player ${i+1} <b style="float:right">${s} won</b></div>`).join('');$('nextPlayer').disabled=phase!=='result';}
+function resetAim(){if(shooter){shooter.x=W*.5;shooter.y=H*.86;shooter.vx=shooter.vy=0}drag=null;draw()}
+function next(){if(phase!=='result')return;turn=(turn+1)%players;if(turn===0)round++;if(!pot.length){$('status').textContent='The pot is empty. Start a new game to play again.';phase='finished';$('nextPlayer').disabled=true;update();return}resetAim();chooseTarget();$('status').textContent=`Player ${turn+1}: the missed marbles remain where they landed. Take your shot.`;update();draw()}
+function pos(e){let r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}}
+canvas.addEventListener('pointerdown',e=>{if(!started||phase!=='aim'||!shooter)return;let p=pos(e);if(Math.hypot(p.x-shooter.x,p.y-shooter.y)<65){drag={x:p.x,y:p.y};canvas.setPointerCapture(e.pointerId);sound(250)}});
+canvas.addEventListener('pointermove',e=>{if(drag){drag.current=pos(e);draw()}});
+canvas.addEventListener('pointerup',e=>{if(!drag)return;let p=pos(e),dx=drag.x-p.x,dy=drag.y-p.y,power=Math.hypot(dx,dy);drag=null;if(power<8){draw();return}let scale=Math.min(1.7,power/85);shooter.vx=dx*.105*scale;shooter.vy=dy*.105*scale;shotAnim={t:0,from:{x:shooter.x,y:shooter.y}};phase='flight';$('status').textContent='Flick! Watch the striker roll towards the target.';sound(620,.12);update();draw()});
+$('begin').onclick=()=>{setup();sound(520)};$('newGame').onclick=()=>{setup();sound(520)};$('resetShot').onclick=()=>{if(phase==='aim')resetAim()};$('nextPlayer').onclick=next;$('sound').onclick=()=>{soundOn=!soundOn;$('sound').textContent='SOUND: '+(soundOn?'ON':'OFF');if(soundOn)sound()};
+function circle(x,y,r,fill){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fillStyle=fill;ctx.fill()}
+function drawGround(){let g=ctx.createLinearGradient(0,0,0,H);g.addColorStop(0,'#cda36b');g.addColorStop(.48,'#b88750');g.addColorStop(1,'#8b633d');ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+ // warm soil texture and grass flecks
+ for(let i=0;i<440;i++){let x=(i*173.7)%W,y=(i*97.3)%H;ctx.fillStyle=i%3?'#6d4b2c22':'#f8d99a30';ctx.beginPath();ctx.ellipse(x,y,rand(1,4),rand(.5,1.8),rand(0,3),0,Math.PI*2);ctx.fill()}
+ for(let i=0;i<55;i++){let x=(i*137)%W,y=(i*211)%H;ctx.strokeStyle='#47613a99';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(x+rand(-5,5),y-7);ctx.stroke()}
+ // boundary and throw line
+ ctx.strokeStyle='#f1d5a077';ctx.lineWidth=5;ctx.setLineDash([15,13]);ctx.beginPath();ctx.moveTo(38,50);ctx.lineTo(W-38,50);ctx.lineTo(W-38,H-45);ctx.lineTo(38,H-45);ctx.closePath();ctx.stroke();ctx.setLineDash([]);
+ ctx.strokeStyle='#f5dfb1aa';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(100,H*.78);ctx.lineTo(W-100,H*.78);ctx.stroke();
+}
+function drawHole(){let x=W/2,y=H*.22;ctx.save();ctx.shadowColor='#21170e';ctx.shadowBlur=22;let g=ctx.createRadialGradient(x-9,y-10,3,x,y,46);g.addColorStop(0,'#17130f');g.addColorStop(.7,'#302016');g.addColorStop(1,'#68472b');circle(x,y,43,g);ctx.restore();ctx.strokeStyle='#e7c18b';ctx.lineWidth=5;ctx.beginPath();ctx.arc(x,y,43,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff0c2';ctx.font='bold 16px system-ui';ctx.textAlign='center';ctx.fillText('GITTA',x,y+66)}
+function drawMarble(m,highlight=false){ctx.save();ctx.shadowColor='#24180eaa';ctx.shadowBlur=10;ctx.shadowOffsetY=6;circle(m.x,m.y,m.r,'#49321e');ctx.restore();let grad=ctx.createRadialGradient(m.x-m.r*.38,m.y-m.r*.48,1,m.x,m.y,m.r*1.2);grad.addColorStop(0,'#ffffff');grad.addColorStop(.17,m.c);grad.addColorStop(.72,m.c);grad.addColorStop(1,'#17212a');circle(m.x,m.y,m.r,grad);
+ ctx.save();ctx.globalAlpha=.8;ctx.strokeStyle='#ffffffaa';ctx.lineWidth=Math.max(2,m.r*.17);ctx.beginPath();ctx.arc(m.x-m.r*.08,m.y,m.r*.65,-1.2,1.2);ctx.stroke();circle(m.x-m.r*.35,m.y-m.r*.42,m.r*.18,'#ffffffdd');ctx.restore();
+ if(highlight){ctx.save();ctx.strokeStyle='#ffe56d';ctx.lineWidth=5;ctx.shadowColor='#fff16a';ctx.shadowBlur=18;ctx.beginPath();ctx.arc(m.x,m.y,m.r+10,0,Math.PI*2);ctx.stroke();ctx.fillStyle='#fff4a1';ctx.font='bold 22px system-ui';ctx.textAlign='center';ctx.fillText('▼',m.x,m.y-m.r-24);ctx.restore()}}
+function drawHand(x,y,angle=0,alpha=1){ctx.save();ctx.translate(x,y);ctx.rotate(angle);ctx.globalAlpha=alpha;
+ // wrist and palm silhouette
+ ctx.fillStyle='#c9875d';ctx.strokeStyle='#70452f';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-20,22);ctx.quadraticCurveTo(-33,4,-26,-17);ctx.quadraticCurveTo(-20,-31,-9,-20);ctx.lineTo(-5,-2);ctx.quadraticCurveTo(-7,-39,5,-39);ctx.quadraticCurveTo(16,-39,15,-18);ctx.lineTo(17,-4);ctx.quadraticCurveTo(21,-34,32,-28);ctx.quadraticCurveTo(42,-24,35,-3);ctx.lineTo(32,8);ctx.quadraticCurveTo(48,-8,54,2);ctx.quadraticCurveTo(60,15,39,32);ctx.quadraticCurveTo(17,48,-7,38);ctx.closePath();ctx.fill();ctx.stroke();
+ // thumb curled toward striker
+ ctx.beginPath();ctx.moveTo(-23,5);ctx.quadraticCurveTo(-43,12,-36,29);ctx.quadraticCurveTo(-28,40,-11,26);ctx.strokeStyle='#e0a178';ctx.lineWidth=12;ctx.stroke();ctx.strokeStyle='#70452f';ctx.lineWidth=2;ctx.stroke();
+ ctx.restore()}
+function draw(){drawGround();drawHole();
+ // ambient stones
+ for(let i=0;i<28;i++){let x=(i*313)%W,y=(i*191+80)%H;ctx.fillStyle='#5f432c55';circle(x,y,rand(2,6),ctx.fillStyle)}
+ pot.forEach(m=>drawMarble(m,m===target));
+ if(shooter){drawMarble(shooter,false);if(phase==='aim'){drawHand(shooter.x+4,shooter.y+42,-.15,.95);ctx.save();ctx.strokeStyle='#fff4c6aa';ctx.setLineDash([8,8]);ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(shooter.x,shooter.y-25);ctx.lineTo(shooter.x,shooter.y-95);ctx.stroke();ctx.restore()}}
+ if(drag&&shooter){let p=drag.current||drag;ctx.strokeStyle='#fff4a0';ctx.lineWidth=5;ctx.setLineDash([9,7]);ctx.beginPath();ctx.moveTo(shooter.x,shooter.y);ctx.lineTo(shooter.x+(drag.x-p.x)*1.6,shooter.y+(drag.y-p.y)*1.6);ctx.stroke();ctx.setLineDash([]);drawHand(shooter.x,shooter.y+45,Math.atan2(p.y-drag.y,p.x-drag.x),1)}
+ if(phase==='intro'){/* intro overlay intentionally covers a fully rendered field */}}
+function finishShot(){let hitIndex=-1;if(target){let d=Math.hypot(shooter.x-target.x,shooter.y-target.y);if(d<target.r+shooter.r+9)hitIndex=pot.indexOf(target)}
+ if(hitIndex>=0){scores[turn]+=pot.length+hole;pot=[];hole=0;$('status').textContent=`Excellent hit! Player ${turn+1} wins the pot.`;sound(820,.22);target=null}else{$('status').textContent='Missed! Your striker settles. The scattered marbles stay for the next player.';sound(180,.18)}
+ phase='result';update();draw()}
+let last=0;function loop(ts){let dt=Math.min(.035,(ts-last)/1000||0);last=ts;if(phase==='flight'&&shooter){shooter.x+=shooter.vx*60*dt;shooter.y+=shooter.vy*60*dt;shooter.vx*=Math.pow(.985,dt*60);shooter.vy*=Math.pow(.985,dt*60);shooter.x=clamp(shooter.x,25,W-25);shooter.y=clamp(shooter.y,70,H-35);
+ // target and marble collisions
+ for(let m of pot){let dx=m.x-shooter.x,dy=m.y-shooter.y,d=Math.hypot(dx,dy),min=m.r+shooter.r;if(d<min&&d>0){let nx=dx/d,ny=dy/d;shooter.x-=nx*(min-d)*.5;shooter.y-=ny*(min-d)*.5;m.x+=nx*(min-d)*.5;m.y+=ny*(min-d)*.5;m.vx=nx*2.8;m.vy=ny*2.8}}
+ if(Math.hypot(shooter.vx,shooter.vy)<.13){finishShot()}}
+ // gentle movement of struck marbles; keep all missed marbles in play
+ if(phase==='result'||phase==='aim'){for(let m of pot){if(m.vx||m.vy){m.x+=m.vx;m.y+=m.vy;m.vx*=.91;m.vy*=.91;if(Math.abs(m.vx)+Math.abs(m.vy)<.08)m.vx=m.vy=0}}}
+ draw();requestAnimationFrame(loop)}
+$('intro').classList.remove('hidden');draw();update();requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
